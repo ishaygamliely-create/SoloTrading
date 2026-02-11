@@ -1,17 +1,17 @@
 'use client';
 import React from 'react';
-import { Target, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { PanelProps } from './DashboardPanels';
 import { ConfluenceSignal } from '../lib/confluence';
 
 export function ConfluencePanel({ data, loading }: PanelProps) {
     if (loading || !data?.analysis?.confluence) {
-        return <div className="animate-pulse bg-zinc-900 h-48 rounded-xl border border-zinc-800"></div>;
+        return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
     }
 
     const confluence = data.analysis.confluence as ConfluenceSignal;
-    const { level, suggestion, score, hint, debug } = confluence;
+    const { level, suggestion, debug } = confluence;
     const factors = debug?.factors || [];
+    const rawScore = debug?.rawScore || '0';
 
     // Level Colors
     let levelColor = 'text-zinc-500';
@@ -23,7 +23,7 @@ export function ConfluencePanel({ data, loading }: PanelProps) {
         borderColor = 'border-green-900/50';
         bgColor = 'bg-green-900/20';
     } else if (level === 'GOOD') {
-        levelColor = 'text-emerald-400'; // Slightly different green
+        levelColor = 'text-emerald-400';
         borderColor = 'border-emerald-900/50';
         bgColor = 'bg-emerald-900/20';
     } else if (level === 'WEAK') {
@@ -37,57 +37,54 @@ export function ConfluencePanel({ data, loading }: PanelProps) {
             suggestion === 'SHORT' ? 'text-red-400' : 'text-zinc-500';
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden h-full flex flex-col min-h-[180px]">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-zinc-900 to-zinc-950 border-b border-zinc-800 p-3 flex justify-between items-center">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 w-full flex flex-col justify-center gap-1">
+            {/* Row 1: Confidence | Score | Suggestion */}
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Target size={14} className="text-pink-400" />
-                    <h3 className="text-zinc-200 font-bold text-sm">CONFIDENCE</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className={`text-sm font-black ${levelColor}`}>{confluence.debug?.rawScore}/12</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${bgColor} ${borderColor} ${levelColor}`}>
+                    <span className="text-xs font-bold text-zinc-400 uppercase">CONFIDENCE</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-px rounded border ${bgColor} ${borderColor} ${levelColor}`}>
                         {level}
+                    </span>
+                    <span className={`text-xs font-mono font-bold ${levelColor}`}>
+                        ({rawScore}/12)
+                    </span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-zinc-500">Suggested:</span>
+                    <span className={`text-[10px] font-bold ${suggestionColor}`}>
+                        {suggestion}
                     </span>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="p-3 flex-1 flex flex-col gap-2">
+            {/* Row 2: Inline Factors */}
+            <div className="flex flex-wrap gap-x-3 text-[10px] leading-tight items-center">
+                {factors.slice(0, 5).map((f, i) => {
+                    // Extract simplified label if possible, or use full string
+                    // e.g. "+4 PSP CONFIRMED LONG" -> "+ PSP"
+                    // But user asked for "+ PSP", so let's try to be concise but informative
+                    // Actually user said: "+ Kill Zone + PSP - Premium - SMT"
+                    // Our factors string is like "+4 PSP CONFIRMED LONG".
+                    // Let's simplified display:
 
-                {/* Suggestion Row */}
-                <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-zinc-400 uppercase font-semibold">Suggested Action</span>
-                    <div className={`text-sm font-black px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 ${suggestionColor}`}>
-                        {suggestion}
-                    </div>
-                </div>
+                    const isPos = f.startsWith('+');
+                    const isNeg = f.startsWith('-');
+                    const color = isPos ? 'text-zinc-400' : isNeg ? 'text-zinc-500' : 'text-zinc-600';
 
-                {/* Hint */}
-                <p className="text-[10px] text-zinc-500 italic mb-2 border-b border-zinc-800/50 pb-2">
-                    {hint}
-                </p>
+                    // Simple cleaning to make it compact?
+                    // Remove the number maybe? "+4 PSP..." -> "PSP..."
+                    const cleanLabel = f.replace(/^[+-]\d+\s/, '').replace(/\(.*\)/, '').trim();
+                    // e.g. "PSP CONFIRMED LONG"
+                    // e.g. "ValueZone DISCOUNT supports LONG" -> "ValueZone DISCOUNT"
 
-                {/* Factors List (Scrollable if needed, but compact preferred) */}
-                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-1">
-                    {factors.slice(0, 5).map((f, i) => { // Show top 5 factors
-                        const isPos = f.startsWith('+');
-                        const isNeg = f.startsWith('-');
-                        return (
-                            <div key={i} className="flex items-center gap-2 text-[10px]">
-                                {isPos ? <CheckCircle2 size={10} className="text-green-500/80" /> :
-                                    isNeg ? <XCircle size={10} className="text-red-500/80" /> :
-                                        <AlertTriangle size={10} className="text-zinc-600" />}
-                                <span className={isPos ? 'text-zinc-300' : 'text-zinc-500'}>
-                                    {f}
-                                </span>
-                            </div>
-                        );
-                    })}
-                    {factors.length > 5 && (
-                        <span className="text-[9px] text-zinc-600 block pl-4">...and {factors.length - 5} more</span>
-                    )}
-                </div>
+                    // Keep it somewhat raw but styled
+                    return (
+                        <span key={i} className={`${color} whitespace-nowrap`}>
+                            {f.split(' ').slice(0, 3).join(' ')}
+                        </span>
+                    );
+                })}
+                {factors.length === 0 && <span className="text-zinc-600">No active signals</span>}
             </div>
         </div>
     );
