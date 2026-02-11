@@ -2,13 +2,29 @@
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
-import { detectPSP as detectPSPNew } from '../../lib/psp'; // NEW
+import { getSmtSignal } from '../../lib/smt'; // NEW
+import { getSessionSignal } from '../../lib/session'; // NEW
+import { applySessionSoftImpact } from '../../lib/sessionImpact'; // NEW
+import { getBiasSignal } from '../../lib/bias'; // NEW
+import { getValueZoneSignal } from '../../lib/valueZone'; // NEW
+import { getStructureSignal } from '../../lib/structure'; // NEW
+import { calculateConfluence } from '../../lib/confluence'; // NEW
+import { detectPSP as detectPSPNew } from '../../lib/psp'; // RESTORED
 import { calcExpansionLikelihood, getRangeStatus, getRangeHint } from '../../lib/liquidityRange'; // NEW
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
 
 const yahooFinance = new YahooFinance();
 
 export async function GET(request: Request) {
+    // Reference Symbols for SMT (Optimized: 2 Days only to prevent hangs)
+    const startDateSMT = new Date();
+    startDateSMT.setDate(startDateSMT.getDate() - 5); // Need more history for 15m swings
+
+    const refSymbols = ['ES=F', 'YM=F', 'RTY=F'];
+    const pRefs = Promise.all(refSymbols.map(s =>
+        yahooFinance.chart(s, { period1: startDateSMT, interval: '15m' }) // CHANGED to 15m
+            .catch(e => { console.warn(`SMT Fetch Failed for ${s}`, e); return null; })
+    ));
     const { searchParams } = new URL(request.url);
     let symbol = searchParams.get('symbol');
     const intervalArg = searchParams.get('interval') || '1m';
@@ -282,22 +298,41 @@ export async function GET(request: Request) {
 
         const ictStructure = [...obs15m, ...bbs15m, ...obs60m, ...bbs60m, ...obsDaily, ...bbsDaily];
 
+        // Reference Symbols for SMT (Optimized: 2 Days only to prevent hangs)
+        // ... (data fetching completed)
+
+        const nowMs = Date.now(); // Moved up for Session Logic
+
         // --- SMT CALCULATION ---
-        const smt: any[] = [];
+        const smtReferenceData: Record<string, Quote[]> = {};
         if (resRefs && resRefs.length > 0) {
             resRefs.forEach((res: any, i: number) => {
-                const refSymbol = refSymbols[i];
+                const refSymbol = refSymbols[i].replace('=F', ''); // Clean symbol name
                 const refQuotes = processQuotes(res);
-                if (refQuotes.length > 50) {
-                    const refStructure = detectMarketStructure(refQuotes);
-                    const divergence = detectSMT(structure, refStructure, refSymbol);
-                    if (divergence) {
-                        smt.push(divergence);
-                    }
+                if (refQuotes.length > 0) {
+                    smtReferenceData[refSymbol] = refQuotes;
                 }
             });
         }
-        const bias = calculateCompositeBias(lastPrice, vwap, trueDayOpen, pdh, pdl, emas.ema20, emas.ema50, emas.ema200, smt, fvgs, liquidity);
+
+        const smtSignalRaw = getSmtSignal({
+            mainQuotes15m: quotes15m,
+            referenceQuotes15m: smtReferenceData,
+            mainSymbol: symbol?.replace('=F', '') || 'NQ'
+        });
+
+        // --- SESSION & SOFT IMPACT ---
+        const session = getSessionSignal(nowMs);
+        const smtSignal = applySessionSoftImpact(smtSignalRaw, session);
+
+        // Adapters for legacy functions that might still expect 'smt' array (e.g. calculateCompositeBias)
+        // We will pass an empty array or a mock array if needed, OR update calculateCompositeBias next.
+        // For now, let's create a mock legacy array to prevent breaking bias calculation immediately
+        const smtLegacy: any[] = [];
+        if (smtSignal.score > 0) {
+            smtLegacy.push({ type: smtSignal.direction === 'LONG' ? 'BULLISH' : 'BEARISH', symbol: 'SMT_AGG' });
+        }
+        const bias = calculateCompositeBias(lastPrice, vwap, trueDayOpen, pdh, pdl, emas.ema20, emas.ema50, emas.ema200, smtLegacy, fvgs, liquidity);
         const risk = calculateRiskLevels(lastPrice, bias.score, structure, fvgs, liquidity, pdh, pdl);
 
         // --- MULTI-TIMEFRAME TRADE SCENARIOS ---
@@ -376,7 +411,7 @@ export async function GET(request: Request) {
         });
 
         // Current Server Time
-        const nowMs = Date.now();
+        // const nowMs = Date.now(); // Already declared above
 
         // Compute "Midnight in New York" relative to now
         // Simple approach: Get NY date parts for 'now', then construct date string for 00:00:00 NY
@@ -471,7 +506,44 @@ export async function GET(request: Request) {
 
         // --- END NY LOGIC ---
 
+        const biasSignal = getBiasSignal({
+            biasMode: nyBiasMode,
+            price: lastPrice,
+            midnightOpen,
+            buffer: 1.0,
+            dataStatus: lagStatus.status as any,
+            session
+        });
+
+        const valueZoneSignal = getValueZoneSignal({
+            price: lastPrice,
+            pdh: pdh || 0,
+            pdl: pdl || 0,
+            session,
+            dataStatus: lagStatus.status as any
+        });
+
+        const structureSignal = getStructureSignal({
+            quotes: quotes15m,
+            session,
+            dataStatus: lagStatus.status as any
+        });
+
         const pspResult = detectPSPNew(mainQuotesForChart);
+
+        const confluenceSignal = calculateConfluence({
+            session,
+            bias: biasSignal,
+            valueZone: valueZoneSignal,
+            structure: structureSignal,
+            smt: smtSignal,
+            psp: pspResult,
+            liquidityRange: {
+                status: getRangeStatus(pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0, (tre && tre.ratio > 0) ? ((pdRanges?.dailyHigh - pdRanges?.dailyLow) / tre.ratio) : 200),
+                expansionLikelihood: calcExpansionLikelihood(pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0, (tre && tre.ratio > 0) ? ((pdRanges?.dailyHigh - pdRanges?.dailyLow) / tre.ratio) : 200)
+            },
+            dataStatus: lagStatus.status as any
+        });
 
         return NextResponse.json({
             ...safeMeta,
@@ -497,10 +569,11 @@ export async function GET(request: Request) {
                     ema20: emas.ema20, ema50: emas.ema50, ema200: emas.ema200,
                     slope20: emas.slope20, slope50: emas.slope50, slope200: emas.slope200
                 },
-                structure,
+                structure: structureSignal, // Standardized v1
                 fvgs: fvgs ? fvgs.slice(-5).reverse() : [],
                 liquidity: liquidity ? liquidity.filter(l => Math.abs(l.price - lastPrice) / lastPrice < 0.05) : [],
-                bias,
+                bias: biasSignal, // Standardized
+                valueZone: valueZoneSignal, // NEW Standardized
                 nyBiasMode, // NEW
                 lagStatus,  // NEW
                 nyMidnightUtcMs, // NEW
@@ -520,9 +593,11 @@ export async function GET(request: Request) {
                     nyMidnightUtcMs,
                     midnightOpen
                 },
+                confluence: confluenceSignal, // Standardized v1
                 risk,
                 scenarios,
-                smt,
+                session, // NEW
+                smt: smtSignal,
                 psp: pspResult,
                 psps: [],
                 timeContext,

@@ -7,10 +7,14 @@ import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
 import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
 import MarketContextCompact from './components/MarketContextCompact';
-import { StructurePanel } from './components/StructurePanel';
+import { SMTPanel } from './components/SMTPanel'; // NEW
+import { SessionPanel } from './components/SessionPanel'; // NEW
 import { LiquidityPanel } from './components/LiquidityPanel';
 import { ConfluencePanel } from './components/ConfluencePanel';
-import { BiasPanel, LevelsPanel } from './components/DashboardPanels';
+import { LevelsPanel } from './components/DashboardPanels'; // Removed BiasPanel
+import { BiasPanel } from './components/BiasPanel'; // NEW Standalone
+import { ValueZonePanel } from './components/ValueZonePanel'; // NEW
+import { StructurePanel } from './components/StructurePanel'; // NEW
 import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
 import { useActiveTrade } from './context/ActiveTradeContext';
@@ -248,6 +252,8 @@ export default function Home() {
                 )}
                 <ConfluencePanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />
+                <ValueZonePanel data={data} loading={loading} />
+                <StructurePanel data={data} loading={loading} />
                 <LevelsPanel data={data} loading={loading} />
               </div>
 
@@ -273,6 +279,16 @@ export default function Home() {
                 {/* 0.5 Structure Map */}
                 <div className="h-80">
                   <StructurePanel data={data} loading={loading} />
+                </div>
+
+                {/* 0.6 SMT Divergence (Standardized) */}
+                <div className="h-32">
+                  <SMTPanel data={data} loading={loading} />
+                </div>
+
+                {/* 0.7 Session Status */}
+                <div className="h-24">
+                  <SessionPanel session={data.session} />
                 </div>
 
                 {/* 1. Trend Engine */}

@@ -1,110 +1,93 @@
 'use client';
-
 import React from 'react';
 import { Target, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { PanelProps } from './DashboardPanels';
+import { ConfluenceSignal } from '../lib/confluence';
 
 export function ConfluencePanel({ data, loading }: PanelProps) {
-    if (loading || !data?.analysis) return <div className="animate-pulse bg-zinc-900 h-48 rounded-xl border border-zinc-800"></div>;
-
-    const { timeContext, pdRanges, ictStructure, sweeps, tre, psps, smt } = data.analysis;
-    const currentPrice = data.quotes[data.quotes.length - 1].close;
-
-    // Calculate Score
-    let score = 0;
-    const factors: { label: string, type: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' }[] = [];
-
-    // 1. Time
-    if (timeContext?.isLondonKZ || timeContext?.isNYKZ) {
-        score += 2;
-        factors.push({ label: 'Kill Zone Active', type: 'POSITIVE' });
-    } else {
-        factors.push({ label: 'Off-Hours', type: 'NEUTRAL' });
+    if (loading || !data?.analysis?.confluence) {
+        return <div className="animate-pulse bg-zinc-900 h-48 rounded-xl border border-zinc-800"></div>;
     }
 
-    // 2. PD Range
-    if (pdRanges?.position === 'DISCOUNT') {
-        const bias = 'LONG'; // Assume discount favors long?
-        score += 1;
-        factors.push({ label: 'In Discount', type: 'NEUTRAL' });
-    } else if (pdRanges?.position === 'PREMIUM') {
-        score += 1;
-        factors.push({ label: 'In Premium', type: 'NEUTRAL' });
-    } else {
-        factors.push({ label: 'Equilibrium', type: 'NEUTRAL' });
+    const confluence = data.analysis.confluence as ConfluenceSignal;
+    const { level, suggestion, score, hint, debug } = confluence;
+    const factors = debug?.factors || [];
+
+    // Level Colors
+    let levelColor = 'text-zinc-500';
+    let borderColor = 'border-zinc-700';
+    let bgColor = 'bg-zinc-800';
+
+    if (level === 'STRONG') {
+        levelColor = 'text-green-400';
+        borderColor = 'border-green-900/50';
+        bgColor = 'bg-green-900/20';
+    } else if (level === 'GOOD') {
+        levelColor = 'text-emerald-400'; // Slightly different green
+        borderColor = 'border-emerald-900/50';
+        bgColor = 'bg-emerald-900/20';
+    } else if (level === 'WEAK') {
+        levelColor = 'text-yellow-400';
+        borderColor = 'border-yellow-900/50';
+        bgColor = 'bg-yellow-900/20';
     }
 
-    // 3. Sweeps
-    if (sweeps && sweeps.length > 0) {
-        const lastSweep = sweeps[sweeps.length - 1];
-        if (lastSweep.reclaimed) {
-            score += 2.5;
-            factors.push({ label: `Reclaimed ${lastSweep.level}`, type: 'POSITIVE' });
-        } else {
-            factors.push({ label: `${lastSweep.level} Swept (Pending)`, type: 'NEUTRAL' });
-        }
-    }
-
-    // 4. Structure & PSP
-    if (psps && psps.length > 0) {
-        score += 1.5;
-        factors.push({ label: `${psps.length} Active PSPs`, type: 'POSITIVE' });
-    }
-
-    // 5. Structure
-    const nearbyOB = ictStructure?.find((b: any) => Math.abs(currentPrice - b.price) / currentPrice < 0.002);
-    if (nearbyOB) {
-        score += 2;
-        factors.push({ label: `At ${nearbyOB.tf} ${nearbyOB.type === 'ORDER_BLOCK' ? 'OB' : 'Breaker'}`, type: 'POSITIVE' });
-    }
-
-    // 6. SMT
-    const hasSMT = smt && smt.some((s: any) => s.type !== 'NONE');
-    if (hasSMT) {
-        score += 2;
-        factors.push({ label: 'SMT Divergence', type: 'POSITIVE' });
-    }
-
-    // Cap Score
-    score = Math.min(10, score);
-
-    let tier = 'LOW';
-    let color = 'text-zinc-500';
-    if (score >= 7) { tier = 'HIGH'; color = 'text-green-400'; }
-    else if (score >= 4) { tier = 'MEDIUM'; color = 'text-yellow-400'; }
+    const suggestionColor =
+        suggestion === 'LONG' ? 'text-green-400' :
+            suggestion === 'SHORT' ? 'text-red-400' : 'text-zinc-500';
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden h-full flex flex-col min-h-[200px]">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden h-full flex flex-col min-h-[180px]">
             {/* Header */}
             <div className="bg-gradient-to-r from-zinc-900 to-zinc-950 border-b border-zinc-800 p-3 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <Target size={14} className="text-pink-400" />
-                    <h3 className="text-zinc-200 font-bold text-sm">Confluence Engine</h3>
+                    <h3 className="text-zinc-200 font-bold text-sm">CONFIDENCE</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={`text-sm font-black ${color}`}>{score.toFixed(1)}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${tier === 'HIGH' ? 'bg-green-900/20 border-green-900/50 text-green-400' :
-                            tier === 'MEDIUM' ? 'bg-yellow-900/20 border-yellow-900/50 text-yellow-400' :
-                                'bg-zinc-800 border-zinc-700 text-zinc-500'
-                        }`}>{tier}</span>
+                    <span className={`text-sm font-black ${levelColor}`}>{confluence.debug?.rawScore}/12</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${bgColor} ${borderColor} ${levelColor}`}>
+                        {level}
+                    </span>
                 </div>
             </div>
 
-            <div className="p-3 flex-1 overflow-y-auto hide-scrollbar space-y-2">
-                {factors.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                        {f.type === 'POSITIVE' ? <CheckCircle2 size={12} className="text-green-500" /> :
-                            f.type === 'NEGATIVE' ? <XCircle size={12} className="text-red-500" /> :
-                                <AlertTriangle size={12} className="text-zinc-600" />}
-                        <span className={f.type === 'POSITIVE' ? 'text-zinc-200 font-medium' : 'text-zinc-500'}>
-                            {f.label}
-                        </span>
-                    </div>
-                ))}
+            {/* Main Content */}
+            <div className="p-3 flex-1 flex flex-col gap-2">
 
-                {factors.length === 0 && (
-                    <span className="text-[10px] text-zinc-600 block text-center mt-4">No active signals</span>
-                )}
+                {/* Suggestion Row */}
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-zinc-400 uppercase font-semibold">Suggested Action</span>
+                    <div className={`text-sm font-black px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 ${suggestionColor}`}>
+                        {suggestion}
+                    </div>
+                </div>
+
+                {/* Hint */}
+                <p className="text-[10px] text-zinc-500 italic mb-2 border-b border-zinc-800/50 pb-2">
+                    {hint}
+                </p>
+
+                {/* Factors List (Scrollable if needed, but compact preferred) */}
+                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-1">
+                    {factors.slice(0, 5).map((f, i) => { // Show top 5 factors
+                        const isPos = f.startsWith('+');
+                        const isNeg = f.startsWith('-');
+                        return (
+                            <div key={i} className="flex items-center gap-2 text-[10px]">
+                                {isPos ? <CheckCircle2 size={10} className="text-green-500/80" /> :
+                                    isNeg ? <XCircle size={10} className="text-red-500/80" /> :
+                                        <AlertTriangle size={10} className="text-zinc-600" />}
+                                <span className={isPos ? 'text-zinc-300' : 'text-zinc-500'}>
+                                    {f}
+                                </span>
+                            </div>
+                        );
+                    })}
+                    {factors.length > 5 && (
+                        <span className="text-[9px] text-zinc-600 block pl-4">...and {factors.length - 5} more</span>
+                    )}
+                </div>
             </div>
         </div>
     );
