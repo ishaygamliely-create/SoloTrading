@@ -363,6 +363,110 @@ export async function GET(request: Request) {
 
         const safeMeta = resMain.meta || {};
 
+        // --- NY MIDNIGHT & LAG DETECTION (Server-Side) ---
+        // 1. Detect NY Midnight Timestamp (Strict)
+        const nyDateFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric',
+            hour12: false
+        });
+
+        // Current Server Time
+        const nowMs = Date.now();
+
+        // Compute "Midnight in New York" relative to now
+        // Simple approach: Get NY date parts for 'now', then construct date string for 00:00:00 NY
+        const parts = nyDateFormatter.formatToParts(new Date(nowMs));
+        const p = (type: string) => parts.find(p => p.type === type)?.value;
+        const nyDateStr = `${p('month')}/${p('day')}/${p('year')} 00:00:00`;
+
+        // 1. Detect NY Midnight Timestamp (Strict)
+        // Corrected strict check: Year, Month, Day + 00:00
+        const nowParts = nyDateFormatter.formatToParts(new Date(nowMs));
+        const nowDay = parseInt(nowParts.find(p => p.type === 'day')?.value || '0');
+        const nowMonth = parseInt(nowParts.find(p => p.type === 'month')?.value || '0');
+        const nowYear = parseInt(nowParts.find(p => p.type === 'year')?.value || '0');
+
+        let nyMidnightUtcMs = 0;
+        let midnightOpen = 0;
+
+        for (let i = quotes1m.length - 1; i >= 0; i--) {
+            const qTimeMs = quotes1m[i].time * 1000;
+            const qParts = nyDateFormatter.formatToParts(new Date(qTimeMs));
+
+            const qHour = parseInt(qParts.find(p => p.type === 'hour')?.value || '0');
+            const qMinute = parseInt(qParts.find(p => p.type === 'minute')?.value || '0');
+            const qDay = parseInt(qParts.find(p => p.type === 'day')?.value || '0');
+            const qMonth = parseInt(qParts.find(p => p.type === 'month')?.value || '0');
+            const qYear = parseInt(qParts.find(p => p.type === 'year')?.value || '0');
+
+            // Strict Match: Same Year, Month, Day AND 00:00
+            if (qDay === nowDay && qMonth === nowMonth && qYear === nowYear
+                && qHour === 0 && qMinute === 0) {
+                nyMidnightUtcMs = qTimeMs;
+                midnightOpen = quotes1m[i].open;
+                break;
+            }
+        }
+
+        // Fallback: If 00:00 candle missing, try to find the very first candle of the NY Day
+        if (midnightOpen === 0 && quotes1m.length > 0) {
+            for (let i = 0; i < quotes1m.length; i++) {
+                const qTimeMs = quotes1m[i].time * 1000;
+                const qParts = nyDateFormatter.formatToParts(new Date(qTimeMs));
+                const qDay = parseInt(qParts.find(p => p.type === 'day')?.value || '0');
+                const qMonth = parseInt(qParts.find(p => p.type === 'month')?.value || '0');
+                const qYear = parseInt(qParts.find(p => p.type === 'year')?.value || '0');
+
+                if (qDay === nowDay && qMonth === nowMonth && qYear === nowYear) {
+                    nyMidnightUtcMs = qTimeMs;
+                    midnightOpen = quotes1m[i].open;
+                    break;
+                }
+            }
+        }
+
+        // 2. Buffered Bias (Deterministic Reducer)
+        const { calculateBufferedBias } = await import('../../lib/analysis');
+        const nyBiasMode = calculateBufferedBias(quotes1m, midnightOpen, nyMidnightUtcMs / 1000);
+
+        // 3. Lag Detection (Refined)
+        const lastQuote = quotes1m.length > 0 ? quotes1m[quotes1m.length - 1] : null;
+        const lastBarMs = lastQuote ? lastQuote.date.getTime() : 0;
+        const dataAgeMs = lastBarMs > 0 ? (nowMs - lastBarMs) : 0;
+
+        // Format Last Bar Time in NY
+        let lastBarTimeNy = 'N/A';
+        if (lastBarMs > 0) {
+            const lbParts = nyDateFormatter.formatToParts(new Date(lastBarMs));
+            const lbH = lbParts.find(p => p.type === 'hour')?.value || '00';
+            const lbM = lbParts.find(p => p.type === 'minute')?.value || '00';
+            const lbS = lbParts.find(p => p.type === 'second')?.value || '00';
+            lastBarTimeNy = `${lbH}:${lbM}:${lbS}`;
+        }
+
+        // Thresholds:
+        // OK: < 2 mins (soft warning at 2?)
+        // DELAYED: > 5 mins (Standard Yahoo Delay)
+        // BLOCKED: > 15 mins (Safety Block)
+        // MARKET_CLOSED: > 60 mins (Weekend/Post-Market)
+
+        let status = 'OK';
+        if (dataAgeMs >= 60 * 60000) status = 'MARKET_CLOSED';
+        else if (dataAgeMs >= 15 * 60000) status = 'BLOCKED';
+        else if (dataAgeMs >= 5 * 60000) status = 'DELAYED';
+
+        const lagStatus = {
+            stalenessMs: dataAgeMs, // Pure Data Age
+            status,
+            isBlocked: status === 'BLOCKED', // Closed doesn't necessarily "block" viewing, but signals stop
+            isWarning: status === 'DELAYED',
+            lastBarTimeNy // For UI Transparency
+        };
+
+        // --- END NY LOGIC ---
+
         return NextResponse.json({
             ...safeMeta,
             symbol: safeMeta.symbol || symbol,
@@ -391,22 +495,22 @@ export async function GET(request: Request) {
                 fvgs: fvgs ? fvgs.slice(-5).reverse() : [],
                 liquidity: liquidity ? liquidity.filter(l => Math.abs(l.price - lastPrice) / lastPrice < 0.05) : [],
                 bias,
+                nyBiasMode, // NEW
+                lagStatus,  // NEW
+                nyMidnightUtcMs, // NEW
+                midnightOpen,    // NEW
                 risk,
                 scenarios,
                 smt,
-                // psps: allPSPs, 
-                // Using existing aggregated PSP calculation is safer, I commented out psps defs above in the replacement to avoid duplicate vars, 
-                // but I should probably reconstruct the aggregated array properly.
-                // Re-calculating aggregated PSPs for response:
-                psps: [], // (Placeholder for brevity, assuming standard dashboard use scenarios primarily)
+                psps: [],
                 timeContext,
                 pdRanges,
                 ictStructure,
                 sweeps,
                 tre,
-                dxyContext, // NEW FIELD IN RESPONSE
-                regime: mainRegime, // NEW FIELD IN RESPONSE
-                technical: technicals // NEW FIELD IN RESPONSE
+                dxyContext,
+                regime: mainRegime,
+                technical: technicals
             },
             // ... quotes
             quotes: interval === '1m' ? mainQuotesForChart.map((q, i) => ({

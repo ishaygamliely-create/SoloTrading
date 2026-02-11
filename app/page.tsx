@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Search, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, AlertCircle, Loader2, Menu, X } from 'lucide-react';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
 import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
@@ -20,7 +20,7 @@ function TradePanelSection({ data, loading }: { data: any, loading: boolean }) {
   // to avoid blocking the scenarios grid.
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+    <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl w-full">
       <h3 className="text-sm font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-indigo-500" /> Trade Execution Scenarios
       </h3>
@@ -40,6 +40,7 @@ const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart),
 
 export default function Home() {
   const [symbol, setSymbol] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
@@ -69,18 +70,60 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white selection:bg-blue-500/30 font-sans">
+    <div className="flex min-h-screen flex-col bg-black text-white selection:bg-blue-500/30 font-sans w-full max-w-full overflow-x-hidden">
 
-      <main className="flex-1 p-6 relative z-10 overflow-y-auto">
-        <div className="max-w-7xl mx-auto space-y-6">
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="relative w-4/5 max-w-xs bg-zinc-900 border-r border-zinc-800 h-full p-4 overflow-y-auto shadow-2xl animate-in slide-in-from-left duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold text-white">Menu</h2>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-zinc-500 uppercase mb-2">Active Trades</h3>
+                <SidebarActiveTrade data={data} />
+              </div>
+
+              {/* Mobile Navigation Links or other sidebar items could go here */}
+              <div className="pt-4 border-t border-zinc-800">
+                <button
+                  onClick={() => { setMobileMenuOpen(false); document.getElementById('analytics-section')?.scrollIntoView({ behavior: 'smooth' }); }}
+                  className="w-full text-left py-2 text-zinc-400 hover:text-white text-sm"
+                >
+                  Scroll to Analytics
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 p-4 md:p-6 relative z-10 overflow-y-auto w-full">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
 
           {/* Header & Search */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 backdrop-blur-sm">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                Advanced Market Engine
-              </h1>
-              <p className="text-zinc-400 text-sm">Real-time Institutional Analytics</p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 backdrop-blur-sm sticky top-0 z-40 md:relative">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* Mobile Hamburger */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg"
+              >
+                <Menu size={24} />
+              </button>
+
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                  Advanced Market Engine
+                </h1>
+                <p className="text-zinc-400 text-xs md:text-sm">Real-time Institutional Analytics</p>
+              </div>
             </div>
 
             <div className="flex gap-2 w-full md:w-auto">
@@ -89,18 +132,18 @@ export default function Home() {
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                 placeholder="Symbol (e.g. MNQ)"
-                className="bg-zinc-950 border border-zinc-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 transition-all"
+                className="bg-zinc-950 border border-zinc-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 transition-all text-sm md:text-base"
                 onKeyDown={(e) => e.key === 'Enter' && fetchData()}
               />
               <button
                 onClick={() => fetchData()}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 md:px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap text-sm md:text-base"
               >
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Loading
+                    <span className="hidden md:inline">Loading</span>
                   </>
                 ) : 'Analyze'}
               </button>
@@ -114,7 +157,7 @@ export default function Home() {
           )}
 
           {data && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
 
               {/* GLOBAL SENTIMENT (Full Width) */}
               <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -171,7 +214,7 @@ export default function Home() {
               </div>
 
               {/* MAIN CHART AREA (Left - 3 Cols logic, visually prominent) */}
-              <div className="lg:col-span-3 bg-zinc-900 border border-zinc-800 rounded-xl p-1 shadow-2xl relative overflow-hidden h-[500px]">
+              <div className="lg:col-span-3 bg-zinc-900 border border-zinc-800 rounded-xl p-1 shadow-2xl relative overflow-hidden h-[350px] md:h-[500px]">
                 {/* Header overlay for chart */}
                 <div className="absolute top-4 left-4 z-10 pointer-events-none">
                   <span className="px-2 py-1 bg-black/50 backdrop-blur text-xs text-zinc-300 rounded">
@@ -185,8 +228,8 @@ export default function Home() {
               </div>
 
               {/* LEFT COLUMN: VISUALS & BIAS (2 Cols) */}
-              <div className="col-span-12 lg:col-span-3 xl:col-span-2 flex flex-col gap-4">
-                <SidebarActiveTrade data={data} />
+              <div className="col-span-1 lg:col-span-3 xl:col-span-2 flex flex-col gap-4 w-full">
+                {/* Removed duplicate SidebarActiveTrade here, it is now in the sidebar/drawer */}
                 <TimeAlignmentPanel data={data} loading={loading} />
                 <MarketContextPanel data={data} loading={loading} />
                 <ConfluencePanel data={data} loading={loading} />
@@ -195,10 +238,12 @@ export default function Home() {
               </div>
 
               {/* ANALYTICS SIDEBAR (Right - 1 Col) */}
-              <div className="col-span-12 lg:col-span-1 space-y-4">
+              <div id="analytics-section" className="col-span-1 lg:col-span-1 space-y-4 w-full">
 
-                {/* Active Trades Watchlist */}
-                <SidebarActiveTrade data={data} />
+                {/* Active Trades Watchlist (Desktop Only - Mobile uses Drawer) */}
+                <div className="hidden md:block">
+                  <SidebarActiveTrade data={data} />
+                </div>
                 <ActiveTradePanel data={data} loading={loading} />
 
                 {/* 0. PSP Scanner */}

@@ -14,7 +14,7 @@ export function SidebarActiveTrade({ data }: { data?: any }) {
     // if (savedTrades.length === 0) return null; 
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4 shadow-lg ring-1 ring-inset ring-zinc-800">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4 shadow-lg ring-1 ring-inset ring-zinc-800 w-full">
             {/* Header */}
             <div className="px-4 py-3 bg-zinc-950/50 border-b border-zinc-800/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">

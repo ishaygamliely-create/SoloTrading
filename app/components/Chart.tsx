@@ -28,24 +28,23 @@ export const Chart: React.FC<ChartProps> = ({ data, colors = {} }) => {
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
-        const handleResize = () => {
-            if (chartRef.current && chartContainerRef.current) {
-                chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-            }
-        };
-
         const {
             backgroundColor = 'black',
             textColor = 'white',
         } = colors;
 
-        chartRef.current = createChart(chartContainerRef.current, {
+        // Initialize with container dimensions
+        const container = chartContainerRef.current;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        chartRef.current = createChart(container, {
             layout: {
                 background: { type: ColorType.Solid, color: backgroundColor },
                 textColor,
             },
-            width: chartContainerRef.current.clientWidth,
-            height: 500,
+            width,
+            height,
             grid: {
                 vertLines: { color: '#333' },
                 horzLines: { color: '#333' },
@@ -56,7 +55,6 @@ export const Chart: React.FC<ChartProps> = ({ data, colors = {} }) => {
             }
         });
 
-        // Main Candlestick Series
         const candlestickSeries = chartRef.current.addSeries(CandlestickSeries, {
             upColor: '#26a69a',
             downColor: '#ef5350',
@@ -75,10 +73,24 @@ export const Chart: React.FC<ChartProps> = ({ data, colors = {} }) => {
             }))
         );
 
-        window.addEventListener('resize', handleResize);
+        // Resize Observer for dynamic sizing (Width & Height)
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (!chartRef.current) return;
+
+            for (const entry of entries) {
+                if (entry.contentRect) {
+                    chartRef.current.applyOptions({
+                        width: entry.contentRect.width,
+                        height: entry.contentRect.height
+                    });
+                }
+            }
+        });
+
+        resizeObserver.observe(container);
 
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             if (chartRef.current) {
                 chartRef.current.remove();
             }
