@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Search, TrendingUp, AlertCircle, Loader2, Menu, X } from 'lucide-react';
+import { ErrorBoundary } from './components/ErrorBoundary'; // NEW
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
 import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
@@ -236,25 +237,37 @@ export default function Home() {
                 {/* Removed duplicate SidebarActiveTrade here, it is now in the sidebar/drawer */}
                 <TimeAlignmentPanel data={data} loading={loading} />
 
-                {data.analysis?.marketContext && (
-                  <MarketContextCompact
-                    price={data.analysis.marketContext.price}
-                    pdh={data.analysis.marketContext.pdh}
-                    pdl={data.analysis.marketContext.pdl}
-                    eq={data.analysis.marketContext.eq}
-                    dailyRangePercent={data.analysis.marketContext.dailyRangePercent}
-                    regime={data.analysis.marketContext.regime}
-                    biasMode={data.analysis.marketContext.biasMode}
-                    dataStatus={data.analysis.marketContext.dataStatus}
-                    dataAgeLabel={data.analysis.marketContext.dataAgeLabel}
-                    lastBarNyTime={data.analysis.marketContext.lastBarNyTime}
-                  />
-                )}
-                <ConfluencePanel data={data} loading={loading} />
-                <BiasPanel data={data} loading={loading} />
-                <ValueZonePanel data={data} loading={loading} />
-                <StructurePanel data={data} loading={loading} />
-                <LevelsPanel data={data} loading={loading} />
+                <ErrorBoundary name="MarketContext">
+                  {data.analysis?.marketContext && (
+                    <MarketContextCompact
+                      price={data.analysis.marketContext.price}
+                      pdh={data.analysis.marketContext.pdh}
+                      pdl={data.analysis.marketContext.pdl}
+                      eq={data.analysis.marketContext.eq}
+                      dailyRangePercent={data.analysis.marketContext.dailyRangePercent}
+                      regime={data.analysis.marketContext.regime}
+                      biasMode={data.analysis.marketContext.biasMode}
+                      dataStatus={data.analysis.marketContext.dataStatus}
+                      dataAgeLabel={data.analysis.marketContext.dataAgeLabel}
+                      lastBarNyTime={data.analysis.marketContext.lastBarNyTime}
+                    />
+                  )}
+                </ErrorBoundary>
+                <ErrorBoundary name="ConfluencePanel">
+                  <ConfluencePanel data={data} loading={loading} />
+                </ErrorBoundary>
+                <ErrorBoundary name="BiasPanel">
+                  <BiasPanel data={data} loading={loading} />
+                </ErrorBoundary>
+                <ErrorBoundary name="ValueZonePanel">
+                  <ValueZonePanel data={data} loading={loading} />
+                </ErrorBoundary>
+                <ErrorBoundary name="StructurePanel">
+                  <StructurePanel data={data} loading={loading} />
+                </ErrorBoundary>
+                <ErrorBoundary name="LevelsPanel">
+                  <LevelsPanel data={data} loading={loading} />
+                </ErrorBoundary>
               </div>
 
               {/* ANALYTICS SIDEBAR (Right - 1 Col) */}

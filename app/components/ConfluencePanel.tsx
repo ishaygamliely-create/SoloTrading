@@ -10,7 +10,7 @@ export function ConfluencePanel({ data, loading }: PanelProps) {
 
     const confluence = data.analysis.confluence as ConfluenceSignal;
     const { level, suggestion, debug } = confluence;
-    const factors = debug?.factors || [];
+    const factors = Array.isArray(debug?.factors) ? debug.factors : [];
     const rawScore = debug?.rawScore || '0';
 
     // Level Colors
@@ -59,7 +59,7 @@ export function ConfluencePanel({ data, loading }: PanelProps) {
 
             {/* Row 2: Inline Factors */}
             <div className="flex flex-wrap gap-x-3 text-[10px] leading-tight items-center">
-                {factors.slice(0, 5).map((f, i) => {
+                {factors.filter(f => typeof f === 'string').slice(0, 5).map((f, i) => {
                     // Extract simplified label if possible, or use full string
                     // e.g. "+4 PSP CONFIRMED LONG" -> "+ PSP"
                     // But user asked for "+ PSP", so let's try to be concise but informative
