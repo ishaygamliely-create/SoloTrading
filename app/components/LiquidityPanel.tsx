@@ -8,11 +8,15 @@ type Props = {
 };
 
 export function LiquidityPanel({ data, loading }: Props) {
-    if (loading || !data?.analysis?.liquidityRange) {
+    if (loading) {
         return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-full min-h-[160px]"></div>;
     }
 
-    const lr = data.analysis.liquidityRange;
+    if (!data?.analysis) return null;
+
+    const lr = data.analysis.liquidityRange || {};
+    const fvgs = data.analysis.fvgs || [];
+    const pools = data.analysis.liquidity || []; // "Active Liquidity"
 
     const statusColor =
         lr.status === "COMPRESSED"
@@ -22,40 +26,71 @@ export function LiquidityPanel({ data, loading }: Props) {
                 : "text-red-400 border-red-500/30 bg-red-500/10";
 
     return (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col gap-2 min-h-[160px]">
+            {/* Header */}
+            <div className="flex items-center justify-between">
                 <div className="text-xs font-bold text-zinc-400 uppercase">
                     Liquidity & Range
                 </div>
+                {lr.status && (
+                    <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${statusColor}`}>
+                        {lr.status}
+                    </div>
+                )}
+            </div>
 
-                <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${statusColor}`}>
-                    {lr.status}
+            {/* Range Info */}
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-zinc-950/40 p-1.5 rounded border border-zinc-800/50">
+                    <span className="text-zinc-500 block mb-0.5">Range / ADR</span>
+                    <span className="text-zinc-300 font-mono">
+                        {lr.currentRange ? Number(lr.currentRange).toFixed(2) : '-'} / {lr.avgRange ? Number(lr.avgRange).toFixed(2) : '-'}
+                    </span>
+                </div>
+                <div className="bg-zinc-950/40 p-1.5 rounded border border-zinc-800/50">
+                    <span className="text-zinc-500 block mb-0.5">Sweep Status</span>
+                    <span className={lr.hasMajorSweep ? 'text-green-400 font-bold' : 'text-zinc-500'}>
+                        {lr.hasMajorSweep ? "YES" : "NO"}
+                    </span>
                 </div>
             </div>
 
-            <div className="space-y-1 flex-1 flex flex-col justify-center">
-                <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-zinc-500">Current Range</span>
-                    <span className="text-zinc-200 font-bold">{Number(lr.currentRange).toFixed(2)}</span>
+            {/* FVG & Pools Section */}
+            <div className="flex-1 overflow-hidden flex flex-col gap-1">
+                {/* FVGs */}
+                <div className="min-h-[1.2rem]">
+                    <span className="text-[9px] text-zinc-600 uppercase font-bold mr-2">FVGs:</span>
+                    {fvgs.length > 0 ? (
+                        <div className="inline-flex gap-1 flex-wrap">
+                            {fvgs.slice(0, 2).map((f: any, i: number) => (
+                                <span key={i} className={`text-[9px] px-1 rounded border ${f.type === 'BULLISH' ? 'border-green-900 text-green-500' : 'border-red-900 text-red-500'}`}>
+                                    {f.bottom?.toFixed(0)}-{f.top?.toFixed(0)}
+                                </span>
+                            ))}
+                        </div>
+                    ) : <span className="text-[9px] text-zinc-700 italic">None</span>}
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-zinc-500">Avg Range (ADR)</span>
-                    <span className="text-zinc-200">{Number(lr.avgRange).toFixed(2)}</span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs font-mono mt-1">
-                    <span className="text-zinc-500">{lr.adrPercent}% of ADR</span>
-                    <span className="text-zinc-200">Exp. Likelihood <span className={lr.expansionLikelihood > 70 ? 'text-green-400' : 'text-zinc-400'}>{lr.expansionLikelihood}%</span></span>
+                {/* Pools */}
+                <div className="min-h-[1.2rem]">
+                    <span className="text-[9px] text-zinc-600 uppercase font-bold mr-2">Pools:</span>
+                    {pools.length > 0 ? (
+                        <div className="inline-flex gap-1 flex-wrap">
+                            {pools.slice(0, 3).map((p: any, i: number) => (
+                                <span key={i} className={`text-[9px] px-1 rounded border ${p.type === 'EQH' ? 'border-red-900 text-red-400' : 'border-green-900 text-green-400'}`}>
+                                    {p.price?.toFixed(0)}
+                                </span>
+                            ))}
+                        </div>
+                    ) : <span className="text-[9px] text-zinc-700 italic">Clean</span>}
                 </div>
             </div>
 
-            <div className="mt-3 rounded border border-zinc-800 bg-zinc-950/40 p-2 text-[10px] text-zinc-300 font-medium leading-relaxed">
-                <span className={lr.hasMajorSweep ? 'text-green-400 font-bold' : 'text-zinc-500 font-bold'}>
-                    {lr.hasMajorSweep ? "Sweep: YES. " : "Sweep: None. "}
-                </span>
-                {lr.hint}
-            </div>
+            {lr.hint && (
+                <div className="text-[9px] text-zinc-500 leading-tight border-t border-zinc-800/50 pt-1 mt-auto">
+                    {lr.hint}
+                </div>
+            )}
         </div>
     );
 }

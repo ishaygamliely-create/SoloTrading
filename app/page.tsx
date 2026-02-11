@@ -3,22 +3,22 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Search, TrendingUp, AlertCircle, Loader2, Menu, X } from 'lucide-react';
-import { ErrorBoundary } from './components/ErrorBoundary'; // NEW
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
 import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
 import MarketContextCompact from './components/MarketContextCompact';
-import { SMTPanel } from './components/SMTPanel'; // NEW
-import { SessionPanel } from './components/SessionPanel'; // NEW
+import { SMTPanel } from './components/SMTPanel';
+import { SessionPanel } from './components/SessionPanel';
 import { LiquidityPanel } from './components/LiquidityPanel';
 import { ConfluencePanel } from './components/ConfluencePanel';
-import { LevelsPanel } from './components/DashboardPanels'; // Removed BiasPanel
-import { BiasPanel } from './components/BiasPanel'; // NEW Standalone
-import { ValueZonePanel } from './components/ValueZonePanel'; // NEW
-import { StructurePanel } from './components/StructurePanel'; // NEW
+import { LevelsPanel } from './components/LevelsPanel';
+import { BiasPanel } from './components/BiasPanel';
+import { ValueZonePanel } from './components/ValueZonePanel';
+import { StructurePanel } from './components/StructurePanel';
+import { RiskPanel } from './components/RiskPanel';
 import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
-import { useActiveTrade } from './context/ActiveTradeContext';
 
 function TradePanelSection({ data, loading }: { data: any, loading: boolean }) {
   // Active Trade is now handled in the SidebarActiveTrade component
@@ -218,7 +218,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* MAIN CHART AREA (Left - 3 Cols logic, visually prominent) */}
+              {/* MAIN CHART AREA (Left - 3 Cols logic) */}
               <div className="lg:col-span-3 bg-zinc-900 border border-zinc-800 rounded-xl p-1 shadow-2xl relative overflow-hidden h-[350px] md:h-[500px]">
                 {/* Header overlay for chart */}
                 <div className="absolute top-4 left-4 z-10 pointer-events-none">
@@ -234,7 +234,7 @@ export default function Home() {
 
               {/* LEFT COLUMN: VISUALS & BIAS (2 Cols) */}
               <div className="col-span-1 lg:col-span-3 xl:col-span-2 flex flex-col gap-4 w-full">
-                {/* Removed duplicate SidebarActiveTrade here, it is now in the sidebar/drawer */}
+
                 <TimeAlignmentPanel data={data} loading={loading} />
 
                 <ErrorBoundary name="MarketContext">
@@ -253,21 +253,28 @@ export default function Home() {
                     />
                   )}
                 </ErrorBoundary>
-                <ErrorBoundary name="ConfluencePanel">
-                  <ConfluencePanel data={data} loading={loading} />
-                </ErrorBoundary>
-                <ErrorBoundary name="BiasPanel">
-                  <BiasPanel data={data} loading={loading} />
-                </ErrorBoundary>
-                <ErrorBoundary name="ValueZonePanel">
-                  <ValueZonePanel data={data} loading={loading} />
-                </ErrorBoundary>
-                <ErrorBoundary name="StructurePanel">
-                  <StructurePanel data={data} loading={loading} />
-                </ErrorBoundary>
-                <ErrorBoundary name="LevelsPanel">
-                  <LevelsPanel data={data} loading={loading} />
-                </ErrorBoundary>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ErrorBoundary name="ConfluencePanel">
+                    <ConfluencePanel data={data} loading={loading} />
+                  </ErrorBoundary>
+
+                  <ErrorBoundary name="BiasPanel">
+                    <BiasPanel data={data} loading={loading} />
+                  </ErrorBoundary>
+
+                  <ErrorBoundary name="ValueZonePanel">
+                    <ValueZonePanel data={data} loading={loading} />
+                  </ErrorBoundary>
+
+                  <ErrorBoundary name="StructurePanel">
+                    <StructurePanel data={data} loading={loading} />
+                  </ErrorBoundary>
+
+                  <ErrorBoundary name="LevelsPanel">
+                    <LevelsPanel data={data} loading={loading} />
+                  </ErrorBoundary>
+                </div>
               </div>
 
               {/* ANALYTICS SIDEBAR (Right - 1 Col) */}
@@ -277,201 +284,28 @@ export default function Home() {
                 <div className="hidden md:block">
                   <SidebarActiveTrade data={data} />
                 </div>
+
                 <ActiveTradePanel data={data} loading={loading} />
 
-                {/* 0. PSP Scanner */}
                 <div className="h-64">
                   <PSPPanel data={data} loading={loading} />
                 </div>
 
-                {/* 0.2 Liquidity & Range */}
                 <div className="h-64">
                   <LiquidityPanel data={data} loading={loading} />
                 </div>
 
-                {/* 0.5 Structure Map */}
-                <div className="h-80">
-                  <StructurePanel data={data} loading={loading} />
-                </div>
-
-                {/* 0.6 SMT Divergence (Standardized) */}
                 <div className="h-32">
                   <SMTPanel data={data} loading={loading} />
                 </div>
 
-                {/* 0.7 Session Status */}
                 <div className="h-24">
                   <SessionPanel session={data.session} />
                 </div>
 
-                {/* 1. Trend Engine */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" /> Trend Engine
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">EMA 20</span>
-                      <span className="font-mono text-cyan-400">{data.analysis?.emas?.ema20?.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">EMA 50</span>
-                      <span className="font-mono text-yellow-400">{data.analysis?.emas?.ema50?.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">EMA 200</span>
-                      <span className="font-mono text-white">{data.analysis?.emas?.ema200?.toFixed(2)}</span>
-                    </div>
-                    <div className="h-px bg-zinc-800 my-2" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-zinc-500">Regime</span>
-                      <span className={`text-xs font-bold ${(data.regularMarketPrice || 0) > (data.analysis?.emas?.ema200 || 0) ? 'text-green-500' : 'text-red-500'
-                        }`}>
-                        {(data.regularMarketPrice || 0) > (data.analysis?.emas?.ema200 || 0) ? 'MACRO BULLISH' : 'MACRO BEARISH'}
-                      </span>
-                    </div>
-                  </div>
+                <div className="h-48">
+                  <RiskPanel data={data} loading={loading} />
                 </div>
-
-                {/* 2. VWAP Monitor */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500" /> VWAP Monitor
-                  </h3>
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-2xl font-bold text-orange-400">{data.quotes[data.quotes.length - 1].vwap?.toFixed(2)}</span>
-                    <span className="text-xs text-zinc-500 mb-1">Session VWAP</span>
-                  </div>
-                  <div className="space-y-1">
-                    {/* Mock visualization of bands */}
-                    <div className="text-[10px] text-zinc-500 flex justify-between">
-                      <span>SD+2</span>
-                      <span className="font-mono">{data.quotes[data.quotes.length - 1].upper2?.toFixed(2)}</span>
-                    </div>
-                    <div className="text-[10px] text-zinc-500 flex justify-between">
-                      <span>SD+1</span>
-                      <span className="font-mono">{data.quotes[data.quotes.length - 1].upper1?.toFixed(2)}</span>
-                    </div>
-                    <div className="text-[10px] text-zinc-500 flex justify-between">
-                      <span>SD-1</span>
-                      <span className="font-mono">{data.quotes[data.quotes.length - 1].lower1?.toFixed(2)}</span>
-                    </div>
-                    <div className="text-[10px] text-zinc-500 flex justify-between">
-                      <span>SD-2</span>
-                      <span className="font-mono">{data.quotes[data.quotes.length - 1].lower2?.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. SMC Scanner */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" /> SMC Scanner
-                  </h3>
-
-                  {/* Liquidity */}
-                  <div className="mb-3">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase">Active Liquidity</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {data.analysis?.liquidity && data.analysis.liquidity.length > 0 ? (
-                        (data.analysis.liquidity || []).map((l: any, i: number) => (
-                          <span key={i} className={`px-1.5 py-0.5 rounded text-[10px] border ${l.type === 'EQH' ? 'border-red-900/50 text-red-400 bg-red-900/10' : 'border-green-900/50 text-green-400 bg-green-900/10'
-                            }`}>
-                            {l.type} @ {l.price.toFixed(2)}
-                          </span>
-                        ))
-                      ) : <span className="text-zinc-600 text-xs italic">No clear pools</span>}
-                    </div>
-                  </div>
-
-                  {/* FVG */}
-                  <div>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase">Recent Imbalances</span>
-                    <div className="space-y-1 mt-1 max-h-24 overflow-y-auto">
-                      {(data.analysis?.fvgs || []).slice(-3).reverse().map((f: any, i: number) => (
-                        <div key={i} className="flex justify-between text-[10px] text-zinc-400">
-                          <span className={f.type === 'BULLISH' ? 'text-green-500' : 'text-red-500'}>{f.type} FVG</span>
-                          <span className="font-mono">{f.bottom.toFixed(2)} - {f.top.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. SMT Matrix */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-500" /> SMT Matrix
-                  </h3>
-                  <div className="space-y-2">
-                    {data.analysis?.smt && data.analysis.smt.length > 0 ? (
-                      (data.analysis.smt || []).map((s: any, i: number) => (
-                        <div key={i} className={`p-2 rounded text-xs border ${s.type === 'BEARISH' ? 'bg-red-950/30 border-red-900/50 text-red-300' : 'bg-green-950/30 border-green-900/50 text-green-300'
-                          }`}>
-                          <div className="font-bold mb-0.5">{s.type} DIVERGENCE</div>
-                          <div className="text-[10px] opacity-70">vs {s.referenceSymbol.replace('=F', '')}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-zinc-600 text-xs text-center py-2">No Active Divergences</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 5. Risk Analysis (NEW) */}
-                {data.analysis?.risk && data.analysis.risk.direction !== 'NEUTRAL' && (
-                  <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-teal-500" /> Risk Analysis
-                    </h3>
-
-                    <div className="space-y-3">
-                      {/* Invalidation Level */}
-                      {data.analysis.risk.invalidation && (
-                        <div>
-                          <span className="text-[10px] uppercase text-zinc-500 font-bold">Invalidation Zone</span>
-                          <div className="flex justify-between items-center mt-1 p-2 bg-red-950/20 border border-red-900/30 rounded">
-                            <div>
-                              <div className="text-red-400 font-mono font-bold text-sm">{data.analysis.risk.invalidation.price.toFixed(2)}</div>
-                              <div className="text-[10px] text-zinc-500">{data.analysis.risk.invalidation.description}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-red-400/70 text-xs">-{data.analysis.risk.invalidation.distance.toFixed(2)} pts</div>
-                              <div className="text-[10px] text-zinc-600">{data.analysis.risk.invalidation.distancePct.toFixed(2)}%</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* R:R Display */}
-                      {data.analysis.risk.rrRatio && (
-                        <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] text-zinc-500">Theoretical R:R</span>
-                          <span className="text-xs font-mono font-bold text-zinc-300">1 : {data.analysis.risk.rrRatio.toFixed(2)}</span>
-                        </div>
-                      )}
-
-                      {/* Targets */}
-                      <div>
-                        <span className="text-[10px] uppercase text-zinc-500 font-bold">Potential Targets</span>
-                        <div className="space-y-1.5 mt-1">
-                          {(data.analysis.risk.targets || []).map((t: any, i: number) => (
-                            <div key={i} className="flex justify-between items-center p-2 bg-green-950/20 border border-green-900/30 rounded">
-                              <div>
-                                <div className="text-green-400 font-mono font-bold text-sm">{t.price.toFixed(2)}</div>
-                                <div className="text-[10px] text-zinc-500">{t.description}</div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-green-400/70 text-xs">+{t.distance.toFixed(2)} pts</div>
-                                <div className="text-[10px] text-zinc-600">{t.distancePct.toFixed(2)}%</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* TRADE SCENARIOS PANEL (Full Width) */}
