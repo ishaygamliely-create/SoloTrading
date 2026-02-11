@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
 import { detectPSP as detectPSPNew } from '../../lib/psp'; // NEW
+import { calcExpansionLikelihood, getRangeStatus, getRangeHint } from '../../lib/liquidityRange'; // NEW
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
 
 const yahooFinance = new YahooFinance();
@@ -467,7 +468,10 @@ export async function GET(request: Request) {
             lastBarTimeNy // For UI Transparency
         };
 
+
         // --- END NY LOGIC ---
+
+        const pspResult = detectPSPNew(mainQuotesForChart);
 
         return NextResponse.json({
             ...safeMeta,
@@ -519,10 +523,44 @@ export async function GET(request: Request) {
                 risk,
                 scenarios,
                 smt,
-                psp: detectPSPNew(mainQuotesForChart),
+                psp: pspResult,
                 psps: [],
                 timeContext,
                 pdRanges,
+                liquidityRange: (() => {
+                    // Logic to compute new Liquidity Analysis
+                    const currentRange = pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0;
+                    // Avg Range - assume ~200 pts for NQ if not available or calc from TR if possible.
+                    // Ideally we'd have ATR(14) on Daily. Let's use technicals.atr[last] * 14 or similar approximation?
+                    // Better: Use a fixed assumption or improved calc if available.
+                    // For now, let's use the ATR(14) we calculated * typical expansion factor or just ATR itself as 'Avg Range' approximation for intraday.
+                    // A better one is 'Tre' (True Range Expansion).
+                    // If tre.ratio is range/avg, then avg = range / tre.ratio
+                    const avgRange = (tre && tre.ratio > 0) ? (currentRange / tre.ratio) : 200; // Fallback 200pts for NQ
+
+                    const adrPercent = avgRange > 0 ? (currentRange / avgRange) * 100 : 0;
+                    const status = getRangeStatus(currentRange, avgRange);
+                    const expansionLikelihood = calcExpansionLikelihood(currentRange, avgRange);
+
+                    // Optimal: Store variable above.
+
+                    return {
+                        hasMajorSweep: sweeps ? sweeps.length > 0 : false, // Simplified check
+                        status,
+                        currentRange,
+                        avgRange,
+                        adrPercent: Math.round(adrPercent),
+                        expansionLikelihood,
+                        hint: getRangeHint({
+                            status,
+                            adrPercent,
+                            expansionLikelihood,
+                            hasMajorSweep: sweeps ? sweeps.length > 0 : false,
+                            pspState: pspResult.state,
+                            pspDirection: pspResult.direction
+                        })
+                    };
+                })(),
                 ictStructure,
                 sweeps,
                 tre,
