@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import type { IndicatorSignal } from '../lib/types';
+import IndicatorHeader from './IndicatorHeader';
 
 interface StructurePanelProps {
     data: any;
@@ -16,42 +17,13 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     const debug = structure.debug || {};
     const { label, adx, ema20, ema50 } = debug as any;
 
-    const isActive = structure.score >= 50;
-
-    // Line 1: STRUCTURE: {label} {direction} ({score}) {status}
-    // Line 2: ADX {adx} | EMA20 {ema20} / EMA50 {ema50} | {hint}
-
-    const statusColor =
-        structure.status === 'OK' ? 'text-zinc-400' :
-            structure.status === 'WARN' ? 'text-yellow-500' :
-                structure.status === 'OFF' ? 'text-zinc-600' : 'text-red-500';
-
-    const dirColor =
-        structure.direction === 'LONG' ? 'text-green-400' :
-            structure.direction === 'SHORT' ? 'text-red-400' : 'text-zinc-500';
-
     return (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-400 uppercase">STRUCTURE</span>
-                    <div className="flex items-center gap-1 border border-white/5 px-1.5 py-px rounded">
-                        <span className="text-[10px] font-bold text-zinc-300">{label}</span>
-                        <span className={`text-[10px] font-bold ${dirColor}`}>
-                            {structure.direction}
-                        </span>
-                    </div>
-
-                    {structure.status !== 'OK' && (
-                        <span className={`text-[10px] ${statusColor} ml-1`}>{structure.status}</span>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className={`text-xs font-mono font-bold ${isActive ? 'text-white' : 'text-zinc-600'}`}>
-                        {structure.score}
-                    </span>
-                </div>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center">
+            <IndicatorHeader
+                title="STRUCTURE"
+                signal={structure}
+                rightBadgeText={label || (debug as any).regime}
+            />
 
             <div className="text-[10px] text-zinc-500 leading-tight truncate">
                 <span className="text-zinc-400">ADX {adx}</span>

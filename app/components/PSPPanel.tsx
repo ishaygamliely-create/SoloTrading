@@ -4,6 +4,7 @@ import React from 'react';
 import { PanelProps } from './DashboardPanels';
 import { Crosshair, Check, X, AlertCircle } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
+import IndicatorHeader from './IndicatorHeader';
 
 export function PSPPanel({ data, loading }: PanelProps) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[120px]"></div>;
@@ -20,24 +21,19 @@ export function PSPPanel({ data, loading }: PanelProps) {
     const isConfirmed = psp.state === 'CONFIRMED';
     const isForming = psp.state === 'FORMING';
 
-    const stateColor = isConfirmed ? 'text-green-400' : isForming ? 'text-yellow-400' : 'text-zinc-500';
-    const dirColor = psp.direction === 'LONG' ? 'text-green-400' : psp.direction === 'SHORT' ? 'text-red-400' : 'text-zinc-500';
+    // Adapt PSP result to IndicatorSignal for header
+    const pspSignal = {
+        ...psp,
+        status: isConfirmed ? 'OK' : isForming ? 'WARN' : 'OFF'
+    } as any;
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 min-h-[100px] justify-center">
-
-            {/* Row 1: Header / Status */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Crosshair size={16} className={isConfirmed ? 'text-green-500' : 'text-zinc-600'} />
-                    <span className="text-zinc-400 font-bold text-xs uppercase">PSP Scanner</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm font-mono font-bold">
-                    <span className={stateColor}>{psp.state}</span>
-                    {psp.state !== 'NONE' && <span className={dirColor}>{psp.direction}</span>}
-                    <span className="text-zinc-600">({psp.score})</span>
-                </div>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition flex flex-col gap-2 min-h-[100px] justify-center">
+            <IndicatorHeader
+                title="PSP"
+                signal={pspSignal}
+                rightBadgeText={psp.state !== 'NONE' ? psp.state : undefined}
+            />
 
             {/* Row 2: Checklist & Missing Info */}
             <div className="flex flex-col gap-1">

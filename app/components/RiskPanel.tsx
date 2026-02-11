@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import IndicatorHeader, { IndicatorSignal } from './IndicatorHeader';
 
 type Props = {
     data: any;
@@ -12,34 +13,22 @@ export function RiskPanel({ data, loading }: Props) {
     }
 
     if (!data?.analysis?.risk || data.analysis.risk.direction === 'NEUTRAL') {
-        // Return null or placeholder as per requirement "No empty cards"
-        // If neutral and no data, we might not render it.
-        // User said: "If no data -> show 'No data' OR do not render the card."
-        // We'll return null to hide it if there's no active risk setup.
         return null;
     }
 
     const { direction, rrRatio, invalidation, targets } = data.analysis.risk;
-    const isLong = direction === 'LONG';
-    const dirColor = isLong ? 'text-green-400' : 'text-red-400';
-    const borderColor = isLong ? 'border-green-900/50' : 'border-red-900/50';
+
+    // Construct valid signal for Header
+    const riskSignal: IndicatorSignal = {
+        status: 'OK',
+        direction: direction,
+        score: Math.min((rrRatio || 0) * 10, 100), // Fake score based on R:R? Or just 0.
+        hint: `R:R 1:${rrRatio?.toFixed(2)}`
+    };
 
     return (
-        <div className={`rounded-xl border ${borderColor} bg-zinc-900/60 p-3 h-full flex flex-col`}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-400 uppercase">Risk Analysis</span>
-                    <span className={`text-[10px] font-bold ${dirColor} border border-white/5 px-1.5 py-px rounded`}>
-                        {direction}
-                    </span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-zinc-950 px-2 py-0.5 rounded text-zinc-300 font-mono border border-zinc-800">
-                        1:{rrRatio?.toFixed(2)}
-                    </span>
-                </div>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col">
+            <IndicatorHeader title="RISK" signal={riskSignal} />
 
             <div className="flex-1 space-y-2">
                 {/* Invalid Level */}
