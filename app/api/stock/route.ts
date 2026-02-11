@@ -2,7 +2,8 @@
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
-import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectPSP, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, PSP, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
+import { detectPSP as detectPSPNew } from '../../lib/psp'; // NEW
+import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
 
 const yahooFinance = new YahooFinance();
 
@@ -518,6 +519,7 @@ export async function GET(request: Request) {
                 risk,
                 scenarios,
                 smt,
+                psp: detectPSPNew(mainQuotesForChart),
                 psps: [],
                 timeContext,
                 pdRanges,

@@ -1,89 +1,80 @@
-
 'use client';
 
 import React from 'react';
 import { PanelProps } from './DashboardPanels';
-import { Crosshair, Star, Info, Layers } from 'lucide-react';
+import { Crosshair, Check, X, AlertCircle } from 'lucide-react';
+import { PSPResult } from '@/app/lib/psp';
 
 export function PSPPanel({ data, loading }: PanelProps) {
-    if (loading || !data?.analysis?.psps) return <div className="animate-pulse bg-zinc-900 h-48 rounded-xl border border-zinc-800"></div>;
+    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[120px]"></div>;
 
-    const psps = data.analysis.psps;
+    const psp: PSPResult = data?.analysis?.psp || {
+        state: 'NONE',
+        direction: 'NEUTRAL',
+        score: 0,
+        reasons: [],
+        missing: ['Waiting for data'],
+        checkmarks: { sweep: false, displacement: false, pullback: false, continuation: false }
+    };
 
-    // Normal Render Logic
+    const isConfirmed = psp.state === 'CONFIRMED';
+    const isForming = psp.state === 'FORMING';
+
+    const stateColor = isConfirmed ? 'text-green-400' : isForming ? 'text-yellow-400' : 'text-zinc-500';
+    const dirColor = psp.direction === 'LONG' ? 'text-green-400' : psp.direction === 'SHORT' ? 'text-red-400' : 'text-zinc-500';
+
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden h-full flex flex-col min-h-[150px]">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 min-h-[100px] justify-center">
 
-            <div className="bg-indigo-950/20 border-b border-indigo-500/20 p-3 flex justify-between items-center">
+            {/* Row 1: Header / Status */}
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Crosshair size={14} className="text-indigo-400" />
-                    <h3 className="text-indigo-100 font-bold text-sm">PSP Scanner</h3>
+                    <Crosshair size={16} className={isConfirmed ? 'text-green-500' : 'text-zinc-600'} />
+                    <span className="text-zinc-400 font-bold text-xs uppercase">PSP Scanner</span>
                 </div>
-                {psps.length > 0 && (
-                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">
-                        {psps.length} Active
-                    </span>
-                )}
+                <div className="flex items-center gap-2 text-sm font-mono font-bold">
+                    <span className={stateColor}>{psp.state}</span>
+                    {psp.state !== 'NONE' && <span className={dirColor}>{psp.direction}</span>}
+                    <span className="text-zinc-600">({psp.score})</span>
+                </div>
             </div>
 
-            {psps.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center opacity-60">
-                    <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center mb-2">
-                        <Crosshair className="text-zinc-500" size={16} />
-                    </div>
-                    <span className="text-xs text-zinc-500 font-medium">No High-Confluence Points</span>
+            {/* Row 2: Checklist & Missing Info */}
+            <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3 text-[10px] uppercase font-bold text-zinc-500">
+                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.sweep ? 'text-green-400' : ''}`}>
+                        {psp.checkmarks?.sweep ? <Check size={10} /> : <X size={10} />} Sweep
+                    </span>
+                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.displacement ? 'text-green-400' : ''}`}>
+                        {psp.checkmarks?.displacement ? <Check size={10} /> : <X size={10} />} Disp
+                    </span>
+                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.pullback ? 'text-green-400' : ''}`}>
+                        {psp.checkmarks?.pullback ? <Check size={10} /> : <X size={10} />} Pullback
+                    </span>
+                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.continuation ? 'text-green-400' : ''}`}>
+                        {psp.checkmarks?.continuation ? <Check size={10} /> : <X size={10} />} Cont
+                    </span>
                 </div>
-            ) : (
-                <div className="flex-1 overflow-y-auto p-2 space-y-2 max-h-[300px] hide-scrollbar">
-                    {psps.map((psp: any, i: number) => {
-                        const isHigh = psp.type === 'HIGH';
-                        const score = psp.score || 0;
-                        const isMax = score >= 4;
 
-                        return (
-                            <div key={i} className={`p-3 rounded-lg border flex flex-col gap-2 ${isMax ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950/30 border-zinc-800'
-                                }`}>
-                                {/* Header */}
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs font-black uppercase ${isHigh ? 'text-red-400' : 'text-green-400'}`}>
-                                            {isHigh ? 'Swing High' : 'Swing Low'}
-                                        </span>
-                                        <span className="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
-                                            <Layers size={10} /> {psp.tf}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        {[...Array(score)].map((_, idx) => (
-                                            <Star key={idx} size={8} className="fill-indigo-400 text-indigo-400" />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Price */}
-                                <div className="font-mono font-bold text-lg text-zinc-200 tracking-tight">
-                                    {psp.price.toFixed(2)}
-                                </div>
-
-                                {/* Factors */}
-                                <div className="flex flex-wrap gap-1">
-                                    {psp.confluenceFactors.map((factor: string, idx: number) => (
-                                        <span key={idx} className="text-[9px] font-bold text-zinc-400 bg-zinc-800/50 border border-zinc-700/50 px-1.5 py-0.5 rounded">
-                                            {factor.replace('_', ' ')}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
+                {/* Missing Items or Levels */}
+                <div className="min-h-[1.5em]">
+                    {isConfirmed && psp.levels ? (
+                        <div className="flex gap-4 text-[10px] font-mono">
+                            <span className="text-zinc-400">Entry: <span className="text-green-300">{psp.levels.entryZoneLow?.toFixed(2)} - {psp.levels.entryZoneHigh?.toFixed(2)}</span></span>
+                            <span className="text-zinc-400">Inv: <span className="text-red-300">{psp.levels.invalidate?.toFixed(2)}</span></span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1 text-[10px] text-zinc-500 italic">
+                            {psp.missing && psp.missing.length > 0 ? (
+                                <>
+                                    <AlertCircle size={10} />
+                                    <span>Waiting for: {psp.missing[0]}{psp.missing[1] ? `, ${psp.missing[1]}` : ''}</span>
+                                </>
+                            ) : <span>Scanning market structure...</span>}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }
-
-// Old return block removed to avoid duplication
-/*
-    if (psps.length === 0) { ... }
-    return ( ... )
-*/
