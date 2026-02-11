@@ -6,7 +6,7 @@ import { Search, TrendingUp, AlertCircle, Loader2, Menu, X } from 'lucide-react'
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
 import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
-import { MarketContextPanel } from './components/MarketContextPanel';
+import MarketContextCompact from './components/MarketContextCompact';
 import { StructurePanel } from './components/StructurePanel';
 import { LiquidityPanel } from './components/LiquidityPanel';
 import { ConfluencePanel } from './components/ConfluencePanel';
@@ -231,7 +231,21 @@ export default function Home() {
               <div className="col-span-1 lg:col-span-3 xl:col-span-2 flex flex-col gap-4 w-full">
                 {/* Removed duplicate SidebarActiveTrade here, it is now in the sidebar/drawer */}
                 <TimeAlignmentPanel data={data} loading={loading} />
-                <MarketContextPanel data={data} loading={loading} />
+
+                {data.analysis?.marketContext && (
+                  <MarketContextCompact
+                    price={data.analysis.marketContext.price}
+                    pdh={data.analysis.marketContext.pdh}
+                    pdl={data.analysis.marketContext.pdl}
+                    eq={data.analysis.marketContext.eq}
+                    dailyRangePercent={data.analysis.marketContext.dailyRangePercent}
+                    regime={data.analysis.marketContext.regime}
+                    biasMode={data.analysis.marketContext.biasMode}
+                    dataStatus={data.analysis.marketContext.dataStatus}
+                    dataAgeLabel={data.analysis.marketContext.dataAgeLabel}
+                    lastBarNyTime={data.analysis.marketContext.lastBarNyTime}
+                  />
+                )}
                 <ConfluencePanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />
                 <LevelsPanel data={data} loading={loading} />

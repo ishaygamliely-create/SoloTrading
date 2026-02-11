@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
+import { formatAgeMs } from '../../lib/marketContext';
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectPSP, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, PSP, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
 
 const yahooFinance = new YahooFinance();
@@ -499,6 +500,21 @@ export async function GET(request: Request) {
                 lagStatus,  // NEW
                 nyMidnightUtcMs, // NEW
                 midnightOpen,    // NEW
+                marketContext: {
+                    price: lastPrice,
+                    pdh: pdRanges ? pdRanges.dailyHigh : 0,
+                    pdl: pdRanges ? pdRanges.dailyLow : 0,
+                    eq: pdRanges ? pdRanges.dailyEq : 0,
+                    dailyRangePercent: tre ? tre.ratio * 100 : 0,
+                    regime: mainRegime ? mainRegime.state : 'UNKNOWN',
+                    biasMode: nyBiasMode,
+                    dataStatus: lagStatus.status,
+                    dataAgeMs: lagStatus.stalenessMs,
+                    dataAgeLabel: formatAgeMs(lagStatus.stalenessMs),
+                    lastBarNyTime: lagStatus.lastBarTimeNy,
+                    nyMidnightUtcMs,
+                    midnightOpen
+                },
                 risk,
                 scenarios,
                 smt,
