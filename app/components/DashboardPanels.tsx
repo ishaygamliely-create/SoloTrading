@@ -41,7 +41,7 @@ export function BiasPanel({ data, loading }: PanelProps) {
                         {label}
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                        {factors.slice(0, 6).map((f: string, i: number) => (
+                        {(factors || []).slice(0, 6).map((f: string, i: number) => (
                             <span key={i} className={`px-2 py-1 border rounded text-[10px] uppercase font-bold backdrop-blur-md ${f.includes('Bull') || f.includes('Above') || f.includes('Support')
                                 ? 'bg-green-950/30 border-green-800/50 text-green-200'
                                 : 'bg-red-950/30 border-red-800/50 text-red-200'
@@ -213,8 +213,8 @@ export function SMCPanel({ data, loading, timeframe }: PanelProps) {
                 <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Imbalances (FVG)</span>
                     <div className="space-y-1">
-                        {fvgs.length === 0 && <span className="text-xs text-zinc-600 italic">No recent FVG</span>}
-                        {fvgs.slice(0, 3).map((f: any, i: number) => (
+                        {(!fvgs || fvgs.length === 0) && <span className="text-xs text-zinc-600 italic">No recent FVG</span>}
+                        {(fvgs || []).slice(0, 3).map((f: any, i: number) => (
                             <div key={i} className="flex justify-between text-[10px] items-center p-1 hover:bg-zinc-800/50 rounded transition-colors">
                                 <span className={f.type === 'BULLISH' ? 'text-green-500 font-medium' : 'text-red-500 font-medium'}>{f.type} FVG</span>
                                 <span className="font-mono text-zinc-400">{f.bottom.toFixed(2)} - {f.top.toFixed(2)}</span>
@@ -227,8 +227,8 @@ export function SMCPanel({ data, loading, timeframe }: PanelProps) {
                 <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Liquidity Pools</span>
                     <div className="flex flex-wrap gap-1">
-                        {liquidity.length === 0 && <span className="text-xs text-zinc-600 italic">No clear pools</span>}
-                        {liquidity.map((l: any, i: number) => (
+                        {(!liquidity || liquidity.length === 0) && <span className="text-xs text-zinc-600 italic">No clear pools</span>}
+                        {(liquidity || []).map((l: any, i: number) => (
                             <span key={i} className={`px-1.5 py-0.5 border rounded text-[10px] font-mono ${l.type === 'EQH' ? 'border-red-900/50 text-red-400 bg-red-950/10' : 'border-green-900/50 text-green-400 bg-green-950/10'}`}>
                                 {l.type} <span className="opacity-50">{l.price.toFixed(2)}</span>
                             </span>
@@ -279,10 +279,10 @@ export function RiskPanel({ data, loading }: PanelProps) {
                 )}
 
                 {/* Targets */}
-                {targets.length > 0 && (
+                {targets && targets.length > 0 && (
                     <div className="space-y-2">
                         <div className="text-[10px] text-green-400 uppercase tracking-wider font-bold">Targets</div>
-                        {targets.map((t: any, i: number) => (
+                        {(targets || []).map((t: any, i: number) => (
                             <div key={i} className="p-2 bg-green-950/20 border border-green-900/30 rounded flex justify-between items-center hover:bg-green-950/30 transition-colors cursor-default">
                                 <div>
                                     <div className="text-green-300 font-mono font-bold text-sm">{t.price.toFixed(2)}</div>

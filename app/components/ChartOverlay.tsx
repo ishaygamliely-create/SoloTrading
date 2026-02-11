@@ -29,7 +29,7 @@ export function ChartOverlay({ overlayData, imageSrc }: ChartOverlayProps) {
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
             >
-                {overlayData.map((item, idx) => {
+                {(overlayData || []).map((item, idx) => {
                     const color = colorMap[item.color || 'BLUE'] || 'white';
 
                     // Coordinates are 0-1, verify scaling logic.

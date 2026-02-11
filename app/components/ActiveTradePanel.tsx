@@ -23,7 +23,7 @@ function GuidanceDisplay({ activeTrade, data }: { activeTrade: any, data: any })
                 <strong className="text-sm font-black uppercase tracking-wider">{guidance.status}</strong>
             </div>
             <ul className="list-disc list-inside space-y-0.5 opacity-80">
-                {guidance.evidence.map((e, i) => (
+                {(guidance.evidence || []).map((e, i) => (
                     <li key={i} className="text-[10px] leading-tight">{e}</li>
                 ))}
             </ul>
@@ -262,7 +262,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                 <div className="mt-2 pt-2 border-t border-zinc-900/50">
                     <span className="text-[9px] font-bold text-zinc-600 uppercase">True R:R Targets</span>
                     <div className="flex gap-2 mt-1 overflow-x-auto">
-                        {activeTrade.targets.map((t, i) => {
+                        {(activeTrade.targets || []).map((t, i) => {
                             const reward = Math.abs(t - (activeTrade.entryPrice || 0));
                             const rr = distToSL > 0 ? reward / distToSL : 0;
                             return (

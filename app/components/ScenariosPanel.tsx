@@ -15,7 +15,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
         return () => clearInterval(interval);
     }, []);
 
-    const scenarios = data.analysis.scenarios;
+    const scenarios = data.analysis.scenarios || [];
     // Filter expired scenarios
     const activeScenarios = scenarios.filter((s: any) => !s.expires_at || s.expires_at > now);
 
@@ -275,7 +275,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                         <div className="mt-3 pt-3 border-t border-zinc-800/50 relative z-10">
                             <div className="text-[10px] text-zinc-500 uppercase font-bold mb-2">Targets</div>
                             <div className="space-y-1.5">
-                                {scenario.targets.map((t: any, idx: number) => (
+                                {(scenario.targets || []).map((t: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center text-xs">
                                         <div className="flex items-center gap-2">
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isLong ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>

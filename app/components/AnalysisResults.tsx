@@ -24,7 +24,7 @@ export function AnalysisResults({ data }: { data: ChartAnalysisResult }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
-                            {data.indicators.map((ind, i) => {
+                            {(data.indicators || []).map((ind, i) => {
                                 const isDetected = ind.status === 'DETECTED';
                                 const isAvail = ind.status !== 'NOT_AVAILABLE';
 
@@ -74,7 +74,7 @@ export function AnalysisResults({ data }: { data: ChartAnalysisResult }) {
                 </div>
 
                 <div className="space-y-2">
-                    {data.reasons.map((reason, idx) => (
+                    {(data.reasons || []).map((reason, idx) => (
                         <div key={idx} className="flex items-start gap-2 text-sm text-zinc-300">
                             <span className="mt-1 w-1.5 h-1.5 rounded-full bg-zinc-500 flex-shrink-0" />
                             {reason}
@@ -90,7 +90,7 @@ export function AnalysisResults({ data }: { data: ChartAnalysisResult }) {
                         <AlertTriangle size={12} /> Limitations
                     </h3>
                     <ul className="space-y-1">
-                        {data.limitations.map((lim, i) => (
+                        {(data.limitations || []).map((lim, i) => (
                             <li key={i} className="text-xs text-orange-200/70 list-disc list-inside">
                                 {lim}
                             </li>

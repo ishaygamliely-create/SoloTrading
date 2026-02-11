@@ -207,7 +207,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
-                        {data.analysis?.bias?.factors.map((f: string, i: number) => (
+                        {(data.analysis?.bias?.factors || []).map((f: string, i: number) => (
                           <span key={i} className="px-2 py-0.5 bg-zinc-950/60 border border-zinc-700/50 rounded text-[10px] uppercase text-zinc-300 backdrop-blur-sm">
                             {f}
                           </span>
@@ -374,7 +374,7 @@ export default function Home() {
                     <span className="text-[10px] font-bold text-zinc-500 uppercase">Active Liquidity</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {data.analysis?.liquidity && data.analysis.liquidity.length > 0 ? (
-                        data.analysis.liquidity.map((l: any, i: number) => (
+                        (data.analysis.liquidity || []).map((l: any, i: number) => (
                           <span key={i} className={`px-1.5 py-0.5 rounded text-[10px] border ${l.type === 'EQH' ? 'border-red-900/50 text-red-400 bg-red-900/10' : 'border-green-900/50 text-green-400 bg-green-900/10'
                             }`}>
                             {l.type} @ {l.price.toFixed(2)}
@@ -388,7 +388,7 @@ export default function Home() {
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase">Recent Imbalances</span>
                     <div className="space-y-1 mt-1 max-h-24 overflow-y-auto">
-                      {data.analysis?.fvgs && data.analysis.fvgs.slice(-3).reverse().map((f: any, i: number) => (
+                      {(data.analysis?.fvgs || []).slice(-3).reverse().map((f: any, i: number) => (
                         <div key={i} className="flex justify-between text-[10px] text-zinc-400">
                           <span className={f.type === 'BULLISH' ? 'text-green-500' : 'text-red-500'}>{f.type} FVG</span>
                           <span className="font-mono">{f.bottom.toFixed(2)} - {f.top.toFixed(2)}</span>
@@ -405,7 +405,7 @@ export default function Home() {
                   </h3>
                   <div className="space-y-2">
                     {data.analysis?.smt && data.analysis.smt.length > 0 ? (
-                      data.analysis.smt.map((s: any, i: number) => (
+                      (data.analysis.smt || []).map((s: any, i: number) => (
                         <div key={i} className={`p-2 rounded text-xs border ${s.type === 'BEARISH' ? 'bg-red-950/30 border-red-900/50 text-red-300' : 'bg-green-950/30 border-green-900/50 text-green-300'
                           }`}>
                           <div className="font-bold mb-0.5">{s.type} DIVERGENCE</div>
@@ -455,7 +455,7 @@ export default function Home() {
                       <div>
                         <span className="text-[10px] uppercase text-zinc-500 font-bold">Potential Targets</span>
                         <div className="space-y-1.5 mt-1">
-                          {data.analysis.risk.targets.map((t: any, i: number) => (
+                          {(data.analysis.risk.targets || []).map((t: any, i: number) => (
                             <div key={i} className="flex justify-between items-center p-2 bg-green-950/20 border border-green-900/30 rounded">
                               <div>
                                 <div className="text-green-400 font-mono font-bold text-sm">{t.price.toFixed(2)}</div>

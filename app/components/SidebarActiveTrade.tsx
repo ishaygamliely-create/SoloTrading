@@ -32,7 +32,7 @@ export function SidebarActiveTrade({ data }: { data?: any }) {
                         No saved setups.<br />Select "Save Setup" from scenarios.
                     </div>
                 ) : (
-                    savedTrades.map((trade) => {
+                    (savedTrades || []).map((trade) => {
                         const isLong = trade.direction === 'LONG';
                         const isActive = activeTrade?.id === trade.id;
                         const pointValue = trade.contractType === 'NQ' ? 20 : 2;
