@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
 
 // Type definitions for props
 export interface PanelProps {
@@ -75,7 +76,7 @@ export function LevelsPanel({ data, loading }: PanelProps) {
     );
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl h-full">
+        <div className="bg-zinc-900 border border-zinc-800 ring-1 ring-inset ring-white/5 p-4 rounded-xl h-full">
             <h3 className="text-xs font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /> Key Levels
             </h3>
@@ -246,8 +247,16 @@ export function RiskPanel({ data, loading }: PanelProps) {
     const { targets, invalidation, direction, rrRatio } = data.analysis.risk;
     if (direction === 'NEUTRAL') return <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl text-center text-zinc-500 text-sm flex items-center justify-center h-full">No Clear RR Setup</div>;
 
+    // Map R:R to Confidence
+    // RR > 2 => High (80), RR > 1 => Med (65), else Low (40)
+    let riskScore = 40;
+    if (rrRatio >= 2) riskScore = 80;
+    else if (rrRatio >= 1) riskScore = 65;
+
+    const borderClass = getConfidenceBorderClass(riskScore);
+
     return (
-        <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+        <div className={`bg-zinc-900 p-4 rounded-xl ${borderClass}`}>
             <h3 className="text-xs font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500" /> Risk Logic ({direction})
             </h3>
@@ -297,7 +306,11 @@ export function RiskPanel({ data, loading }: PanelProps) {
                     </div>
                 )}
             </div>
-        </div>
+
+            <div className="mt-3 pt-2 border-t border-zinc-800/50 text-[8px] text-zinc-600 text-center">
+                Mapping: RR {rrRatio ? rrRatio.toFixed(2) : '0'} &rarr; {riskScore}%
+            </div>
+        </div >
     );
 }
 

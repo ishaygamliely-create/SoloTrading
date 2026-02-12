@@ -1,7 +1,7 @@
-'use client';
 import React from 'react';
 import type { IndicatorSignal } from '../lib/types';
 import IndicatorHeader from './IndicatorHeader';
+import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
 
 interface ValueZonePanelProps {
     data: any;
@@ -17,8 +17,10 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
     const debug = valueZone.debug || {};
     const { pdh, pdl, eq, percentInRange, label, zone } = debug as any;
 
+    const borderClass = getConfidenceBorderClass(valueZone.score);
+
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center">
+        <div className={`rounded-xl bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center ${borderClass}`}>
             <IndicatorHeader
                 title="VALUE"
                 signal={valueZone}

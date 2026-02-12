@@ -1,4 +1,4 @@
-import React from "react";
+import { getDirectionBadgeClass } from "@/app/lib/uiSignalStyles";
 
 export type IndicatorStatus = "OK" | "WARN" | "OFF" | "ERROR";
 export type IndicatorDirection = "LONG" | "SHORT" | "NEUTRAL";
@@ -42,18 +42,6 @@ function statusBadge(status: IndicatorStatus) {
     }
 }
 
-function directionBadge(dir: IndicatorDirection) {
-    switch (dir) {
-        case "LONG":
-            return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-        case "SHORT":
-            return "bg-red-500/15 text-red-300 border-red-500/20";
-        case "NEUTRAL":
-        default:
-            return "bg-white/5 text-white/50 border-white/10";
-    }
-}
-
 export function safeSignal(signal?: IndicatorSignal | null): IndicatorSignal {
     return signal ?? { status: "OFF", direction: "NEUTRAL", score: 0, hint: "No data", debug: {} };
 }
@@ -82,7 +70,11 @@ export default function IndicatorHeader(props: {
                         </span>
                     ) : null}
 
-                    <span className={clsx("rounded-full border px-2 py-0.5 text-xs font-semibold", directionBadge(s.direction))}>
+                    <span className={getDirectionBadgeClass({
+                        direction: s.direction,
+                        score: s.score,
+                        status: s.status
+                    })}>
                         {s.direction}
                     </span>
 

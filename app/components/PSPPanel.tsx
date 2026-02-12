@@ -1,22 +1,15 @@
-'use client';
-
 import React from 'react';
 import { PanelProps } from './DashboardPanels';
 import { Crosshair, Check, X, AlertCircle } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
 import IndicatorHeader from './IndicatorHeader';
+import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
 
 export function PSPPanel({ data, loading }: PanelProps) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[120px]"></div>;
 
-    const psp: PSPResult = data?.analysis?.psp || {
-        state: 'NONE',
-        direction: 'NEUTRAL',
-        score: 0,
-        reasons: [],
-        missing: ['Waiting for data'],
-        checkmarks: { sweep: false, displacement: false, pullback: false, continuation: false }
-    };
+    const psp = data?.analysis?.psp as PSPResult;
+    if (!psp) return null;
 
     const isConfirmed = psp.state === 'CONFIRMED';
     const isForming = psp.state === 'FORMING';
@@ -27,8 +20,10 @@ export function PSPPanel({ data, loading }: PanelProps) {
         status: isConfirmed ? 'OK' : isForming ? 'WARN' : 'OFF'
     } as any;
 
+    const borderClass = getConfidenceBorderClass(pspSignal.score);
+
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition flex flex-col gap-2 min-h-[100px] justify-center">
+        <div className={`rounded-2xl bg-white/5 p-3 hover:bg-white/[0.06] transition flex flex-col gap-2 min-h-[100px] justify-center ${borderClass}`}>
             <IndicatorHeader
                 title="PSP"
                 signal={pspSignal}

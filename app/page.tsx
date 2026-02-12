@@ -19,6 +19,7 @@ import { StructurePanel } from './components/StructurePanel';
 import { RiskPanel } from './components/RiskPanel';
 import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
+import { ConfidenceLegend } from './components/ConfidenceLegend';
 
 // --- PanelSlot Wrapper ---
 function PanelSlot({ show, children }: { show: boolean; children: React.ReactNode }) {
@@ -274,6 +275,9 @@ export default function Home() {
                   <RiskPanel data={data} loading={loading} />
                 </PanelSlot>
 
+                <div className="mt-auto pt-4">
+                  <ConfidenceLegend />
+                </div>
               </div>
             </div>
           )}

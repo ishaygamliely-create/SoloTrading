@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
 
 type Props = {
     data: any;
@@ -18,15 +19,25 @@ export function LiquidityPanel({ data, loading }: Props) {
     const fvgs = data.analysis.fvgs || [];
     const pools = data.analysis.liquidity || []; // "Active Liquidity"
 
+    // Map status to approximate confidence score for styling
+    // EXPANDING = High Confidence (Actionable?) -> 80
+    // COMPRESSED = Caution -> 65
+    // EXHAUSTED/OTHER -> Low -> 40
+    let impliedScore = 40;
+    if (lr.status === "EXPANDING") impliedScore = 80;
+    else if (lr.status === "COMPRESSED") impliedScore = 65;
+
+    const borderClass = getConfidenceBorderClass(impliedScore);
+
     const statusColor =
         lr.status === "COMPRESSED"
             ? "text-yellow-400 border-yellow-500/30 bg-yellow-500/10"
             : lr.status === "EXPANDING"
-                ? "text-green-400 border-green-500/30 bg-green-500/10"
+                ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
                 : "text-red-400 border-red-500/30 bg-red-500/10";
 
     return (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col gap-2 min-h-[160px]">
+        <div className={`rounded-xl bg-zinc-900/60 p-3 h-full flex flex-col gap-2 min-h-[160px] ${borderClass}`}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="text-xs font-bold text-zinc-400 uppercase">
@@ -89,6 +100,9 @@ export function LiquidityPanel({ data, loading }: Props) {
             {lr.hint && (
                 <div className="text-[9px] text-zinc-500 leading-tight border-t border-zinc-800/50 pt-1 mt-auto">
                     {lr.hint}
+                    <div className="text-[8px] text-zinc-600 mt-0.5">
+                        Mapping: {lr.status} &rarr; {impliedScore}%
+                    </div>
                 </div>
             )}
         </div>

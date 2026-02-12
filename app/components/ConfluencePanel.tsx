@@ -1,72 +1,75 @@
-'use client';
-import React from 'react';
-import { PanelProps } from './DashboardPanels';
-import { ConfluenceResult } from '../lib/confluence';
+import React from "react";
+import { getDirectionBadgeClass, getScoreTextClass, getConfidenceBorderClass } from "@/app/lib/uiSignalStyles";
 
-export function ConfluencePanel({ data, loading }: PanelProps) {
-    if (loading || !data?.analysis?.confluence) {
-        return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
-    }
+type ConfluenceLevel = "NO_TRADE" | "WEAK" | "GOOD" | "STRONG";
+type ConfluenceSuggestion = "LONG" | "SHORT" | "NO_TRADE";
+type ConfluenceStatus = "OK" | "WARN" | "BLOCKED" | "OFF" | "ERROR";
+
+export interface ConfluenceResult {
+    scorePct: number; // 0–100
+    level: ConfluenceLevel;
+    suggestion: ConfluenceSuggestion;
+    status: ConfluenceStatus;
+    factors?: string[];
+}
+
+export function ConfluencePanel({ data, loading }: { data: { analysis: { confluence: ConfluenceResult } } | any; loading?: boolean }) {
+    // Guard clause for missing data structure
+    if (loading || !data?.analysis?.confluence) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
     const confluence = data.analysis.confluence as ConfluenceResult;
-    const { level, suggestion, status, scorePct, factors } = confluence;
+    const showDirection = confluence.level !== "NO_TRADE" && confluence.suggestion !== "NO_TRADE";
 
-    const showDirection = level !== "NO_TRADE" && suggestion !== "NO_TRADE";
+    const scoreClass = getScoreTextClass(confluence.scorePct);
+    const borderClass = getConfidenceBorderClass(confluence.scorePct);
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition w-full flex flex-col justify-center gap-2">
-
-            {/* Row 1: Header */}
+        <div className={`rounded-xl bg-white/5 p-4 space-y-2 ${borderClass}`}>
+            {/* Row 1 */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="font-semibold tracking-wide text-pink-400 text-sm">CONFLUENCE</div>
+                    <div className="font-semibold tracking-wide text-pink-400">
+                        CONFLUENCE
+                    </div>
 
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${level === 'STRONG' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                            level === 'GOOD' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                                level === 'WEAK' ? 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' :
-                                    'bg-zinc-800/50 text-zinc-500 border-transparent'
-                        }`}>
-                        {level}
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white">
+                        {confluence.level}
                     </span>
 
                     {showDirection && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${suggestion === 'LONG' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                                'bg-red-500/20 text-red-300 border border-red-500/30'
-                            }`}>
-                            {suggestion}
+                        <span
+                            className={getDirectionBadgeClass({
+                                direction: confluence.suggestion,
+                                score: confluence.scorePct,
+                                status: confluence.status,
+                            })}
+                        >
+                            {confluence.suggestion}
                         </span>
                     )}
 
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${status === "OK" ? "bg-emerald-500/10 text-emerald-400" :
-                            status === "WARN" ? "bg-amber-500/10 text-amber-400" :
-                                "bg-red-500/10 text-red-400"
-                        }`}>
-                        {status}
+                    <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${confluence.status === "OK"
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : confluence.status === "WARN"
+                                ? "bg-yellow-500/20 text-yellow-300"
+                                : confluence.status === "BLOCKED"
+                                    ? "bg-red-500/20 text-red-300"
+                                    : "bg-white/10 text-white/60"
+                            }`}
+                    >
+                        {confluence.status}
                     </span>
                 </div>
 
-                <div className="text-white font-bold text-lg">{scorePct}%</div>
+                <div className={`font-bold text-lg ${scoreClass}`}>{confluence.scorePct}%</div>
             </div>
 
-            {/* Row 2: Factors */}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] items-center">
-                {(factors ?? []).slice(0, 8).map((f, i) => {
-                    const isPos = f.startsWith('+');
-                    const isNeg = f.startsWith('-');
-                    const isWarn = f.includes('WARN');
-
-                    let color = 'text-zinc-600';
-                    if (isWarn) color = 'text-amber-400';
-                    else if (isPos) color = 'text-zinc-400';
-                    else if (isNeg) color = 'text-zinc-500';
-
-                    return (
-                        <span key={i} className={`${color} whitespace-nowrap`}>
-                            {f.replace(/^\+[0-9]+ /, '').replace(/^- [0-9]+ /, '')}
-                        </span>
-                    );
-                })}
-                {(!factors || factors.length === 0) && <span className="text-zinc-600">No active signals</span>}
+            {/* Row 2 */}
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/60">
+                {(confluence.factors ?? []).slice(0, 10).map((f, idx) => (
+                    <span key={idx}>{f}</span>
+                ))}
             </div>
         </div>
     );

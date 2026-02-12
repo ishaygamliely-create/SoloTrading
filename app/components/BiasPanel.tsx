@@ -2,6 +2,7 @@
 import React from 'react';
 import type { IndicatorSignal } from '../lib/types';
 import IndicatorHeader from './IndicatorHeader';
+import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
 
 interface BiasPanelProps {
     data: any;
@@ -17,8 +18,12 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     const midnightOpen = data.analysis.midnightOpen;
     const buffer = 1.0;
 
+    // Bias score is normalized 0-100 by default.
+    const confidenceScore = bias.score;
+    const borderClass = getConfidenceBorderClass(confidenceScore);
+
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center">
+        <div className={`rounded-xl bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center ${borderClass}`}>
             <IndicatorHeader title="BIAS" signal={bias} />
 
             <div className="text-[10px] text-zinc-500 leading-tight">
