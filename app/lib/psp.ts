@@ -60,7 +60,7 @@ function calculateATR(quotes: Quote[], period: number = 14): number[] {
     // Simple TR calculation for estimation
     for (let i = 1; i < quotes.length; i++) {
         const tr = Math.max(quotes[i].high - quotes[i].low, Math.abs(quotes[i].high - quotes[i - 1].close), Math.abs(quotes[i].low - quotes[i - 1].close));
-        atr[i] = tr; // Need proper smoothing for real usage, but simple TR avg works for displacement check relative to recent volatility.
+        atr[i] = tr;
     }
     // Simple SMA of TR for last 14
     const smoothedATR = new Array(quotes.length).fill(0);
@@ -87,37 +87,8 @@ export function detectPSP(quotes: Quote[]): PSPResult {
 
     const swings = findSwings(quotes);
     const atrs = calculateATR(quotes);
-    const lastSwingHigh = swings.filter(s => s.type === 'HIGH').pop();
-    const lastSwingLow = swings.filter(s => s.type === 'LOW').pop();
 
-    if (!lastSwingHigh || !lastSwingLow) return result;
-
-    let possibleLong = false;
-    let possibleShort = false;
-    let sweepPrice = 0;
-    let sweepIndex = 0;
-
-    // 1. Detect Sweep (Look at last 20 bars)
-    // SHORT Setup: Price took out a Swing High then closed below it?
-    // LONG Setup: Price took out a Swing Low then closed above it?
-
-    // Recent price action analysis
-    const lookback = 20;
-    const recentQuotes = quotes.slice(-lookback);
-    const recentHigh = Math.max(...recentQuotes.map(q => q.high));
-    const recentLow = Math.min(...recentQuotes.map(q => q.low));
-
-    // CHECK SHORT SETUP (Sweep High)
-    // Find a previous swing high that was breached recently but price is now below it?
-    // Simplified Logic: Just check the *latest* completed swing logic from our swings array isn't enough as that's lagging.
-    // Let's look for: Did we break a swing high recently?
-
-    // Let's focus on the MOST RECENT potential setup.
-    // We iterate backwards to find the "Sweep Event".
-
-    // --- SIMPLIFIED DETERMINISTIC LOGIC FOR ROBUSTNESS ---
     // We will evaluate both Long and Short conditions and pick the one with higher progress.
-
     const evaluateSetup = (direction: 'LONG' | 'SHORT'): PSPResult => {
         let score = 0;
         let reasons: string[] = [];
@@ -125,30 +96,29 @@ export function detectPSP(quotes: Quote[]): PSPResult {
         let checks = { sweep: false, displacement: false, pullback: false, continuation: false };
         let levels: any = {};
 
-        // 1. SWEEP
-        // For LONG: Look for a Swing Low that was breached.
-        // Index of recent lowest low.
+        // 1. SWEEP (25 pts)
         let sweepFound = false;
         let displacementFound = false;
-        let pullbackFound = false;
-        let continuationFound = false;
 
-        // Validating SWEEP
+        let refSwingIdx = -1;
+        let refSwingPrice = 0;
+
         if (direction === 'LONG') {
-            // Find a swing low within last 50 bars (excluding very recent 5)
+            // Find a swing low within last 60 bars (excluding very recent 5)
             // Then check if price went below it recently.
             const recentSwings = swings.filter(s => s.type === 'LOW' && s.index > quotes.length - 60 && s.index < quotes.length - 5);
             if (recentSwings.length > 0) {
-                const refSwing = recentSwings[recentSwings.length - 1]; // Last formed swing low
-                // Did we dip below it?
+                const refSwing = recentSwings[recentSwings.length - 1];
                 const dipIndex = quotes.findIndex((q, i) => i > refSwing.index && q.low < refSwing.price);
+
                 if (dipIndex !== -1) {
                     sweepFound = true;
                     checks.sweep = true;
-                    score += 30;
+                    score += 25;
                     reasons.push(`Swept Liquidity at ${refSwing.price.toFixed(2)}`);
                     levels.sweepLevel = refSwing.price;
                     levels.invalidate = Math.min(...quotes.slice(dipIndex).map(q => q.low)); // Lowest point of sweep
+                    refSwingIdx = dipIndex; // Approximate time of sweep start
                 } else {
                     missing.push('Liquidity Sweep of Swing Low');
                 }
@@ -160,13 +130,15 @@ export function detectPSP(quotes: Quote[]): PSPResult {
             if (recentSwings.length > 0) {
                 const refSwing = recentSwings[recentSwings.length - 1];
                 const popIndex = quotes.findIndex((q, i) => i > refSwing.index && q.high > refSwing.price);
+
                 if (popIndex !== -1) {
                     sweepFound = true;
                     checks.sweep = true;
-                    score += 30;
+                    score += 25;
                     reasons.push(`Swept Liquidity at ${refSwing.price.toFixed(2)}`);
                     levels.sweepLevel = refSwing.price;
                     levels.invalidate = Math.max(...quotes.slice(popIndex).map(q => q.high)); // Highest point of sweep
+                    refSwingIdx = popIndex;
                 } else {
                     missing.push('Liquidity Sweep of Swing High');
                 }
@@ -175,82 +147,101 @@ export function detectPSP(quotes: Quote[]): PSPResult {
             }
         }
 
-        // 2. DISPLACEMENT
-        // Require strong move opposite to sweep.
+        // 2. DISPLACEMENT (25 pts + 10 Bonus)
+        // Require strong move opposite to sweep, AFTER the sweep.
         if (sweepFound) {
-            // Check recent candles for large bodies/range > 1.5x ATR
-            const recentATR = atrs[quotes.length - 1] || 10; // fallback
-            const recentCandles = quotes.slice(-15);
+            const recentATR = atrs[quotes.length - 1] || 10;
+            // Look for displacement *after* the sweep
+            const postSweepQuotes = quotes.slice(refSwingIdx);
+            // Cap search to reasonable recent history (e.g. last 15-20 bars max) to ensure relevance
+            const searchQuotes = postSweepQuotes.length > 20 ? postSweepQuotes.slice(-20) : postSweepQuotes;
 
-            // For LONG: Big Green Candles?
             if (direction === 'LONG') {
-                const impulsive = recentCandles.some(q => (q.close - q.open) > recentATR * 1.5 && q.close > q.open);
-                if (impulsive) {
+                const impIdx = searchQuotes.findIndex(q => (q.close - q.open) > 0 && (q.close - q.open) > recentATR * 1.0); // Basic displacement
+
+                if (impIdx !== -1) {
                     displacementFound = true;
                     checks.displacement = true;
-                    score += 30;
-                    reasons.push('Displacement Detected (Impulsive Move)');
-                    // Define Displacement Range (simplified)
-                    const impIdx = recentCandles.findIndex(q => (q.close - q.open) > recentATR * 1.5);
-                    const impCandle = recentCandles[impIdx];
-                    levels.displacementLow = impCandle.low;
-                    levels.displacementHigh = Math.max(...recentCandles.slice(impIdx).map(q => q.high));
+                    score += 25;
+                    reasons.push('Displacement Detected');
 
-                    // Entry zone: 50% of impulse to bottom
-                    levels.entryZoneHigh = (levels.displacementHigh + levels.displacementLow) / 2;
+                    const impCandle = searchQuotes[impIdx];
+                    levels.displacementLow = impCandle.low;
+                    levels.displacementHigh = searchQuotes[searchQuotes.length - 1].high; // Approximate high of move
+
+                    // Bonus Check: > 1.5x ATR
+                    if ((impCandle.close - impCandle.open) > recentATR * 1.5) {
+                        score += 10;
+                        reasons.push('Strong Bonus (+10)');
+                    }
+
+                    // Entry Zone (FVG area / 50% of impulse)
+                    levels.entryZoneHigh = (levels.displacementHigh + levels.displacementLow) / 2; // Midpoint
                     levels.entryZoneLow = levels.displacementLow;
+
+                    // More precise Displacement High finding (highest point after impulse start)
+                    levels.displacementHigh = Math.max(...searchQuotes.slice(impIdx).map(q => q.high));
+
                 } else {
-                    missing.push('Displacement (Strong Impulsive Move)');
+                    missing.push('Displacement (Impulsive Move)');
                 }
             } else { // SHORT
-                const impulsive = recentCandles.some(q => (q.open - q.close) > recentATR * 1.5 && q.close < q.open);
-                if (impulsive) {
+                const impIdx = searchQuotes.findIndex(q => (q.open - q.close) > 0 && (q.open - q.close) > recentATR * 1.0);
+
+                if (impIdx !== -1) {
                     displacementFound = true;
                     checks.displacement = true;
-                    score += 30;
-                    reasons.push('Displacement Detected (Impulsive Move)');
-                    // Define Displacement Range
-                    const impIdx = recentCandles.findIndex(q => (q.open - q.close) > recentATR * 1.5);
-                    const impCandle = recentCandles[impIdx];
-                    levels.displacementHigh = impCandle.high;
-                    levels.displacementLow = Math.min(...recentCandles.slice(impIdx).map(q => q.low));
+                    score += 25;
+                    reasons.push('Displacement Detected');
 
-                    // Entry zone: 50% of impulse to top
+                    const impCandle = searchQuotes[impIdx];
+                    // Bonus Check
+                    if ((impCandle.open - impCandle.close) > recentATR * 1.5) {
+                        score += 10;
+                        reasons.push('Strong Bonus (+10)');
+                    }
+
+                    levels.displacementHigh = impCandle.high;
+                    levels.displacementLow = Math.min(...searchQuotes.slice(impIdx).map(q => q.low));
+
                     levels.entryZoneLow = (levels.displacementHigh + levels.displacementLow) / 2;
                     levels.entryZoneHigh = levels.displacementHigh;
+
                 } else {
-                    missing.push('Displacement (Strong Impulsive Move)');
+                    missing.push('Displacement (Impulsive Move)');
                 }
             }
         } else {
-            // If no sweep, we can't have displacement in this context
             missing.push('Displacement');
         }
 
-        // 3. PULLBACK
+        // 3. PULLBACK (25 pts)
         if (displacementFound) {
             const currentPrice = quotes[quotes.length - 1].close;
+            // Check if *any* price after displacement high/low touched the entry zone
+            // Simplified: Just checked against current or recent low?
+
             if (direction === 'LONG') {
-                // Price retraced into Entry Zone?
-                // Or is currently in it?
-                // Simply check if any recent low touched the zone.
-                if (currentPrice <= levels.entryZoneHigh && currentPrice >= levels.entryZoneLow) {
-                    pullbackFound = true;
+                // Ideally we check if price dipped into entryZoneLow/High
+                if (currentPrice <= levels.entryZoneHigh && currentPrice >= levels.invalidate) {
                     checks.pullback = true;
-                    score += 20;
-                    reasons.push('Price in Pullback/Entry Zone');
-                } else if (currentPrice < levels.entryZoneLow) {
-                    // Failed/Too deep? Maybe invalid? Keep it simple for now.
-                    missing.push('Deep Pullback / Invalidated');
+                    score += 25;
+                    reasons.push('Pullback to Discount');
+                } else if (currentPrice < levels.invalidate) {
+                    missing.push('Invalidated (Below Sweep)');
+                    score = 0; // Invalidation kills setup? Or just degrades?
+                    // Let's degrade severely
+                    return { direction, state: 'NONE', score: 0, reasons: ['Invalidated'], missing: ['Setup Invalidated'], checkmarks: checks };
                 } else {
                     missing.push('Pullback to Discount');
                 }
             } else {
-                if (currentPrice >= levels.entryZoneLow && currentPrice <= levels.entryZoneHigh) {
-                    pullbackFound = true;
+                if (currentPrice >= levels.entryZoneLow && currentPrice <= levels.invalidate) {
                     checks.pullback = true;
-                    score += 20;
-                    reasons.push('Price in Pullback/Entry Zone');
+                    score += 25;
+                    reasons.push('Pullback to Premium');
+                } else if (currentPrice > levels.invalidate) {
+                    return { direction, state: 'NONE', score: 0, reasons: ['Invalidated'], missing: ['Setup Invalidated'], checkmarks: checks };
                 } else {
                     missing.push('Pullback to Premium');
                 }
@@ -259,28 +250,17 @@ export function detectPSP(quotes: Quote[]): PSPResult {
             missing.push('Pullback');
         }
 
-        // 4. CONTINUATION
-        if (displacementFound) { // Can verify continuation potentially even if pullback barely touched
-            // LONG: Break above displacement high?
+        // 4. CONTINUATION (25 pts)
+        if (displacementFound) {
             const currentPrice = quotes[quotes.length - 1].close;
-            if (direction === 'LONG') {
-                if (currentPrice > levels.displacementHigh) {
-                    continuationFound = true;
-                    checks.continuation = true;
-                    score += 20;
-                    reasons.push('Structure Break / Continuation Confirmed');
-                } else {
-                    missing.push('Break of Displacement High');
-                }
+            const isBreak = direction === 'LONG' ? (currentPrice > levels.displacementHigh) : (currentPrice < levels.displacementLow);
+
+            if (isBreak) {
+                checks.continuation = true;
+                score += 25;
+                reasons.push('Continuation Confirmed');
             } else {
-                if (currentPrice < levels.displacementLow) {
-                    continuationFound = true;
-                    checks.continuation = true;
-                    score += 20;
-                    reasons.push('Structure Break / Continuation Confirmed');
-                } else {
-                    missing.push('Break of Displacement Low');
-                }
+                missing.push('Continuation (Break Structure)');
             }
         } else {
             missing.push('Continuation');
@@ -288,15 +268,18 @@ export function detectPSP(quotes: Quote[]): PSPResult {
 
         // Determine State
         let state: PSPState = 'NONE';
-        if (score >= 80) state = 'CONFIRMED';
+        if (score >= 75) state = 'CONFIRMED';
         else if (score >= 50) state = 'FORMING';
+
+        // Cap score
+        score = Math.min(100, score);
 
         return {
             direction,
             state,
             score,
             reasons,
-            missing: missing.slice(0, 2), // Top 2 missing
+            missing: missing.slice(0, 2),
             levels: Object.keys(levels).length > 0 ? levels : undefined,
             checkmarks: checks
         };
@@ -305,11 +288,9 @@ export function detectPSP(quotes: Quote[]): PSPResult {
     const longRes = evaluateSetup('LONG');
     const shortRes = evaluateSetup('SHORT');
 
-    // Return the better looking setup
     if (longRes.score > shortRes.score) return longRes;
     if (shortRes.score > longRes.score) return shortRes;
 
-    // Tie-breaker or default to NONE but strictly valid result
     return longRes.score > 0 ? longRes : {
         direction: 'NEUTRAL',
         state: 'NONE',

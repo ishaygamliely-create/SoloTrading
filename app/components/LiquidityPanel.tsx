@@ -83,7 +83,7 @@ export function LiquidityPanel({ data, loading }: Props) {
             <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold text-white/80">
                     <span>Expansion Probability</span>
-                    <span>{confidenceScore}%</span>
+                    <span className={confidenceScore >= 75 ? "text-emerald-400" : confidenceScore >= 60 ? "text-yellow-400" : "text-red-400"}>{confidenceScore}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                     <div
@@ -97,8 +97,9 @@ export function LiquidityPanel({ data, loading }: Props) {
             <div className="bg-black/20 rounded-lg p-2 flex items-center justify-between">
                 <span className="text-xs text-white/60 font-medium">ADR Usage</span>
                 <div className="flex items-baseline gap-2">
-                    <span className={`text-lg font-bold ${adrColor}`}>{adrPercent.toFixed(0)}%</span>
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wide">{adrLabel}</span>
+                    {/* Neutral White for value, Muted color for label */}
+                    <span className="text-lg font-bold text-white/90">{adrPercent.toFixed(0)}%</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wide ${adrPercent >= 75 ? "text-blue-300" : "text-white/50"}`}>{adrLabel}</span>
                 </div>
             </div>
 
