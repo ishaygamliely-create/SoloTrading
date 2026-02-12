@@ -33,88 +33,101 @@ export function LiquidityPanel({ data, loading }: Props) {
 
     const borderClass = getConfidenceBorderClass(confidenceScore);
 
-    // Force consistency: Derive status logic on client to match the data displayed
+    // Force consistency: Derive status logic on client
     let displayStatus = lr.status;
     if (adrPercent <= 70) displayStatus = "COMPRESSED";
     else if (adrPercent >= 100) displayStatus = "EXPANDING";
     else displayStatus = "NORMAL";
 
-    const scoreStatusColor =
-        displayStatus === "COMPRESSED"
-            ? "text-yellow-400 border-yellow-500/30 bg-yellow-500/10"
-            : displayStatus === "EXPANDING"
-                ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
-                : "text-zinc-400 border-zinc-500/30 bg-zinc-500/10";
+    const getStatusBadge = () => {
+        switch (displayStatus) {
+            case "COMPRESSED": return "bg-yellow-500/20 text-yellow-300";
+            case "EXPANDING": return "bg-emerald-500/20 text-emerald-300";
+            case "EXHAUSTED": return "bg-red-500/20 text-red-300";
+            default: return "bg-white/10 text-white";
+        }
+    };
 
     return (
-        <div className={`rounded-xl bg-zinc-900/60 p-3 h-full flex flex-col gap-2 min-h-[160px] ${borderClass}`}>
-            {/* Header */}
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 ${borderClass}`}>
+            {/* HEADER */}
             <div className="flex items-center justify-between">
-                <div className="text-xs font-bold text-zinc-400 uppercase">
-                    Liquidity & Range
+                <div className="font-bold tracking-widest text-lg bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                    LIQUIDITY & RANGE
                 </div>
-                {displayStatus && (
-                    <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${scoreStatusColor}`}>
-                        {displayStatus}
-                    </div>
-                )}
+
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge()}`}>
+                    {displayStatus}
+                </span>
             </div>
 
-            {/* Range Info */}
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-zinc-950/40 p-1.5 rounded border border-zinc-800/50">
-                    <span className="text-zinc-500 block mb-0.5">Range / ADR</span>
-                    <span className="text-zinc-300 font-mono">
-                        {lr.currentRange ? Number(lr.currentRange).toFixed(2) : '-'} / {lr.avgRange ? Number(lr.avgRange).toFixed(2) : '-'}
+            {/* RANGE INFO */}
+            <div className="text-sm text-white/70 space-y-1">
+                <div className="flex justify-between">
+                    <span>Range:</span>
+                    <span>
+                        <span className="text-white font-medium">{lr.currentRange ? Number(lr.currentRange).toFixed(2) : '0.00'}</span>
+                        <span className="text-white/50 mx-1">/</span>
+                        <span className="text-white/70">{lr.avgRange ? Number(lr.avgRange).toFixed(2) : '0.00'} ADR</span>
                     </span>
                 </div>
-                <div className="bg-zinc-950/40 p-1.5 rounded border border-zinc-800/50">
-                    <span className="text-zinc-500 block mb-0.5">Sweep Status</span>
-                    <span className={lr.hasMajorSweep ? 'text-green-400 font-bold' : 'text-zinc-500'}>
+                <div className="flex justify-between">
+                    <span>ADR Usage:</span>
+                    <span className="text-white font-medium">{adrPercent.toFixed(0)}%</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Sweep Detected:</span>
+                    <span className={lr.hasMajorSweep ? "text-emerald-400 font-bold" : "text-white/50"}>
                         {lr.hasMajorSweep ? "YES" : "NO"}
                     </span>
                 </div>
-            </div>
-
-            {/* FVG & Pools Section */}
-            <div className="flex-1 overflow-hidden flex flex-col gap-1">
-                {/* FVGs */}
-                <div className="min-h-[1.2rem]">
-                    <span className="text-[9px] text-zinc-600 uppercase font-bold mr-2">FVGs:</span>
-                    {fvgs.length > 0 ? (
-                        <div className="inline-flex gap-1 flex-wrap">
-                            {fvgs.slice(0, 2).map((f: any, i: number) => (
-                                <span key={i} className={`text-[9px] px-1 rounded border ${f.type === 'BULLISH' ? 'border-green-900 text-green-500' : 'border-red-900 text-red-500'}`}>
-                                    {f.bottom?.toFixed(0)}-{f.top?.toFixed(0)}
-                                </span>
-                            ))}
-                        </div>
-                    ) : <span className="text-[9px] text-zinc-700 italic">None</span>}
-                </div>
-
-                {/* Pools */}
-                <div className="min-h-[1.2rem]">
-                    <span className="text-[9px] text-zinc-600 uppercase font-bold mr-2">Pools:</span>
-                    {pools.length > 0 ? (
-                        <div className="inline-flex gap-1 flex-wrap">
-                            {pools.slice(0, 3).map((p: any, i: number) => (
-                                <span key={i} className={`text-[9px] px-1 rounded border ${p.type === 'EQH' ? 'border-red-900 text-red-400' : 'border-green-900 text-green-400'}`}>
-                                    {p.price?.toFixed(0)}
-                                </span>
-                            ))}
-                        </div>
-                    ) : <span className="text-[9px] text-zinc-700 italic">Clean</span>}
+                <div className="flex justify-between">
+                    <span>PSP State:</span>
+                    <span className={psp.state === "CONFIRMED" ? "text-emerald-400 font-bold" : "text-white/50"}>
+                        {psp.state || "NONE"}
+                    </span>
                 </div>
             </div>
 
+            {/* MARKET CONDITION */}
             {lr.hint && (
-                <div className="text-[9px] text-zinc-500 leading-tight border-t border-zinc-800/50 pt-1 mt-auto">
-                    {lr.hint}
-                    <div className="text-[8px] text-zinc-600 mt-0.5 font-mono">
+                <div className="bg-black/30 rounded-lg p-3 text-sm">
+                    <div className="text-white/60 mb-1 text-xs uppercase tracking-wider font-bold">Market Condition</div>
+                    <div className="text-white leading-tight">{lr.hint}</div>
+                    <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-zinc-500 font-mono">
                         {mappingText} &rarr; {confidenceScore}%
                     </div>
                 </div>
             )}
+
+            {/* LIQUIDITY ZONES */}
+            <div className="space-y-3 pt-2">
+                {fvgs.length > 0 && (
+                    <div>
+                        <div className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Recent FVGs</div>
+                        <div className="flex flex-wrap gap-2">
+                            {fvgs.slice(0, 3).map((f: any, i: number) => (
+                                <span key={i} className={`px-2 py-1 rounded text-[10px] border ${f.type === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-red-500/10 text-red-300 border-red-500/20'}`}>
+                                    {f.bottom?.toFixed(0)}-{f.top?.toFixed(0)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {pools.length > 0 && (
+                    <div>
+                        <div className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Liquidity Pools</div>
+                        <div className="flex flex-wrap gap-2">
+                            {pools.slice(0, 4).map((p: any, i: number) => (
+                                <span key={i} className={`px-2 py-1 rounded text-[10px] border ${p.type === 'EQH' ? 'bg-red-500/10 text-red-300 border-red-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
+                                    {p.price?.toFixed(0)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
