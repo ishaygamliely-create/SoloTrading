@@ -1,7 +1,6 @@
-'use client';
-
 import React from 'react';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { getLiquidityConfidenceScore } from '@/app/lib/liquidityRange';
 
 type Props = {
     data: any;
@@ -18,16 +17,21 @@ export function LiquidityPanel({ data, loading }: Props) {
     const lr = data.analysis.liquidityRange || {};
     const fvgs = data.analysis.fvgs || [];
     const pools = data.analysis.liquidity || []; // "Active Liquidity"
+    const psp = data.analysis.psp || {};
 
-    // Map status to approximate confidence score for styling
-    // EXPANDING = High Confidence (Actionable?) -> 80
-    // COMPRESSED = Caution -> 65
-    // EXHAUSTED/OTHER -> Low -> 40
-    let impliedScore = 40;
-    if (lr.status === "EXPANDING") impliedScore = 80;
-    else if (lr.status === "COMPRESSED") impliedScore = 65;
+    // Calculate ADR %
+    const range = lr.currentRange || 0;
+    const avg = lr.avgRange || 1;
+    const adrPercent = (range / avg) * 100;
 
-    const borderClass = getConfidenceBorderClass(impliedScore);
+    // Get Confidence Score
+    const { confidenceScore, factors, mappingText } = getLiquidityConfidenceScore({
+        adrPercent,
+        hasMajorSweep: lr.hasMajorSweep,
+        pspState: psp.state
+    });
+
+    const borderClass = getConfidenceBorderClass(confidenceScore);
 
     const statusColor =
         lr.status === "COMPRESSED"
@@ -100,8 +104,8 @@ export function LiquidityPanel({ data, loading }: Props) {
             {lr.hint && (
                 <div className="text-[9px] text-zinc-500 leading-tight border-t border-zinc-800/50 pt-1 mt-auto">
                     {lr.hint}
-                    <div className="text-[8px] text-zinc-600 mt-0.5">
-                        Mapping: {lr.status} &rarr; {impliedScore}%
+                    <div className="text-[8px] text-zinc-600 mt-0.5 font-mono">
+                        {mappingText} &rarr; {confidenceScore}%
                     </div>
                 </div>
             )}

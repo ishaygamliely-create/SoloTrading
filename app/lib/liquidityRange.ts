@@ -1,57 +1,89 @@
-export type RangeStatus = "COMPRESSED" | "EXPANDING" | "EXHAUSTED";
 
-export function clamp(n: number, min: number, max: number) {
-    return Math.max(min, Math.min(max, n));
-}
+export type LiquidityConfidenceResult = {
+    confidenceScore: number;
+    factors: string[];
+    mappingText: string;
+};
 
-export function calcExpansionLikelihood(currentRange: number, avgRange: number): number {
-    if (!Number.isFinite(currentRange) || !Number.isFinite(avgRange) || avgRange <= 0) return 0;
-    // More compressed => higher likelihood. 0..100
-    const ratio = currentRange / avgRange;     // e.g. 0.31
-    const score01 = 1 - clamp(ratio, 0, 1);    // 0.69
-    return Math.round(score01 * 100);
-}
-
-export function getRangeStatus(currentRange: number, avgRange: number): RangeStatus {
-    if (!Number.isFinite(currentRange) || !Number.isFinite(avgRange) || avgRange <= 0) return "COMPRESSED";
-    const ratio = currentRange / avgRange;
-
-    // Thresholds (tunable):
-    // < 0.45 => compressed
-    // 0.45..0.90 => expanding (normal)
-    // >= 0.90 => exhausted
-    if (ratio < 0.45) return "COMPRESSED";
-    if (ratio >= 0.90) return "EXHAUSTED";
-    return "EXPANDING";
-}
-
-export function getRangeHint(args: {
-    status: RangeStatus;
-    adrPercent: number;                 // 0..100
-    expansionLikelihood: number;        // 0..100
+export function getLiquidityConfidenceScore(opts: {
+    adrPercent: number; // 0-100
     hasMajorSweep: boolean;
     pspState?: "NONE" | "FORMING" | "CONFIRMED";
-    pspDirection?: "LONG" | "SHORT" | "NEUTRAL";
+}): LiquidityConfidenceResult {
+    const factors: string[] = [];
+    let score = 0;
+
+    const adr = opts.adrPercent;
+
+    // --- Compression contribution ---
+    if (adr <= 35) {
+        score += 40;
+        factors.push("Compression <=35% (+40)");
+    } else if (adr <= 50) {
+        score += 25;
+        factors.push("Compression <=50% (+25)");
+    } else if (adr <= 70) {
+        score += 10;
+        factors.push("Compression <=70% (+10)");
+    } else {
+        factors.push("Low compression (+0)");
+    }
+
+    // --- Sweep contribution ---
+    if (opts.hasMajorSweep) {
+        score += 25;
+        factors.push("Major sweep (+25)");
+    }
+
+    // --- PSP contribution ---
+    if (opts.pspState === "CONFIRMED") {
+        score += 25;
+        factors.push("PSP confirmed (+25)");
+    } else if (opts.pspState === "FORMING") {
+        score += 15;
+        factors.push("PSP forming (+15)");
+    }
+
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+        confidenceScore: score,
+        factors,
+        mappingText: `ADR ${adr.toFixed(0)}% | Sweep ${opts.hasMajorSweep ? "Yes" : "No"} | PSP ${opts.pspState ?? "None"}`,
+    };
+}
+
+// RESTORED FUNCTIONS FOR API COMPATIBILITY
+
+export function getRangeStatus(current: number, avg: number): "COMPRESSED" | "EXPANDING" | "NORMAL" {
+    if (!avg || avg === 0) return "NORMAL";
+    const ratio = current / avg;
+    if (ratio <= 0.70) return "COMPRESSED";
+    if (ratio >= 1.0) return "EXPANDING";
+    return "NORMAL";
+}
+
+export function calcExpansionLikelihood(current: number, avg: number): number {
+    if (!avg || avg === 0) return 0;
+    const ratio = current / avg;
+    // Lower ratio = Higher likelihood of expansion
+    // If ratio is 0.5 (50%), likelihood is high.
+    // Logic: 100 - (ratio * 100) + twist
+    let likelihood = (1 - ratio) * 100;
+    // Boost likelihood for very compressed
+    return Math.max(0, Math.min(100, likelihood + 10));
+}
+
+export function getRangeHint(opts: {
+    status: string;
+    adrPercent: number;
+    expansionLikelihood: number;
+    hasMajorSweep: boolean;
+    pspState: string;
+    pspDirection: string;
 }): string {
-    const { status, hasMajorSweep, pspState, pspDirection, expansionLikelihood } = args;
-
-    if (status === "COMPRESSED") {
-        if (hasMajorSweep) return "Compressed + sweep detected: breakout risk is high.";
-        if (pspState === "FORMING" || pspState === "CONFIRMED") {
-            const dir = pspDirection && pspDirection !== "NEUTRAL" ? ` (${pspDirection})` : "";
-            return `Compressed + PSP ${pspState}${dir}: expansion likely soon (${expansionLikelihood}%).`;
-        }
-        return `Market compressed: wait for sweep/displacement. Expansion likelihood ${expansionLikelihood}%.`;
-    }
-
-    if (status === "EXPANDING") {
-        if (pspState === "CONFIRMED") {
-            const dir = pspDirection && pspDirection !== "NEUTRAL" ? ` (${pspDirection})` : "";
-            return `Expansion active + PSP CONFIRMED${dir}: follow-through favored.`;
-        }
-        return "Volatility expansion active: prefer momentum setups over mean reversion.";
-    }
-
-    // EXHAUSTED
-    return "Range near ADR: move may be tiring—manage risk and avoid chasing.";
+    const { status, adrPercent } = opts;
+    if (status === "COMPRESSED") return `Range Compressed (${adrPercent.toFixed(0)}% ADR). Expansion imminent.`;
+    if (status === "EXPANDING") return `Range Expanded (${adrPercent.toFixed(0)}% ADR). Move likely exhausted.`;
+    return `Range Normal (${adrPercent.toFixed(0)}% ADR).`;
 }
