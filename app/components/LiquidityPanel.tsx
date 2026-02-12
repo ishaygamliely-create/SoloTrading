@@ -24,8 +24,8 @@ export function LiquidityPanel({ data, loading }: Props) {
     const avg = lr.avgRange || 1;
     const adrPercent = (range / avg) * 100;
 
-    // Get Confidence Score
-    const { confidenceScore, factors, mappingText } = getLiquidityConfidenceScore({
+    // Get Confidence Score (Expansion Probability)
+    const { confidenceScore, mappingText } = getLiquidityConfidenceScore({
         adrPercent,
         hasMajorSweep: lr.hasMajorSweep,
         pspState: psp.state
@@ -33,101 +33,113 @@ export function LiquidityPanel({ data, loading }: Props) {
 
     const borderClass = getConfidenceBorderClass(confidenceScore);
 
-    // Force consistency: Derive status logic on client
-    let displayStatus = lr.status;
-    if (adrPercent <= 70) displayStatus = "COMPRESSED";
-    else if (adrPercent >= 100) displayStatus = "EXPANDING";
-    else displayStatus = "NORMAL";
+    // Playbook Logic
+    let playbookText = "Wait for Sweep → Displacement (Compression)";
+    if (adrPercent >= 45 && adrPercent <= 80) playbookText = "Momentum Phase – Trade with Structure";
+    else if (adrPercent > 90) playbookText = "Exhaustion Risk – Avoid Breakout Entries";
 
-    const getStatusBadge = () => {
-        switch (displayStatus) {
-            case "COMPRESSED": return "bg-yellow-500/20 text-yellow-300";
-            case "EXPANDING": return "bg-emerald-500/20 text-emerald-300";
-            case "EXHAUSTED": return "bg-red-500/20 text-red-300";
-            default: return "bg-white/10 text-white";
-        }
-    };
+    // Expansion Probability Bar Color
+    let expansionColor = "bg-red-500";
+    if (confidenceScore >= 60) expansionColor = "bg-yellow-500";
+    if (confidenceScore >= 75) expansionColor = "bg-emerald-500";
+
+    // ADR Usage Highlight
+    let adrLabel = "LOW";
+    let adrColor = "text-emerald-400";
+    if (adrPercent >= 40) { adrLabel = "MID"; adrColor = "text-yellow-400"; }
+    if (adrPercent >= 75) { adrLabel = "HIGH"; adrColor = "text-red-400"; }
+
+    // Nearest Zones Logic
+    // Find nearest FVG above current price (lowest bottom > price)
+    // Find nearest FVG below current price (highest top < price)
+    const currentPrice = data.price || 0;
+
+    // Sort FVGs by proximity
+    const fvgsAbove = fvgs.filter((f: any) => f.bottom > currentPrice).sort((a: any, b: any) => a.bottom - b.bottom);
+    const fvgsBelow = fvgs.filter((f: any) => f.top < currentPrice).sort((a: any, b: any) => b.top - a.top);
+    const nearestFVGAbove = fvgsAbove.length > 0 ? fvgsAbove[0] : null;
+    const nearestFVGBelow = fvgsBelow.length > 0 ? fvgsBelow[0] : null;
+
+    // Sort Pools by proximity
+    const poolsAbove = pools.filter((p: any) => p.price > currentPrice).sort((a: any, b: any) => a.price - b.price);
+    const poolsBelow = pools.filter((p: any) => p.price < currentPrice).sort((a: any, b: any) => b.price - a.price);
+    const nearestPoolAbove = poolsAbove.length > 0 ? poolsAbove[0] : null;
+    const nearestPoolBelow = poolsBelow.length > 0 ? poolsBelow[0] : null;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 ${borderClass}`}>
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-4 ${borderClass}`}>
+
             {/* HEADER */}
-            <div className="flex items-center justify-between">
-                <div className="font-bold tracking-widest text-lg bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                    LIQUIDITY & RANGE
+            <div className="flex flex-col gap-1">
+                <div className="font-bold tracking-widest text-lg bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent uppercase">
+                    Liquidity & Range
                 </div>
-
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge()}`}>
-                    {displayStatus}
-                </span>
-            </div>
-
-            {/* RANGE INFO */}
-            <div className="text-sm text-white/70 space-y-1">
-                <div className="flex justify-between">
-                    <span>Range:</span>
-                    <span>
-                        <span className="text-white font-medium">{lr.currentRange ? Number(lr.currentRange).toFixed(2) : '0.00'}</span>
-                        <span className="text-white/50 mx-1">/</span>
-                        <span className="text-white/70">{lr.avgRange ? Number(lr.avgRange).toFixed(2) : '0.00'} ADR</span>
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>ADR Usage:</span>
-                    <span className="text-white font-medium">{adrPercent.toFixed(0)}%</span>
-                </div>
-                <div className="flex justify-between">
-                    <span>Sweep Detected:</span>
-                    <span className={lr.hasMajorSweep ? "text-emerald-400 font-bold" : "text-white/50"}>
-                        {lr.hasMajorSweep ? "YES" : "NO"}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>PSP State:</span>
-                    <span className={psp.state === "CONFIRMED" ? "text-emerald-400 font-bold" : "text-white/50"}>
-                        {psp.state || "NONE"}
-                    </span>
+                <div className="text-xs font-bold text-white/90">
+                    PLAYBOOK: <span className="text-blue-300">{playbookText}</span>
                 </div>
             </div>
 
-            {/* MARKET CONDITION */}
-            {lr.hint && (
-                <div className="bg-black/30 rounded-lg p-3 text-sm">
-                    <div className="text-white/60 mb-1 text-xs uppercase tracking-wider font-bold">Market Condition</div>
-                    <div className="text-white leading-tight">{lr.hint}</div>
-                    <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-zinc-500 font-mono">
-                        {mappingText} &rarr; {confidenceScore}%
-                    </div>
+            {/* EXPANSION PROBABILITY */}
+            <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold text-white/80">
+                    <span>Expansion Probability</span>
+                    <span>{confidenceScore}%</span>
                 </div>
-            )}
+                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full ${expansionColor} transition-all duration-500`}
+                        style={{ width: `${confidenceScore}%` }}
+                    />
+                </div>
+            </div>
 
-            {/* LIQUIDITY ZONES */}
-            <div className="space-y-3 pt-2">
-                {fvgs.length > 0 && (
-                    <div>
-                        <div className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Recent FVGs</div>
-                        <div className="flex flex-wrap gap-2">
-                            {fvgs.slice(0, 3).map((f: any, i: number) => (
-                                <span key={i} className={`px-2 py-1 rounded text-[10px] border ${f.type === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-red-500/10 text-red-300 border-red-500/20'}`}>
-                                    {f.bottom?.toFixed(0)}-{f.top?.toFixed(0)}
-                                </span>
-                            ))}
+            {/* ADR USAGE */}
+            <div className="bg-black/20 rounded-lg p-2 flex items-center justify-between">
+                <span className="text-xs text-white/60 font-medium">ADR Usage</span>
+                <div className="flex items-baseline gap-2">
+                    <span className={`text-lg font-bold ${adrColor}`}>{adrPercent.toFixed(0)}%</span>
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wide">{adrLabel}</span>
+                </div>
+            </div>
+
+            {/* SMART ZONES (2x2 Grid) */}
+            <div className="grid grid-cols-2 gap-2">
+                {/* ABOVE */}
+                <div className="space-y-1">
+                    <div className="text-[10px] text-zinc-500 uppercase font-bold">Nearest Above</div>
+                    {nearestFVGAbove ? (
+                        <div className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded">
+                            FVG: {nearestFVGAbove.bottom?.toFixed(0)}-{nearestFVGAbove.top?.toFixed(0)}
                         </div>
-                    </div>
-                )}
-
-                {pools.length > 0 && (
-                    <div>
-                        <div className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Liquidity Pools</div>
-                        <div className="flex flex-wrap gap-2">
-                            {pools.slice(0, 4).map((p: any, i: number) => (
-                                <span key={i} className={`px-2 py-1 rounded text-[10px] border ${p.type === 'EQH' ? 'bg-red-500/10 text-red-300 border-red-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
-                                    {p.price?.toFixed(0)}
-                                </span>
-                            ))}
+                    ) : <div className="text-[10px] text-zinc-600 italic">No FVG</div>}
+                    {nearestPoolAbove ? (
+                        <div className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded">
+                            Pool: {nearestPoolAbove.price?.toFixed(0)}
                         </div>
-                    </div>
-                )}
+                    ) : <div className="text-[10px] text-zinc-600 italic">No Pool</div>}
+                </div>
+
+                {/* BELOW */}
+                <div className="space-y-1">
+                    <div className="text-[10px] text-zinc-500 uppercase font-bold">Nearest Below</div>
+                    {nearestFVGBelow ? (
+                        <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded">
+                            FVG: {nearestFVGBelow.bottom?.toFixed(0)}-{nearestFVGBelow.top?.toFixed(0)}
+                        </div>
+                    ) : <div className="text-[10px] text-zinc-600 italic">No FVG</div>}
+                    {nearestPoolBelow ? (
+                        <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded">
+                            Pool: {nearestPoolBelow.price?.toFixed(0)}
+                        </div>
+                    ) : <div className="text-[10px] text-zinc-600 italic">No Pool</div>}
+                </div>
             </div>
+
+            {/* TRANSPARENCY LINE */}
+            <div className="pt-2 border-t border-white/5 text-[9px] text-zinc-600 font-mono text-center">
+                Checks: ADR • Sweep • PSP • FVG Proximity • Pools
+            </div>
+
         </div>
     );
 }
