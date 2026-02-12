@@ -45,7 +45,7 @@ export function LiquidityPanel({ data, loading }: Props) {
 
     // ADR Usage Highlight
     const adrLabel = adrPercent < 45 ? "LOW" : adrPercent < 80 ? "MID" : "HIGH";
-    const adrLabelClass = adrPercent < 45 ? "text-sky-300" : adrPercent < 80 ? "text-yellow-200" : "text-orange-300";
+    const adrLabelClass = "text-white/60 font-semibold";
 
     // Nearest Zones Logic
     // Find nearest FVG above current price (lowest bottom > price)
