@@ -33,12 +33,18 @@ export function LiquidityPanel({ data, loading }: Props) {
 
     const borderClass = getConfidenceBorderClass(confidenceScore);
 
-    const statusColor =
-        lr.status === "COMPRESSED"
+    // Force consistency: Derive status logic on client to match the data displayed
+    let displayStatus = lr.status;
+    if (adrPercent <= 70) displayStatus = "COMPRESSED";
+    else if (adrPercent >= 100) displayStatus = "EXPANDING";
+    else displayStatus = "NORMAL";
+
+    const scoreStatusColor =
+        displayStatus === "COMPRESSED"
             ? "text-yellow-400 border-yellow-500/30 bg-yellow-500/10"
-            : lr.status === "EXPANDING"
+            : displayStatus === "EXPANDING"
                 ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
-                : "text-red-400 border-red-500/30 bg-red-500/10";
+                : "text-zinc-400 border-zinc-500/30 bg-zinc-500/10";
 
     return (
         <div className={`rounded-xl bg-zinc-900/60 p-3 h-full flex flex-col gap-2 min-h-[160px] ${borderClass}`}>
@@ -47,9 +53,9 @@ export function LiquidityPanel({ data, loading }: Props) {
                 <div className="text-xs font-bold text-zinc-400 uppercase">
                     Liquidity & Range
                 </div>
-                {lr.status && (
-                    <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${statusColor}`}>
-                        {lr.status}
+                {displayStatus && (
+                    <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${scoreStatusColor}`}>
+                        {displayStatus}
                     </div>
                 )}
             </div>
