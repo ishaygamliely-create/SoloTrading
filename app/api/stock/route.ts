@@ -8,7 +8,7 @@ import { applySessionSoftImpact } from '../../lib/sessionImpact'; // NEW
 import { getBiasSignal } from '../../lib/bias'; // NEW
 import { getValueZoneSignal } from '../../lib/valueZone'; // NEW
 import { getStructureSignal } from '../../lib/structure'; // NEW
-import { calculateConfluence } from '../../lib/confluence'; // NEW
+import { getConfluenceV1 } from '../../lib/confluence'; // NEW
 import { detectPSP as detectPSPNew } from '../../lib/psp'; // RESTORED
 import { calcExpansionLikelihood, getRangeStatus, getRangeHint } from '../../lib/liquidityRange'; // NEW
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
@@ -527,18 +527,52 @@ export async function GET(request: Request) {
 
         const pspResult = detectPSPNew(mainQuotesForChart);
 
-        const confluenceSignal = calculateConfluence({
+        // Calculate Liquidity Range (extracted for Confluence usage)
+        const liquidityRangeForConfluence = (() => {
+            const currentRange = pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0;
+            const avgRange = (tre && tre.ratio > 0) ? (currentRange / tre.ratio) : 200;
+            const adrPercent = avgRange > 0 ? (currentRange / avgRange) * 100 : 0;
+            const status = getRangeStatus(currentRange, avgRange);
+            const expansionLikelihood = calcExpansionLikelihood(currentRange, avgRange);
+
+            return {
+                status,
+                currentRange,
+                avgRange,
+                adrPercent: Math.round(adrPercent),
+                expansionLikelihood,
+                hint: getRangeHint({
+                    status,
+                    adrPercent,
+                    expansionLikelihood,
+                    hasMajorSweep: sweeps ? sweeps.length > 0 : false,
+                    pspState: pspResult.state,
+                    pspDirection: pspResult.direction
+                })
+            };
+        })();
+
+        const confluenceSignal = getConfluenceV1({
             session,
             bias: biasSignal,
             valueZone: valueZoneSignal,
             structure: structureSignal,
             smt: smtSignal,
-            psp: pspResult,
-            liquidityRange: {
-                status: getRangeStatus(pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0, (tre && tre.ratio > 0) ? ((pdRanges?.dailyHigh - pdRanges?.dailyLow) / tre.ratio) : 200),
-                expansionLikelihood: calcExpansionLikelihood(pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0, (tre && tre.ratio > 0) ? ((pdRanges?.dailyHigh - pdRanges?.dailyLow) / tre.ratio) : 200)
+            psp: {
+                status: pspResult.state === "NONE" ? "OFF" : "OK",
+                direction: pspResult.direction,
+                score: pspResult.score,
+                hint: pspResult.reasons[0] || "No PSP setup",
+                debug: { factors: pspResult.reasons }
             },
-            dataStatus: lagStatus.status as any
+            liquidity: {
+                status: "OK",
+                direction: "NEUTRAL",
+                score: (liquidityRangeForConfluence.status === "COMPRESSED" && liquidityRangeForConfluence.expansionLikelihood >= 60) ? 100 : 0,
+                hint: liquidityRangeForConfluence.hint,
+                debug: { factors: [`Range: ${liquidityRangeForConfluence.status}`] }
+            },
+            feedIsDelayed: lagStatus.isWarning || lagStatus.isBlocked
         });
 
         return NextResponse.json({
@@ -598,40 +632,7 @@ export async function GET(request: Request) {
                 psps: [],
                 timeContext,
                 pdRanges,
-                liquidityRange: (() => {
-                    // Logic to compute new Liquidity Analysis
-                    const currentRange = pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0;
-                    // Avg Range - assume ~200 pts for NQ if not available or calc from TR if possible.
-                    // Ideally we'd have ATR(14) on Daily. Let's use technicals.atr[last] * 14 or similar approximation?
-                    // Better: Use a fixed assumption or improved calc if available.
-                    // For now, let's use the ATR(14) we calculated * typical expansion factor or just ATR itself as 'Avg Range' approximation for intraday.
-                    // A better one is 'Tre' (True Range Expansion).
-                    // If tre.ratio is range/avg, then avg = range / tre.ratio
-                    const avgRange = (tre && tre.ratio > 0) ? (currentRange / tre.ratio) : 200; // Fallback 200pts for NQ
-
-                    const adrPercent = avgRange > 0 ? (currentRange / avgRange) * 100 : 0;
-                    const status = getRangeStatus(currentRange, avgRange);
-                    const expansionLikelihood = calcExpansionLikelihood(currentRange, avgRange);
-
-                    // Optimal: Store variable above.
-
-                    return {
-                        hasMajorSweep: sweeps ? sweeps.length > 0 : false, // Simplified check
-                        status,
-                        currentRange,
-                        avgRange,
-                        adrPercent: Math.round(adrPercent),
-                        expansionLikelihood,
-                        hint: getRangeHint({
-                            status,
-                            adrPercent,
-                            expansionLikelihood,
-                            hasMajorSweep: sweeps ? sweeps.length > 0 : false,
-                            pspState: pspResult.state,
-                            pspDirection: pspResult.direction
-                        })
-                    };
-                })(),
+                liquidityRange: liquidityRangeForConfluence,
                 ictStructure,
                 sweeps,
                 tre,
