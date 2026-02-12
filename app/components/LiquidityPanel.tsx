@@ -43,9 +43,13 @@ export function LiquidityPanel({ data, loading }: Props) {
     if (confidenceScore >= 60) expansionColor = "bg-yellow-500";
     if (confidenceScore >= 75) expansionColor = "bg-emerald-500";
 
-    // ADR Usage Highlight
-    const adrLabel = adrPercent < 45 ? "LOW" : adrPercent < 80 ? "MID" : "HIGH";
-    const adrLabelClass = "text-white/60 font-semibold";
+    // ADR Usage Highlight (Neutral)
+    function getAdrUsageLabel(pct: number) {
+        if (pct < 45) return { label: "LOW", className: "text-white/60" };
+        if (pct < 80) return { label: "MID", className: "text-white/70" };
+        return { label: "HIGH", className: "text-white/80" };
+    }
+    const { label: adrLabel, className: adrLabelClass } = getAdrUsageLabel(adrPercent);
 
     // Nearest Zones Logic
     // Find nearest FVG above current price (lowest bottom > price)
