@@ -49,7 +49,8 @@ export function LiquidityPanel({ data, loading }: Props) {
         if (pct < 80) return { label: "MID", className: "text-white/70" };
         return { label: "HIGH", className: "text-white/80" };
     }
-    const { label: adrLabel, className: adrLabelClass } = getAdrUsageLabel(adrPercent);
+    const adr = lr?.adrPercent ?? 0;
+    const adrMeta = getAdrUsageLabel(adr);
 
     // Nearest Zones Logic
     // Find nearest FVG above current price (lowest bottom > price)
@@ -99,8 +100,10 @@ export function LiquidityPanel({ data, loading }: Props) {
             <div className="bg-black/20 rounded-lg p-2 flex items-center justify-between">
                 <span className="text-xs text-white/60 font-medium">ADR Usage</span>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-white/90">{adrPercent.toFixed(0)}%</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wide ${adrLabelClass}`}>{adrLabel}</span>
+                    <div className="text-2xl font-bold text-white">{adr}%</div>
+                    <div className={`text-xs font-semibold tracking-wide ${adrMeta.className}`}>
+                        {adrMeta.label}
+                    </div>
                 </div>
             </div>
 
