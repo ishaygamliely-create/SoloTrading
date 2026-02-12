@@ -26,7 +26,14 @@ export function ConfluencePanel({ data, loading }: PanelProps) {
                 {factors.filter(f => typeof f === 'string').slice(0, 5).map((f, i) => {
                     const isPos = f.startsWith('+');
                     const isNeg = f.startsWith('-');
-                    const color = isPos ? 'text-zinc-400' : isNeg ? 'text-zinc-500' : 'text-zinc-600';
+                    const isGate = f.includes('SMT GATE');
+                    const isOverride = f.includes('OVERRIDE');
+
+                    let color = 'text-zinc-600';
+                    if (isOverride) color = 'text-green-400 font-bold';
+                    else if (isGate) color = 'text-red-400 font-bold';
+                    else if (isPos) color = 'text-zinc-400';
+                    else if (isNeg) color = 'text-zinc-500';
 
                     return (
                         <span key={i} className={`${color} whitespace-nowrap`}>

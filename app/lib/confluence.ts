@@ -163,6 +163,39 @@ export function calculateConfluence(params: ConfluenceParams): ConfluenceSignal 
         }
     }
 
+    // 6. SMT Gate Logic (DISABLED due to delayed feed)
+    /*
+    if (smt.gate?.isActive && suggestion !== "NO_TRADE") {
+        const isBlocked = smt.gate.blocksDirection === suggestion;
+        
+        if (isBlocked) {
+            // Check for Override
+            // Rules: Score >= 11/12, PSP CONFIRMED in trade direction (opposite to block), Liquidity EXPANDING
+            const canOverride = 
+                finalScore >= 11 &&
+                psp.state === "CONFIRMED" && 
+                psp.direction === suggestion &&
+                liquidityRange.status === "EXPANDING";
+
+            if (canOverride) {
+                factors.push("⚡ OVERRIDE: Extreme confluence vs SMT Gate");
+            } else {
+                // Apply Block
+                suggestion = "NO_TRADE";
+                
+                // Downgrade Level
+                if (level === "STRONG") level = "GOOD";
+                else if (level === "GOOD") level = "WEAK";
+                else if (level === "WEAK") level = "NO_TRADE";
+                
+                factors.push(`⛔ SMT GATE ACTIVE: blocks ${smt.gate.blocksDirection}`);
+                factors.push(`TTL: ${smt.gate.remainingMin}m`);
+                hint = "Trade blocked by Strong SMT Gate (wait for expiration or better setup)";
+            }
+        }
+    }
+    */
+
     return {
         status,
         direction: refDirection, // Overall direction context

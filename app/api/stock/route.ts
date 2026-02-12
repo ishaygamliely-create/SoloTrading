@@ -16,13 +16,13 @@ import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calcu
 const yahooFinance = new YahooFinance();
 
 export async function GET(request: Request) {
-    // Reference Symbols for SMT (Optimized: 2 Days only to prevent hangs)
+    // Reference Symbols for SMT (Optimized: 5 Days for 15m swings)
     const startDateSMT = new Date();
-    startDateSMT.setDate(startDateSMT.getDate() - 5); // Need more history for 15m swings
+    startDateSMT.setDate(startDateSMT.getDate() - 5);
 
     const refSymbols = ['ES=F', 'YM=F', 'RTY=F'];
     const pRefs = Promise.all(refSymbols.map(s =>
-        yahooFinance.chart(s, { period1: startDateSMT, interval: '15m' }) // CHANGED to 15m
+        yahooFinance.chart(s, { period1: startDateSMT, interval: '15m' })
             .catch(e => { console.warn(`SMT Fetch Failed for ${s}`, e); return null; })
     ));
     const { searchParams } = new URL(request.url);
@@ -63,15 +63,7 @@ export async function GET(request: Request) {
         startDaily.setDate(startDaily.getDate() - 20);
         const pDaily = yahooFinance.chart(symbol, { period1: startDaily, interval: '1d' }).catch(e => { console.error('pDaily error', e); return null; });
 
-        // Reference Symbols for SMT (Optimized: 2 Days only to prevent hangs)
-        const startDateSMT = new Date();
-        startDateSMT.setDate(startDateSMT.getDate() - 2);
 
-        const refSymbols = ['ES=F', 'YM=F', 'RTY=F'];
-        const pRefs = Promise.all(refSymbols.map(s =>
-            yahooFinance.chart(s, { period1: startDateSMT, interval: '1m' })
-                .catch(e => { console.warn(`SMT Fetch Failed for ${s}`, e); return null; })
-        ));
 
         const [res1m, res5m, res15m, res60m, resDaily, resRefs] = await Promise.all([p1m, p5m, p15m, p60m, pDaily, pRefs]);
 
@@ -315,14 +307,18 @@ export async function GET(request: Request) {
             });
         }
 
-        const smtSignalRaw = getSmtSignal({
-            mainQuotes15m: quotes15m,
-            referenceQuotes15m: smtReferenceData,
-            mainSymbol: symbol?.replace('=F', '') || 'NQ'
-        });
-
         // --- SESSION & SOFT IMPACT ---
         const session = getSessionSignal(nowMs);
+
+        /**
+         * SMT Call with New Signature (Positional)
+         */
+        const smtSignalRaw = getSmtSignal(
+            quotes15m,                 // MNQ
+            smtReferenceData['ES'] || [], // MES
+            smtReferenceData['YM'] || []  // MYM
+        );
+
         const smtSignal = applySessionSoftImpact(smtSignalRaw, session);
 
         // Adapters for legacy functions that might still expect 'smt' array (e.g. calculateCompositeBias)
