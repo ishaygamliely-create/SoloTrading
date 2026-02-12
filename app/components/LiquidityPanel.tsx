@@ -44,10 +44,8 @@ export function LiquidityPanel({ data, loading }: Props) {
     if (confidenceScore >= 75) expansionColor = "bg-emerald-500";
 
     // ADR Usage Highlight
-    let adrLabel = "LOW";
-    let adrColor = "text-emerald-400";
-    if (adrPercent >= 40) { adrLabel = "MID"; adrColor = "text-yellow-400"; }
-    if (adrPercent >= 75) { adrLabel = "HIGH"; adrColor = "text-red-400"; }
+    const adrLabel = adrPercent < 45 ? "LOW" : adrPercent < 80 ? "MID" : "HIGH";
+    const adrLabelClass = adrPercent < 45 ? "text-sky-300" : adrPercent < 80 ? "text-yellow-200" : "text-orange-300";
 
     // Nearest Zones Logic
     // Find nearest FVG above current price (lowest bottom > price)
@@ -97,9 +95,8 @@ export function LiquidityPanel({ data, loading }: Props) {
             <div className="bg-black/20 rounded-lg p-2 flex items-center justify-between">
                 <span className="text-xs text-white/60 font-medium">ADR Usage</span>
                 <div className="flex items-baseline gap-2">
-                    {/* Neutral White for value, Muted color for label */}
                     <span className="text-lg font-bold text-white/90">{adrPercent.toFixed(0)}%</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wide ${adrPercent >= 75 ? "text-blue-300" : "text-white/50"}`}>{adrLabel}</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wide ${adrLabelClass}`}>{adrLabel}</span>
                 </div>
             </div>
 
