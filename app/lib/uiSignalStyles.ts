@@ -33,10 +33,55 @@ const COLORS = {
 /**
  * Get the confidence color definition based on score (0-100).
  */
+export function clampPct(n: number) {
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 function getConfidenceLevel(score: number) {
     if (score >= 75) return COLORS.GREEN;
     if (score >= 60) return COLORS.YELLOW;
     return COLORS.RED;
+}
+
+export function getConfidenceLabel(score: number) {
+    if (score >= 75) return "HIGH";
+    if (score >= 60) return "MID";
+    return "LOW";
+}
+
+export function getConfidenceColorClass(score: number) {
+    // score is 0–100
+    if (score >= 75) {
+        return {
+            text: "text-emerald-300",
+            border: "ring-1 ring-emerald-500/30",
+            bg: "bg-emerald-500/10",
+            bar: "bg-emerald-500",
+            badge: "bg-emerald-600/90 text-white" // Keep badge for compatibility if needed elsewhere
+        };
+    }
+    if (score >= 60) {
+        return {
+            text: "text-yellow-300",
+            border: "ring-1 ring-yellow-500/30",
+            bg: "bg-yellow-500/10",
+            bar: "bg-yellow-500",
+            badge: "bg-yellow-600/90 text-white"
+        };
+    }
+    return {
+        text: "text-red-400",
+        border: "ring-1 ring-red-500/30",
+        bg: "bg-red-500/10",
+        bar: "bg-red-500",
+        badge: "bg-red-600/90 text-white"
+    };
+}
+
+// Keeping aliases for backward compatibility if needed, but updated to use new structure where possible or just re-export
+export function getConfidenceStyles(score: number) {
+    return getConfidenceColorClass(score);
 }
 
 export function getConfidenceTone(score: number) {
@@ -45,20 +90,6 @@ export function getConfidenceTone(score: number) {
     return "LOW";
 }
 
-export function getConfidenceColorClass(score: number) {
-    if (score >= 75) {
-        return { text: "text-emerald-300", ring: "ring-1 ring-emerald-500/30", bar: "bg-emerald-500/70", border: "border-emerald-500/30", badge: "bg-emerald-600/90 text-white" };
-    }
-    if (score >= 60) {
-        return { text: "text-yellow-300", ring: "ring-1 ring-yellow-500/30", bar: "bg-yellow-500/70", border: "border-yellow-500/30", badge: "bg-yellow-600/90 text-white" };
-    }
-    return { text: "text-red-400", ring: "ring-1 ring-red-500/30", bar: "bg-red-500/70", border: "border-red-500/20", badge: "bg-red-600/90 text-white" };
-}
-
-// Keeping aliases for backward compatibility if needed, but updated to use new structure where possible or just re-export
-export function getConfidenceStyles(score: number) {
-    return getConfidenceColorClass(score);
-}
 
 export function getConfidenceBorderClass(score: number) {
     const base = "border transition-colors duration-300 ring-1 ring-inset ring-white/5"; // Added subtle ring as requested
