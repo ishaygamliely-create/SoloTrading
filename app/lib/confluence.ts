@@ -73,5 +73,27 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     if (level === "NO_TRADE") status = "WARN";
     else if (warn) status = "WARN";
 
+    // --- SMT GATE LOGIC ---
+    if (i.smt?.gate?.isActive && i.smt.gate.blocksDirection) {
+        if (i.smt.gate.blocksDirection === suggestion) {
+            // Check for potential Override (High Conviction)
+            // Override requires: Score > 85 AND PSP Setup AND Liquidity Expanding
+            const canOverride =
+                scorePct > 85 &&
+                i.psp?.status === "OK" &&
+                i.liquidity?.score > 80;
+
+            if (canOverride) {
+                factors.push("⚠️ SMT Gate Override (High Conviction)");
+                status = "WARN"; // Downgrade block to warn
+            } else {
+                status = "BLOCKED";
+                level = "NO_TRADE";
+                suggestion = "NO_TRADE";
+                factors.push(`⛔ BLOCKED by SMT Gate (Blocks ${i.smt.gate.blocksDirection})`);
+            }
+        }
+    }
+
     return { scorePct, level, suggestion, status, factors };
 }

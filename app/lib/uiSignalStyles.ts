@@ -124,7 +124,7 @@ export function getDirectionBadgeClass(opts: {
 
 // Legacy alias if needed, mapping to new logic
 export function getScoreTextClass(score: number) {
-    return getConfidenceColorClass(score);
+    return getConfidenceColorClass(score).text;
 }
 
 // Helper to normalize input to 0-100
