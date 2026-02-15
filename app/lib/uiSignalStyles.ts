@@ -39,12 +39,25 @@ function getConfidenceLevel(score: number) {
     return COLORS.RED;
 }
 
-export function getConfidenceColorClass(score: number) {
-    return getConfidenceLevel(score).text;
+export function getConfidenceTone(score: number) {
+    if (score >= 75) return "HIGH";
+    if (score >= 60) return "MID";
+    return "LOW";
 }
 
+export function getConfidenceColorClass(score: number) {
+    if (score >= 75) {
+        return { text: "text-emerald-300", ring: "ring-1 ring-emerald-500/30", bar: "bg-emerald-500/70", border: "border-emerald-500/30", badge: "bg-emerald-600/90 text-white" };
+    }
+    if (score >= 60) {
+        return { text: "text-yellow-300", ring: "ring-1 ring-yellow-500/30", bar: "bg-yellow-500/70", border: "border-yellow-500/30", badge: "bg-yellow-600/90 text-white" };
+    }
+    return { text: "text-red-400", ring: "ring-1 ring-red-500/30", bar: "bg-red-500/70", border: "border-red-500/20", badge: "bg-red-600/90 text-white" };
+}
+
+// Keeping aliases for backward compatibility if needed, but updated to use new structure where possible or just re-export
 export function getConfidenceStyles(score: number) {
-    return getConfidenceLevel(score);
+    return getConfidenceColorClass(score);
 }
 
 export function getConfidenceBorderClass(score: number) {

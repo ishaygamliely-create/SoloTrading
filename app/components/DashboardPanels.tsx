@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { PanelHelp } from './PanelHelp';
+import { TrendingUp, TrendingDown, Anchor, Target } from 'lucide-react';
 
 // Type definitions for props
 export interface PanelProps {
@@ -16,15 +18,12 @@ export function BiasPanel({ data, loading }: PanelProps) {
     const { score, label, factors } = data.analysis.bias;
     const isBull = score >= 0;
 
-    // Use placeholder images that "exist" or fallback to gradients
-    // If files are real, they will load. If not, we can use a creative fallback.
     const visualSrc = isBull ? '/bull_market.png' : '/bear_market.png';
 
     return (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden relative min-h-[250px] group">
             {/* Background Image with Fallback Gradient */}
             <div className={`absolute inset-0 z-0 opacity-40 transition-opacity duration-1000 ${isBull ? 'bg-gradient-to-br from-green-900 to-black' : 'bg-gradient-to-br from-red-900 to-black'}`}>
-                {/* Try to show image, if it fails, the gradient behind works */}
                 <img
                     src={visualSrc}
                     alt="Market Regime"
@@ -53,6 +52,14 @@ export function BiasPanel({ data, loading }: PanelProps) {
                     </div>
                 </div>
             </div>
+
+            <PanelHelp title="Market Bias">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>Score</b>: Aggregated signal strength (0-100).</li>
+                    <li><b>Factors</b>: Confluence of multiple indicators.</li>
+                    <li><b>Regime</b>: Bullish (Green) or Bearish (Red) bias.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }
@@ -95,6 +102,14 @@ export function LevelsPanel({ data, loading }: PanelProps) {
                     </>
                 )}
             </div>
+            <PanelHelp title="Key Levels">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>True Open</b>: 18:00 EST previous day open.</li>
+                    <li><b>PDH/PDL</b>: Previous Day High/Low.</li>
+                    <li><b>VWAP</b>: Volume Weighted Average Price (Session).</li>
+                    <li><b>SD Bands</b>: Standard Deviation bands from VWAP.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }
@@ -163,6 +178,13 @@ export function TrendPanel({ data, loading, timeframe }: PanelProps) {
                     <div className="bg-zinc-900 rounded py-0.5"><SlopeIndicator val={slope200} /></div>
                 </div>
             </div>
+            <PanelHelp title="Trend Engine">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>EMAs</b>: 20, 50, 200 period Exponential Moving Averages.</li>
+                    <li><b>Slope</b>: Directional momentum of the EMAs.</li>
+                    <li><b>Alignment</b>: Stacked EMAs indicate strong trend.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }
@@ -237,6 +259,14 @@ export function SMCPanel({ data, loading, timeframe }: PanelProps) {
                     </div>
                 </div>
             </div>
+            <PanelHelp title="SMC Scanner">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>SMT</b>: Divergence between correlated assets.</li>
+                    <li><b>Structure</b>: Market structure (HH/HL/LL/LH).</li>
+                    <li><b>FVG</b>: Fair Value Gaps (Imbalances).</li>
+                    <li><b>Liquidity</b>: Pools of resting orders (EQH/EQL).</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }
@@ -310,9 +340,13 @@ export function RiskPanel({ data, loading }: PanelProps) {
             <div className="mt-3 pt-2 border-t border-zinc-800/50 text-[8px] text-zinc-600 text-center">
                 Mapping: RR {rrRatio ? rrRatio.toFixed(2) : '0'} &rarr; {riskScore}%
             </div>
+            <PanelHelp title="Risk Logic">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>R:R</b>: Reward-to-Risk Ratio (Target / Invalidation).</li>
+                    <li><b>Invalidation</b>: Where the trade idea fails.</li>
+                    <li><b>Targets</b>: Projected profit taking zones.</li>
+                </ul>
+            </PanelHelp>
         </div >
     );
 }
-
-// Added missing imports for icons
-import { TrendingUp, TrendingDown, Anchor, Target } from 'lucide-react';

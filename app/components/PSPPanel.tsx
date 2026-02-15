@@ -4,6 +4,7 @@ import { Crosshair, Check, X, AlertCircle } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
 import IndicatorHeader from './IndicatorHeader';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { PanelHelp } from './PanelHelp';
 
 export function PSPPanel({ data, loading }: PanelProps) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[120px]"></div>;
@@ -66,6 +67,14 @@ export function PSPPanel({ data, loading }: PanelProps) {
                     )}
                 </div>
             </div>
+            <PanelHelp title="PSP">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>Sweep</b>: Liquidity grab.</li>
+                    <li><b>Displacement</b>: Strong move away.</li>
+                    <li><b>Pullback</b>: Return to entry zone.</li>
+                    <li><b>Continuation</b>: Move in trade direction.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }

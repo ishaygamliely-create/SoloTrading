@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorSignal } from '../lib/types';
 import IndicatorHeader from './IndicatorHeader';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { PanelHelp } from './PanelHelp';
 
 type Props = {
     data: any;
@@ -51,6 +52,13 @@ export function SMTPanel({ data, loading }: Props) {
                     Feed is delayed (Yahoo). SMT may appear late.
                 </div>
             </div>
+            <PanelHelp title="SMT">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>SMT</b>: Smart Money Tool (Divergence).</li>
+                    <li><b>Strong Event</b>: High confidence signal.</li>
+                    <li><b>Gate</b>: Blocks trades against SMT direction.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }

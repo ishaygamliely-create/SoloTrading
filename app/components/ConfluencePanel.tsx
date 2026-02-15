@@ -1,5 +1,6 @@
 import React from "react";
 import { getDirectionBadgeClass, getScoreTextClass, getConfidenceBorderClass } from "@/app/lib/uiSignalStyles";
+import { PanelHelp } from "./PanelHelp";
 
 type ConfluenceLevel = "NO_TRADE" | "WEAK" | "GOOD" | "STRONG";
 type ConfluenceSuggestion = "LONG" | "SHORT" | "NO_TRADE";
@@ -71,6 +72,13 @@ export function ConfluencePanel({ data, loading }: { data: { analysis: { conflue
                     <span key={idx}>{f}</span>
                 ))}
             </div>
+            <PanelHelp title="CONFLUENCE">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>Score</b>: Aggregated system confidence.</li>
+                    <li><b>Factors</b>: Key drivers of the score.</li>
+                    <li><b>Suggestion</b>: Trade direction bias.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }

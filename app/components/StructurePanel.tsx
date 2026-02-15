@@ -2,6 +2,7 @@ import React from 'react';
 import type { IndicatorSignal } from '../lib/types';
 import IndicatorHeader from './IndicatorHeader';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { PanelHelp } from './PanelHelp';
 
 interface StructurePanelProps {
     data: any;
@@ -36,6 +37,13 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
             <div className="text-[9px] text-zinc-600 mt-1 hidden md:block">
                 EMA20 {Number(ema20)?.toFixed(1)} / EMA50 {Number(ema50)?.toFixed(1)}
             </div>
+            <PanelHelp title="STRUCTURE">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>Score</b>: Trend strength (0-100).</li>
+                    <li><b>ADX</b>: Trend momentum indicator.</li>
+                    <li><b>Hint</b>: Current market structure state.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }

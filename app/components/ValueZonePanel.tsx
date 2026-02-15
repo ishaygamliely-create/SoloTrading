@@ -2,6 +2,7 @@ import React from 'react';
 import type { IndicatorSignal } from '../lib/types';
 import IndicatorHeader from './IndicatorHeader';
 import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { PanelHelp } from './PanelHelp';
 
 interface ValueZonePanelProps {
     data: any;
@@ -36,6 +37,13 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             <div className="text-[9px] text-zinc-600 mt-1 hidden md:block">
                 PDH {pdh?.toFixed(2)} | EQ {eq?.toFixed(2)} | PDL {pdl?.toFixed(2)}
             </div>
+            <PanelHelp title="VALUE">
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><b>Zone</b>: Premium (Expensive) or Discount (Cheap).</li>
+                    <li><b>Range</b>: % of time spent inside value area.</li>
+                    <li><b>EQ</b>: Equilibrium price level.</li>
+                </ul>
+            </PanelHelp>
         </div>
     );
 }
