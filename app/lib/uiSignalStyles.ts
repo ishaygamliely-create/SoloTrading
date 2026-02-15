@@ -43,6 +43,10 @@ export function getConfidenceColorClass(score: number) {
     return getConfidenceLevel(score).text;
 }
 
+export function getConfidenceStyles(score: number) {
+    return getConfidenceLevel(score);
+}
+
 export function getConfidenceBorderClass(score: number) {
     const base = "border transition-colors duration-300 ring-1 ring-inset ring-white/5"; // Added subtle ring as requested
     // Overlay specific border color
