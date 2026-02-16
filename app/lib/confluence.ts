@@ -91,7 +91,8 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     if (level === "NO_TRADE") status = "WARN";
     else if (warn) status = "WARN";
 
-    // --- SMT GATE LOGIC ---
+    // --- SMT GATE LOGIC (PAUSED) ---
+    /*
     if (i.smt?.gate?.isActive && i.smt.gate.blocksDirection) {
         if (i.smt.gate.blocksDirection === suggestion) {
             // Check for potential Override (High Conviction)
@@ -111,6 +112,7 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
             }
         }
     }
+    */
 
     return { scorePct, level, suggestion, status, factors };
 }
