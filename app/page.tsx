@@ -248,7 +248,7 @@ export default function Home() {
               </div>
 
               {/* 2. ANALYTICS SIDEBAR (Col-span-1) - The STACK */}
-              <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-4 h-full overflow-y-auto">
+              <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-4">
 
                 {/* 0) Decision strip always on top */}
                 {confluence && (
