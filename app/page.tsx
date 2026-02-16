@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Search, TrendingUp, AlertCircle, Loader2, Menu, X } from 'lucide-react';
+import { Search, TrendingUp, AlertCircle, Loader2, Menu, X, Activity, Zap, BookOpen } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
-import { TimeAlignmentPanel } from './components/TimeAlignmentPanel';
 import MarketContextCompact from './components/MarketContextCompact';
 import { SMTPanel } from './components/SMTPanel';
 import { SessionPanel } from './components/SessionPanel';
@@ -20,12 +19,9 @@ import { RiskPanel } from './components/RiskPanel';
 import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
 import { ConfidenceLegend } from './components/ConfidenceLegend';
-
-// --- PanelSlot Wrapper ---
-function PanelSlot({ show, children }: { show: boolean; children: React.ReactNode }) {
-  if (!show) return null;
-  return <div className="w-full">{children}</div>;
-}
+import CollapsibleSection from './components/CollapsibleSection';
+import DecisionPanel from './components/DecisionPanel';
+import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
 
 const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart), {
   ssr: false,
@@ -38,6 +34,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+
+  // UI Toggles
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const fetchData = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -63,19 +63,35 @@ export default function Home() {
     }
   };
 
-  // --- Safe "Has Data" Checks ---
-  // Ensure we check the correct path in the data object
-  const analysis = data?.analysis;
-  const hasSession = !!data?.session;
-  const hasBias = !!analysis?.bias;
-  const hasStructure = !!analysis?.structure;
-  const hasValueZone = !!analysis?.valueZone;
-  const hasLiquidity = !!analysis?.liquidityRange; // Primary check for LiquidityPanel
-  const hasPSP = !!analysis?.psp;
-  const hasSMT = !!analysis?.smt;
-  const hasConfluence = !!analysis?.confluence;
-  const hasLevels = !!data?.levels;
-  const hasRisk = !!analysis?.risk && analysis.risk.direction !== 'NEUTRAL'; // Only show if active risk
+  // --- Logic for Visibility ---
+  let analysis = null;
+  let confluence = null;
+  let showSmt = false;
+  let showRisk = false;
+
+  if (data && data.analysis) {
+    analysis = data.analysis;
+    confluence = analysis.confluence;
+
+    const smt = analysis.smt;
+    const smtScore = smt?.score ?? 0;
+
+    const smtStatus = smt?.status || (smt ? 'OK' : 'OFF');
+
+    showSmt = shouldShowSmt({
+      smtScore,
+      smtStatus: smtStatus as any,
+      debugOpen,
+      advancedOpen,
+    });
+
+    showRisk = shouldShowRisk({
+      confluenceSuggestion: confluence?.suggestion,
+      confluenceLevel: confluence?.level,
+    });
+  }
+
+  const hasScenarios = !!analysis?.scenarios;
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white selection:bg-blue-500/30 font-sans w-full max-w-full overflow-x-hidden">
@@ -132,6 +148,14 @@ export default function Home() {
             </div>
 
             <div className="flex gap-2 w-full md:w-auto">
+              {/* Optional: Debug Toggle for testing */}
+              <button
+                onClick={() => setDebugOpen(!debugOpen)}
+                className={`px-3 py-2 text-xs rounded border ${debugOpen ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-transparent border-transparent text-zinc-600'}`}
+              >
+                Debug
+              </button>
+
               <input
                 type="text"
                 value={symbol}
@@ -161,7 +185,7 @@ export default function Home() {
             </div>
           )}
 
-          {data && (
+          {data && analysis && (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
 
               {/* 1. CHART AREA (Col-span-3) */}
@@ -195,88 +219,88 @@ export default function Home() {
 
                 {/* Market Context Compact inside Chart Column (Bottom) */}
                 <ErrorBoundary name="MarketContext">
-                  {data.analysis?.marketContext && (
+                  {analysis.marketContext && (
                     <MarketContextCompact
-                      price={data.analysis.marketContext.price}
-                      pdh={data.analysis.marketContext.pdh}
-                      pdl={data.analysis.marketContext.pdl}
-                      eq={data.analysis.marketContext.eq}
-                      dailyRangePercent={data.analysis.marketContext.dailyRangePercent}
-                      regime={data.analysis.marketContext.regime}
-                      biasMode={data.analysis.marketContext.biasMode}
-                      dataStatus={data.analysis.marketContext.dataStatus}
-                      dataAgeLabel={data.analysis.marketContext.dataAgeLabel}
-                      lastBarNyTime={data.analysis.marketContext.lastBarNyTime}
+                      price={analysis.marketContext.price}
+                      pdh={analysis.marketContext.pdh}
+                      pdl={analysis.marketContext.pdl}
+                      eq={analysis.marketContext.eq}
+                      dailyRangePercent={analysis.marketContext.dailyRangePercent}
+                      regime={analysis.marketContext.regime}
+                      biasMode={analysis.marketContext.biasMode}
+                      dataStatus={analysis.marketContext.dataStatus}
+                      dataAgeLabel={analysis.marketContext.dataAgeLabel}
+                      lastBarNyTime={analysis.marketContext.lastBarNyTime}
                     />
                   )}
                 </ErrorBoundary>
 
-                {/* Scenarios (Trade Execution) */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl w-full">
-                  <h3 className="text-sm font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500" /> Trade Execution Scenarios
-                  </h3>
-                  <ScenariosPanel
-                    data={data}
-                    loading={loading}
-                    timeframe={data.analysis?.interval || '1m'}
-                  />
-                </div>
+                {/* Scenarios - Collapsible default Closed */}
+                {hasScenarios && (
+                  <CollapsibleSection title="Trade Execution Scenarios" defaultOpen={false}>
+                    <ScenariosPanel
+                      data={data}
+                      loading={loading}
+                      timeframe={analysis.interval || '1m'}
+                    />
+                  </CollapsibleSection>
+                )}
               </div>
 
               {/* 2. ANALYTICS SIDEBAR (Col-span-1) - The STACK */}
               <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-3 h-full overflow-y-auto">
 
-                {/* Active Trades (Desktop) */}
+                {/* 0) Decision strip always on top */}
+                <DecisionPanel confluence={confluence} />
+
+                {/* Active Trade Management (Desktop) */}
                 <div className="hidden md:block">
                   <SidebarActiveTrade data={data} />
                 </div>
-
                 <ActiveTradePanel data={data} loading={loading} />
 
-                {/* --- PANEL SLOT STACK --- */}
-                <PanelSlot show={hasSession}>
-                  <SessionPanel session={data.session} />
-                </PanelSlot>
+                {/* 1) CORE: always visible */}
+                <ConfluencePanel data={data} loading={loading} />
+                <PSPPanel data={data} loading={loading} />
+                <LiquidityPanel data={data} loading={loading} />
+                <BiasPanel data={data} loading={loading} />
+                <StructurePanel data={data} loading={loading} />
+                <ValueZonePanel data={data} loading={loading} />
 
-                <PanelSlot show={hasBias}>
-                  <BiasPanel data={data} loading={loading} />
-                </PanelSlot>
+                {/* 2) ADVANCED: collapsible */}
+                <CollapsibleSection
+                  title="Advanced Indicators"
+                  defaultOpen={false}
+                  right={
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAdvancedOpen((v) => !v);
+                        }}
+                        className={`text-xs px-2 py-1 rounded-full ${advancedOpen ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70'}`}
+                      >
+                        {advancedOpen ? "ON" : "OFF"}
+                      </button>
+                    </div>
+                  }
+                >
+                  <div className="space-y-3">
+                    <SessionPanel session={data.session} />
 
-                <PanelSlot show={hasStructure}>
-                  <StructurePanel data={data} loading={loading} />
-                </PanelSlot>
+                    {/* SMT only if strong OR user opens Advanced/Debug */}
+                    {showSmt && <SMTPanel data={data} loading={loading} />}
 
-                <PanelSlot show={hasValueZone}>
-                  <ValueZonePanel data={data} loading={loading} />
-                </PanelSlot>
+                    <LevelsPanel data={data} loading={loading} />
 
-                <PanelSlot show={hasLiquidity}>
-                  <LiquidityPanel data={data} loading={loading} />
-                </PanelSlot>
+                    {/* Risk only when trade is actionable */}
+                    {showRisk && <RiskPanel data={data} loading={loading} />}
+                  </div>
+                </CollapsibleSection>
 
-                <PanelSlot show={hasPSP}>
-                  <PSPPanel data={data} loading={loading} />
-                </PanelSlot>
-
-                <PanelSlot show={hasSMT}>
-                  <SMTPanel data={data} loading={loading} />
-                </PanelSlot>
-
-                <PanelSlot show={hasConfluence}>
-                  <ConfluencePanel data={data} loading={loading} />
-                </PanelSlot>
-
-                <PanelSlot show={hasLevels}>
-                  <LevelsPanel data={data} loading={loading} />
-                </PanelSlot>
-
-                <PanelSlot show={hasRisk}>
-                  <RiskPanel data={data} loading={loading} />
-                </PanelSlot>
-
-                <div className="mt-auto pt-4">
-                  <ConfidenceLegend />
+                <div className="mt-auto pt-4 text-xs text-zinc-600 text-center">
+                  Conf: {confluence?.scorePct || 0}% | SMT: {analysis.smt?.score || 0} | Risk: {showRisk ? 'ON' : 'OFF'}
                 </div>
               </div>
             </div>
