@@ -525,7 +525,7 @@ export async function GET(request: Request) {
             dataStatus: lagStatus.status as any
         });
 
-        const pspResult = detectPSPNew(mainQuotesForChart);
+        const pspResult = detectPSPNew(quotes15m);
 
         // Calculate Liquidity Range (extracted for Confluence usage)
         const liquidityRangeForConfluence = (() => {
@@ -562,8 +562,8 @@ export async function GET(request: Request) {
                 status: pspResult.state === "NONE" ? "OFF" : "OK",
                 direction: pspResult.direction,
                 score: pspResult.score,
-                hint: pspResult.reasons[0] || "No PSP setup",
-                debug: { factors: pspResult.reasons }
+                hint: pspResult.debug.factors[0] || "No PSP setup",
+                debug: { factors: pspResult.debug.factors }
             },
             liquidity: {
                 status: "OK",

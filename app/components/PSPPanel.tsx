@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PanelProps } from './DashboardPanels';
-import { Crosshair, Check, X, AlertCircle } from 'lucide-react';
+import { Check, X, AlertCircle } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
 import IndicatorHeader from './IndicatorHeader';
-import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceBorderClass, getConfidenceColorClass, getConfidenceLabel, clampPct } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 export function PSPPanel({ data, loading }: PanelProps) {
@@ -14,14 +14,18 @@ export function PSPPanel({ data, loading }: PanelProps) {
 
     const isConfirmed = psp.state === 'CONFIRMED';
     const isForming = psp.state === 'FORMING';
+    const scorePct = clampPct(psp.score);
+    const scoreStyle = getConfidenceColorClass(scorePct);
 
-    // Adapt PSP result to IndicatorSignal for header
+    // Adapt PSP result to IndicatorSignal for header (minimal adapter)
     const pspSignal = {
-        ...psp,
-        status: isConfirmed ? 'OK' : isForming ? 'WARN' : 'OFF'
+        direction: psp.direction,
+        score: psp.score,
+        status: isConfirmed ? 'OK' : isForming ? 'WARN' : 'OFF',
+        hint: psp.debug?.factors?.[0] || "Scanning structure..."
     } as any;
 
-    const borderClass = getConfidenceBorderClass(pspSignal.score);
+    const borderClass = getConfidenceBorderClass(psp.score);
 
     return (
         <div className={`rounded-2xl bg-white/5 p-3 hover:bg-white/[0.06] transition flex flex-col gap-2 min-h-[100px] justify-center ${borderClass}`}>
@@ -31,50 +35,53 @@ export function PSPPanel({ data, loading }: PanelProps) {
                 rightBadgeText={psp.state !== 'NONE' ? psp.state : undefined}
             />
 
-            {/* Row 2: Checklist & Missing Info */}
+            {/* Checklist */}
             <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-zinc-500 bg-black/20 p-1.5 rounded-lg justify-between">
-                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.sweep ? 'text-green-400' : 'text-zinc-600'}`}>
-                        {psp.checkmarks?.sweep ? <Check size={10} strokeWidth={3} /> : <X size={10} />} Sweep
-                    </span>
-                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.displacement ? 'text-green-400' : 'text-zinc-600'}`}>
-                        {psp.checkmarks?.displacement ? <Check size={10} strokeWidth={3} /> : <X size={10} />} Disp
-                    </span>
-                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.pullback ? 'text-green-400' : 'text-zinc-600'}`}>
-                        {psp.checkmarks?.pullback ? <Check size={10} strokeWidth={3} /> : <X size={10} />} Pullback
-                    </span>
-                    <span className={`flex items-center gap-0.5 ${psp.checkmarks?.continuation ? 'text-green-400' : 'text-zinc-600'}`}>
-                        {psp.checkmarks?.continuation ? <Check size={10} strokeWidth={3} /> : <X size={10} />} Cont
-                    </span>
+                    <CheckItem label="Sweep" done={psp.checklist?.sweep} />
+                    <CheckItem label="Disp" done={psp.checklist?.displacement} />
+                    <CheckItem label="Pull" done={psp.checklist?.pullback} />
+                    <CheckItem label="Cont" done={psp.checklist?.continuation} />
                 </div>
 
-                {/* Missing Items or Levels */}
+                {/* Confirmations / Levels */}
                 <div className="min-h-[1.5em]">
                     {isConfirmed && psp.levels ? (
                         <div className="flex justify-between items-center text-[10px] font-mono bg-emerald-900/10 border border-emerald-500/20 p-1.5 rounded">
-                            <span className="text-zinc-400">Entry: <span className="text-emerald-300 font-bold">{psp.levels.entryZoneLow?.toFixed(2)} - {psp.levels.entryZoneHigh?.toFixed(2)}</span></span>
-                            <span className="text-zinc-400 pl-2 border-l border-zinc-700">Inv: <span className="text-red-400 font-bold">{psp.levels.invalidate?.toFixed(2)}</span></span>
+                            <span className="text-zinc-400">Entry: <span className="text-emerald-300 font-bold">{Math.round(psp.levels.entryLow)} - {Math.round(psp.levels.entryHigh)}</span></span>
+                            <span className="text-zinc-400 pl-2 border-l border-zinc-700">Inv: <span className="text-red-400 font-bold">{Math.round(psp.levels.invalidation)}</span></span>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-1">
-                            {psp.missing && psp.missing.length > 0 ? (
-                                <div className="flex items-start gap-1 text-[10px] text-zinc-500 italic px-1">
-                                    <AlertCircle size={10} className="mt-0.5" />
-                                    <span>Waiting for: {psp.missing[0]}</span>
-                                </div>
-                            ) : <span className="text-[10px] text-zinc-600 px-1">Structure scanning...</span>}
+                            {psp.state === 'NONE' ? (
+                                <span className="text-[10px] text-zinc-600 px-1 italic">Waiting for sweep at key swing.</span>
+                            ) : (
+                                <span className="text-[10px] text-zinc-400 px-1 italic">
+                                    {psp.debug?.factors?.[psp.debug.factors.length - 1] ?? "Forming..."}
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-            <PanelHelp title="PSP">
+
+            <PanelHelp title="What PSP checks (click)">
                 <ul className="list-disc pl-5 space-y-1">
-                    <li><b>Sweep</b>: Liquidity grab.</li>
-                    <li><b>Displacement</b>: Strong move away.</li>
-                    <li><b>Pullback</b>: Return to entry zone.</li>
-                    <li><b>Continuation</b>: Move in trade direction.</li>
+                    <li><b>Sweep</b>: Liquidity grab of Fractal Swing (15m).</li>
+                    <li><b>Displacement</b>: Strong impulsive move after sweep.</li>
+                    <li><b>Pullback</b>: Return to 50-79% zone relative to impulse.</li>
+                    <li><b>Continuation</b>: Break of displacement structure.</li>
+                    <li><b>Note</b>: Score Color = Strength. Badge = Direction.</li>
                 </ul>
             </PanelHelp>
         </div>
+    );
+}
+
+function CheckItem({ label, done }: { label: string, done: boolean }) {
+    return (
+        <span className={`flex items-center gap-0.5 ${done ? 'text-green-400' : 'text-zinc-600'}`}>
+            {done ? <Check size={10} strokeWidth={3} /> : <X size={10} />} {label}
+        </span>
     );
 }

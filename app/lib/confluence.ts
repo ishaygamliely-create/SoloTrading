@@ -40,7 +40,25 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
         factors.push(`+${w} ${text}`);
     };
 
-    add(contributes(i.psp), weights.psp, `PSP ${i.psp.direction}`);
+    // PSP V2 Confluence Logic
+    if (i.psp && i.psp.score > 0 && i.psp.direction !== "NEUTRAL") {
+        const score = i.psp.score;
+        let w = 0;
+        if (score >= 75) w = 3;
+        else if (score >= 60) w = 2;
+        else if (score >= 50) w = 1;
+
+        if (w > 0) {
+            add(true, w, `PSP V2 ${i.psp.direction} (${score})`);
+        }
+
+        // Conflict check
+        if (i.bias?.direction && i.bias.direction !== "NEUTRAL" && i.psp.direction !== i.bias.direction) {
+            raw -= 1;
+            factors.push("-1 Conflict (Bias <> PSP)");
+        }
+    }
+
     add(contributes(i.bias), weights.bias, `Bias ${i.bias.direction}`);
     add(contributes(i.structure), weights.structure, `Structure ${i.structure.direction}`);
     add(contributes(i.valueZone), weights.valueZone, `Value ${i.valueZone.direction}`);
@@ -77,7 +95,6 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     if (i.smt?.gate?.isActive && i.smt.gate.blocksDirection) {
         if (i.smt.gate.blocksDirection === suggestion) {
             // Check for potential Override (High Conviction)
-            // Override requires: Score > 85 AND PSP Setup AND Liquidity Expanding
             const canOverride =
                 scorePct > 85 &&
                 i.psp?.status === "OK" &&
