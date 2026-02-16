@@ -65,7 +65,7 @@ export function PSPPanel({ data, loading }: PanelProps) {
                 </div>
             </div>
 
-            <PanelHelp title="What PSP checks (click)">
+            <PanelHelp title="PSP">
                 <ul className="list-disc pl-5 space-y-1">
                     <li><b>Sweep</b>: Liquidity grab of Fractal Swing (15m).</li>
                     <li><b>Displacement</b>: Strong impulsive move after sweep.</li>

@@ -231,7 +231,7 @@ function LiquidityPanelContent({ data }: { data: LiquidityRangeData }) {
             </div>
 
             {/* Help Section */}
-            <PanelHelp title="What Liquidity & Range checks (click)">
+            <PanelHelp title="Liquidity & Range">
                 <div className="text-xs text-white/60">
                     <ul className="list-disc pl-5 space-y-1">
                         <li><b>ADR Usage</b>: % of today's average range used.</li>
