@@ -1,84 +1,98 @@
 import React from "react";
-import { getDirectionBadgeClass, getScoreTextClass, getConfidenceBorderClass } from "@/app/lib/uiSignalStyles";
-import { PanelHelp } from "./PanelHelp";
+import { PanelHelp } from "@/app/components/PanelHelp";
+import { getConfidenceColorClass, getDirectionBadgeClass } from "@/app/lib/uiSignalStyles";
 
 type ConfluenceLevel = "NO_TRADE" | "WEAK" | "GOOD" | "STRONG";
 type ConfluenceSuggestion = "LONG" | "SHORT" | "NO_TRADE";
 type ConfluenceStatus = "OK" | "WARN" | "BLOCKED" | "OFF" | "ERROR";
 
-export interface ConfluenceResult {
-    scorePct: number; // 0–100
+export type ConfluenceResult = {
+    scorePct: number;          // 0–100
     level: ConfluenceLevel;
     suggestion: ConfluenceSuggestion;
     status: ConfluenceStatus;
-    factors?: string[];
-}
+    factors?: string[];        // strings like "+2 Value SHORT"
+};
 
-export function ConfluencePanel({ data, loading }: { data: { analysis: { confluence: ConfluenceResult } } | any; loading?: boolean }) {
-    // Guard clause for missing data structure
-    if (loading || !data?.analysis?.confluence) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
+export default function ConfluencePanel({ data }: { data?: ConfluenceResult | null }) {
+    if (!data) return null;
 
-    const confluence = data.analysis.confluence as ConfluenceResult;
-    const showDirection = confluence.level !== "NO_TRADE" && confluence.suggestion !== "NO_TRADE";
+    const score = Math.max(0, Math.min(100, Math.round(data.scorePct ?? 0)));
+    const conf = getConfidenceColorClass(score);
+    const showDir = data.level !== "NO_TRADE" && data.suggestion !== "NO_TRADE";
 
-    const scoreClass = getScoreTextClass(confluence.scorePct);
-    const borderClass = getConfidenceBorderClass(confluence.scorePct);
+    const topFactors = (data.factors ?? []).filter(Boolean).slice(0, 3);
 
     return (
-        <div className={`rounded-xl bg-white/5 p-4 space-y-2 ${borderClass}`}>
-            {/* Row 1 */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="font-semibold tracking-wide text-pink-400">
-                        CONFLUENCE
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-3 ${conf.border}`}>
+            {/* Row 1: Header */}
+            <div className="flex items-start justify-between gap-3">
+                {/* Left */}
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <div className="font-semibold tracking-wide text-pink-400">
+                            CONFLUENCE
+                        </div>
+
+                        <span className="px-2 py-0.5 rounded-full text-[11px] bg-white/10 text-white/80">
+                            {data.level}
+                        </span>
+
+                        {showDir && (
+                            <span
+                                className={getDirectionBadgeClass({
+                                    direction: data.suggestion,
+                                    score,
+                                    status: data.status,
+                                })}
+                            >
+                                {data.suggestion}
+                            </span>
+                        )}
+
+                        <span
+                            className={`px-2 py-0.5 rounded-full text-[11px] ${data.status === "OK"
+                                    ? "bg-emerald-500/15 text-emerald-300"
+                                    : data.status === "WARN"
+                                        ? "bg-yellow-500/15 text-yellow-300"
+                                        : data.status === "BLOCKED"
+                                            ? "bg-red-500/15 text-red-300"
+                                            : "bg-white/10 text-white/60"
+                                }`}
+                        >
+                            {data.status}
+                        </span>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white">
-                        {confluence.level}
-                    </span>
-
-                    {showDirection && (
-                        <span
-                            className={getDirectionBadgeClass({
-                                direction: confluence.suggestion,
-                                score: confluence.scorePct,
-                                status: confluence.status,
-                            })}
-                        >
-                            {confluence.suggestion}
-                        </span>
-                    )}
-
-                    <span
-                        className={`px-2 py-0.5 rounded-full text-xs ${confluence.status === "OK"
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : confluence.status === "WARN"
-                                ? "bg-yellow-500/20 text-yellow-300"
-                                : confluence.status === "BLOCKED"
-                                    ? "bg-red-500/20 text-red-300"
-                                    : "bg-white/10 text-white/60"
-                            }`}
-                    >
-                        {confluence.status}
-                    </span>
+                    {/* Row 2: Factors (compact) */}
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/60">
+                        {topFactors.length > 0 ? (
+                            topFactors.map((f, i) => <span key={i}>{f}</span>)
+                        ) : (
+                            <span>No strong confluence drivers.</span>
+                        )}
+                    </div>
                 </div>
 
-                <div className={`font-bold text-lg ${scoreClass}`}>{confluence.scorePct}%</div>
+                {/* Right: Score */}
+                <div className="shrink-0 flex flex-col items-end">
+                    <div className={`font-bold text-base ${conf.text}`}>{score}%</div>
+                </div>
             </div>
 
-            {/* Row 2 */}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/60">
-                {(confluence.factors ?? []).slice(0, 10).map((f, idx) => (
-                    <span key={idx}>{f}</span>
-                ))}
+            {/* Help toggle */}
+            <div className="mt-2">
+                <PanelHelp
+                    title="CONFLUENCE"
+                    bullets={[
+                        "Purpose: internal engine score showing how well core indicators align.",
+                        "Score% = strength only (uses global color law). Not direction.",
+                        "Suggestion LONG/SHORT appears only when alignment is clean; otherwise NO_TRADE.",
+                        "Factors show top contributors (e.g., Value zone, PSP, Liquidity).",
+                        "Use DecisionPanel as final output; Confluence is the supporting readout.",
+                    ]}
+                />
             </div>
-            <PanelHelp title="CONFLUENCE">
-                <ul className="list-disc pl-5 space-y-1">
-                    <li><b>Score</b>: Aggregated system confidence.</li>
-                    <li><b>Factors</b>: Key drivers of the score.</li>
-                    <li><b>Suggestion</b>: Trade direction bias.</li>
-                </ul>
-            </PanelHelp>
         </div>
     );
 }

@@ -9,7 +9,7 @@ import { TimeAlignmentPanel } from '../components/TimeAlignmentPanel';
 import { MarketContextPanel } from '../components/MarketContextPanel';
 import { StructurePanel } from '../components/StructurePanel';
 import { LiquidityPanel } from '../components/LiquidityPanel';
-import { ConfluencePanel } from '../components/ConfluencePanel';
+import ConfluencePanel from '../components/ConfluencePanel';
 import { BiasPanel, LevelsPanel } from '../components/DashboardPanels';
 import { ChartUpload } from '../components/ChartUpload';
 import { AnalysisResults } from '../components/AnalysisResults';

@@ -10,7 +10,7 @@ import MarketContextCompact from './components/MarketContextCompact';
 import { SMTPanel } from './components/SMTPanel';
 import { SessionPanel } from './components/SessionPanel';
 import { LiquidityPanel } from './components/LiquidityPanel';
-import { ConfluencePanel } from './components/ConfluencePanel';
+import ConfluencePanel from './components/ConfluencePanel';
 import { LevelsPanel } from './components/LevelsPanel';
 import { BiasPanel } from './components/BiasPanel';
 import { ValueZonePanel } from './components/ValueZonePanel';
@@ -272,7 +272,7 @@ export default function Home() {
                 <ActiveTradePanel data={data} loading={loading} />
 
                 {/* 1) CORE: always visible */}
-                <ConfluencePanel data={data} loading={loading} />
+                <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
                 <LiquidityPanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />
