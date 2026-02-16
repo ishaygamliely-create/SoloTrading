@@ -125,10 +125,16 @@ export function detectPSP(quotes15m: Quote[], opts?: any): PSPResult {
     // If winner is expired, reset to NONE but keep meta for debug? 
     // Spec says: "If now > expiresAtMs => downgrade to NONE (score 0)"
     if (Date.now() > winner.meta.expiresAtMs) {
-        // Downgrade
-        winner.state = 'NONE';
-        winner.score = 0;
-        winner.debug.factors.push("Signal Expired (TTL)");
+        return {
+            ...winner,
+            state: "NONE",
+            direction: "NEUTRAL",
+            score: 0,
+            checklist: { sweep: false, displacement: false, pullback: false, continuation: false },
+            levels: undefined,
+            meta: { ...winner.meta, ageMinutes: Math.round((Date.now() - winner.meta.detectedAtMs) / 60000) },
+            debug: { ...winner.debug, factors: [...(winner.debug?.factors ?? []), "Expired: auto-reset to NONE"] },
+        };
     }
 
     // If both 0, return NEUTRAL/NONE
