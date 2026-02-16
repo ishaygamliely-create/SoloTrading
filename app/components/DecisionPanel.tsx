@@ -1,110 +1,139 @@
+// app/components/DecisionPanel.tsx
 import React from "react";
-import { clampPct, getConfidenceColorClass } from "@/app/lib/uiSignalStyles";
 import { PanelHelp } from "@/app/components/PanelHelp";
+import { getConfidenceColorClass } from "@/app/lib/uiSignalStyles";
 
-type Status = "OK" | "WARN" | "OFF" | "ERROR";
+type Status = "OK" | "WARN" | "OFF" | "ERROR" | "BLOCKED";
 type Direction = "LONG" | "SHORT" | "NO_TRADE";
 
 export type DecisionData = {
-    suggestion: Direction;     // LONG/SHORT/NO_TRADE
-    confidencePct: number;     // 0–100
+    direction: Direction;
     status: Status;
-    reason?: string;           // short reason sentence
-    factors?: string[];        // list like "+2 Value SHORT", "+3 PSP CONFIRMED", "-1 Bias conflict"
-    nextAction?: string;       // optional: what user should do now
+    confidencePct: number; // 0-100
+    reason?: string;
+    topDrivers?: string[]; // e.g. ["+2 Value SHORT", "-1 Bias conflict"]
+    nextAction?: string;   // e.g. "Wait for alignment (PSP + Liquidity + Bias)."
 };
 
-function badgeClassForStatus(status: Status) {
-    if (status === "OK") return "bg-emerald-500/15 text-emerald-300";
-    if (status === "WARN") return "bg-yellow-500/15 text-yellow-300";
-    if (status === "OFF") return "bg-white/10 text-white/60";
-    return "bg-red-500/15 text-red-300";
+function directionBadgeClass(dir: Direction) {
+    const base = "px-3 py-1 rounded-full text-xs font-semibold";
+    if (dir === "LONG") return `${base} bg-emerald-600/90 text-white`;
+    if (dir === "SHORT") return `${base} bg-red-600/90 text-white`;
+    return `${base} bg-white/10 text-white/70`;
 }
 
-function badgeClassForDirection(dir: Direction) {
-    if (dir === "LONG") return "bg-emerald-600/90 text-white";
-    if (dir === "SHORT") return "bg-red-600/90 text-white";
-    return "bg-white/10 text-white/70";
+function statusChipClass(status: Status) {
+    const base = "px-2 py-0.5 rounded-full text-xs font-semibold";
+    if (status === "OK") return `${base} bg-emerald-500/15 text-emerald-300`;
+    if (status === "WARN") return `${base} bg-yellow-500/15 text-yellow-300`;
+    if (status === "BLOCKED") return `${base} bg-red-500/15 text-red-300`;
+    if (status === "OFF") return `${base} bg-white/10 text-white/50`;
+    return `${base} bg-white/10 text-white/50`;
 }
 
-export default function DecisionPanel({ data }: { data?: DecisionData | null }) {
+export default function DecisionPanel({ data }: { data: DecisionData | null }) {
     if (!data) return null;
 
-    const confidence = clampPct(data.confidencePct);
-    const conf = getConfidenceColorClass(confidence);
-    const topFactors = (data.factors ?? []).slice(0, 3);
+    const pct = Number.isFinite(data.confidencePct) ? Math.max(0, Math.min(100, data.confidencePct)) : 0;
+    const conf = getConfidenceColorClass(pct); // {text,border,bg,bar} per your uiSignalStyles.ts
 
-    // Optional: derive a better default “nextAction” if not provided
+    const summaryTitle =
+        data.direction === "NO_TRADE" ? "Neutral / Conflicting Signals" :
+            data.direction === "LONG" ? "Long Bias (Aligned)" :
+                "Short Bias (Aligned)";
+
+    const summaryBody =
+        data.reason?.trim() ||
+        (data.direction === "NO_TRADE"
+            ? "Market condition is neutral or conflicting."
+            : "Core indicators are aligned.");
+
+    const drivers = (data.topDrivers ?? []).filter(Boolean).slice(0, 4);
     const nextAction =
-        data.nextAction ??
-        (data.suggestion === "NO_TRADE"
-            ? "Wait for alignment (PSP + Bias/Value + Liquidity)."
-            : data.suggestion === "LONG"
-                ? "Look for LONG execution: sweep → displacement → pullback entry."
-                : "Look for SHORT execution: sweep → displacement → pullback entry.");
+        data.nextAction?.trim() ||
+        (data.direction === "NO_TRADE"
+            ? "Wait for alignment (PSP + Liquidity + Bias/Value)."
+            : "Follow playbook: wait for entry trigger near key level.");
 
     return (
-        <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 ${conf.ring}`}>
-            {/* Header */}
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 ${conf.border}`}>
+            {/* HEADER */}
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <div className="text-lg font-extrabold tracking-wide text-fuchsia-400">
+                <div className="min-w-0">
+                    <div className="text-pink-400 font-bold tracking-wide text-lg">
                         TRADE DECISION
                     </div>
-                    <div className="text-xs text-white/50 -mt-0.5">
+                    <div className="text-xs text-white/50">
                         Final aggregated signal (core indicators)
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClassForDirection(data.suggestion)}`}>
-                        {data.suggestion}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClassForStatus(data.status)}`}>
-                        {data.status}
-                    </span>
-                    <span className={`text-lg font-extrabold ${conf.text}`}>
-                        {confidence}%
-                    </span>
+                {/* Right stack: chips + big % */}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className={directionBadgeClass(data.direction)}>{data.direction}</span>
+                        <span className={statusChipClass(data.status)}>{data.status}</span>
+                    </div>
+
+                    <div className={`text-2xl font-extrabold leading-none ${conf.text}`}>
+                        {pct}%
+                    </div>
                 </div>
             </div>
 
-            {/* Body */}
-            <div className="mt-3 text-sm text-white/80">
-                {data.reason ?? "Market condition is neutral or conflicting."}
+            {/* SUMMARY */}
+            <div className={`mt-3 rounded-lg border border-white/10 ${conf.bg} p-3`}>
+                <div className="text-[11px] uppercase tracking-wider text-white/50">
+                    Summary
+                </div>
+                <div className="mt-1 font-semibold text-white/90">{summaryTitle}</div>
+                <div className="mt-1 text-sm text-white/70">{summaryBody}</div>
             </div>
 
-            {/* Top Factors chips */}
-            {topFactors.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {topFactors.map((f, i) => (
-                        <span key={i} className="px-2 py-1 rounded-lg bg-white/7 text-xs text-white/70">
-                            {f}
-                        </span>
-                    ))}
+            {/* TOP DRIVERS */}
+            {drivers.length > 0 && (
+                <div className="mt-3">
+                    <div className="text-[11px] uppercase tracking-wider text-white/50">
+                        Top drivers
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {drivers.map((d, i) => (
+                            <span
+                                key={i}
+                                className="px-2 py-1 rounded-md text-xs bg-white/5 border border-white/10 text-white/70"
+                            >
+                                {d}
+                            </span>
+                        ))}
+                    </div>
                 </div>
             )}
 
-            {/* What to do now */}
-            <div className="mt-3 text-xs text-white/60">
-                <span className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${conf.dot}`} />
-                <span className="align-middle">
-                    <b className="text-white/75">Next:</b> {nextAction}
-                </span>
+            {/* NEXT ACTION */}
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-white/50" />
+                    <div className="text-[11px] uppercase tracking-wider text-white/50">
+                        Next action
+                    </div>
+                </div>
+                <div className="mt-1 text-sm text-white/80 font-medium">
+                    {nextAction}
+                </div>
             </div>
 
-            {/* Help (short + clear) */}
+            {/* HELP (minimal) */}
             <div className="mt-3">
                 <PanelHelp
                     title="Trade Decision"
                     bullets={[
-                        "Aggregates: Confluence + PSP + Liquidity + Bias + Structure + Value.",
-                        "Confidence color = strength only (not direction).",
-                        "LONG/SHORT appears only when inputs align; otherwise NO_TRADE.",
-                        "WARN = delayed feed or conflicting signals.",
+                        "Aggregates core indicators (Confluence, PSP, Liquidity, Bias, Structure, Value).",
+                        "Confidence color = strength (not direction).",
+                        "Direction shows LONG/SHORT only when alignment is strong; otherwise NO_TRADE.",
+                        "WARN usually means conflicting inputs or delayed feed.",
                     ]}
                 />
             </div>
         </div>
     );
-}
+} 

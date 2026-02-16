@@ -254,13 +254,13 @@ export default function Home() {
                 {confluence && (
                   <DecisionPanel
                     data={{
-                      suggestion: confluence.suggestion || 'NO_TRADE',
+                      direction: confluence.suggestion || 'NO_TRADE',
                       confidencePct: confluence.scorePct || 0,
                       status: (confluence.status === 'BLOCKED' || confluence.status === 'OFF') ? 'WARN' : (confluence.status as any) || 'OK',
                       reason: confluence.level !== 'NO_TRADE'
                         ? `Strong alignment detected (${confluence.level})`
                         : 'Market condition is neutral or conflicting.',
-                      factors: confluence.factors
+                      topDrivers: confluence.factors
                     }}
                   />
                 )}
