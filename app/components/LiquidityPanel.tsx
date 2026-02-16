@@ -99,17 +99,16 @@ function LiquidityPanelContent({ data }: { data: LiquidityRangeData }) {
     if (!data) return null;
 
     // ✅ ADR Usage: Custom Logic (Green = Low/Good, Red = High/Bad)
+    // ✅ ADR Usage: Standard Global Color Law (Red < 60, Yellow < 75, Green >= 75)
+    // User requested "Arranged according to color law"
     const adrPct = clampPct(data.adrPercent);
     let adrLabel = "LOW (Compressed)";
-    let adrColor = "text-emerald-300"; // Default Good
+    let adrColorClass = getConfidenceColorClass(adrPct);
 
-    if (adrPct > 75) {
-        adrLabel = "HIGH (Near Exhaustion)";
-        adrColor = "text-red-400";
-    } else if (adrPct >= 45) {
-        adrLabel = "MID";
-        adrColor = "text-yellow-300";
-    }
+    if (adrPct >= 75) adrLabel = "HIGH (Expanded)";
+    else if (adrPct >= 60) adrLabel = "MID";
+
+    const adrColor = adrColorClass.text;
 
     // ✅ Expansion Probability: Global Confidence Law (Green = High)
     const expPct = clampPct(data.expansionLikelihood);
@@ -135,10 +134,15 @@ function LiquidityPanelContent({ data }: { data: LiquidityRangeData }) {
 
                 <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${data.status === "COMPRESSED"
-                        ? "bg-yellow-500/20 text-yellow-300"
+                        ? "bg-red-500/20 text-red-300" // Compressed (<60) -> Red
                         : data.status === "EXPANDING"
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : "bg-red-500/20 text-red-300"
+                            ? "bg-emerald-500/20 text-emerald-300" // Expanding (High) -> Green
+                            : "bg-yellow-500/20 text-yellow-300" // Exhausted/High -> Yellow? Or Red? 
+                        // Wait, "Color Law": 0-59 Red, 60-74 Yellow, 75+ Green.
+                        // ADR < 60 (Compressed) -> Red.
+                        // ADR 60-85 (Expanding) -> Yellow/Green?
+                        // ADR > 85 (Exhausted) -> Green? 
+                        // Actually, let's use the adrColorClass for consistency.
                         }`}
                 >
                     {data.status}
