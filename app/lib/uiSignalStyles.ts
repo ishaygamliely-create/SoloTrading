@@ -52,22 +52,27 @@ export function getConfidenceLabel(score: number) {
 
 export function getConfidenceColorClass(score: number) {
     // score is 0–100
-    if (score >= 75) {
+    const s = clampPct(score);
+    if (s >= 75) {
         return {
             text: "text-emerald-300",
             border: "ring-1 ring-emerald-500/30",
             bg: "bg-emerald-500/10",
             bar: "bg-emerald-500",
-            badge: "bg-emerald-600/90 text-white" // Keep badge for compatibility if needed elsewhere
+            badge: "bg-emerald-600/90 text-white",
+            ring: "ring-1 ring-emerald-500/30",
+            dot: "bg-emerald-400"
         };
     }
-    if (score >= 60) {
+    if (s >= 60) {
         return {
             text: "text-yellow-300",
             border: "ring-1 ring-yellow-500/30",
             bg: "bg-yellow-500/10",
             bar: "bg-yellow-500",
-            badge: "bg-yellow-600/90 text-white"
+            badge: "bg-yellow-600/90 text-white",
+            ring: "ring-1 ring-yellow-500/30",
+            dot: "bg-yellow-400"
         };
     }
     return {
@@ -75,7 +80,9 @@ export function getConfidenceColorClass(score: number) {
         border: "ring-1 ring-red-500/30",
         bg: "bg-red-500/10",
         bar: "bg-red-500",
-        badge: "bg-red-600/90 text-white"
+        badge: "bg-red-600/90 text-white",
+        ring: "ring-1 ring-red-500/30",
+        dot: "bg-red-400"
     };
 }
 

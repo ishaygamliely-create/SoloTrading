@@ -1,84 +1,110 @@
 import React from "react";
-import { getConfidenceColorClass } from "@/app/lib/uiSignalStyles";
+import { clampPct, getConfidenceColorClass } from "@/app/lib/uiSignalStyles";
+import { PanelHelp } from "@/app/components/PanelHelp";
 
-type DecisionStatus = "OK" | "WARN" | "BLOCKED";
-type DecisionDirection = "LONG" | "SHORT" | "NO_TRADE";
+type Status = "OK" | "WARN" | "OFF" | "ERROR";
+type Direction = "LONG" | "SHORT" | "NO_TRADE";
 
-interface DecisionData {
-    direction: DecisionDirection;
-    confidence: number; // 0-100
-    status: DecisionStatus;
-    reason: string;
-    factors: string[];
+export type DecisionData = {
+    suggestion: Direction;     // LONG/SHORT/NO_TRADE
+    confidencePct: number;     // 0–100
+    status: Status;
+    reason?: string;           // short reason sentence
+    factors?: string[];        // list like "+2 Value SHORT", "+3 PSP CONFIRMED", "-1 Bias conflict"
+    nextAction?: string;       // optional: what user should do now
+};
+
+function badgeClassForStatus(status: Status) {
+    if (status === "OK") return "bg-emerald-500/15 text-emerald-300";
+    if (status === "WARN") return "bg-yellow-500/15 text-yellow-300";
+    if (status === "OFF") return "bg-white/10 text-white/60";
+    return "bg-red-500/15 text-red-300";
 }
 
-export default function DecisionPanel({ data }: { data: DecisionData | null }) {
+function badgeClassForDirection(dir: Direction) {
+    if (dir === "LONG") return "bg-emerald-600/90 text-white";
+    if (dir === "SHORT") return "bg-red-600/90 text-white";
+    return "bg-white/10 text-white/70";
+}
+
+export default function DecisionPanel({ data }: { data?: DecisionData | null }) {
     if (!data) return null;
 
-    const confidenceStyle = getConfidenceColorClass(data.confidence);
+    const confidence = clampPct(data.confidencePct);
+    const conf = getConfidenceColorClass(confidence);
+    const topFactors = (data.factors ?? []).slice(0, 3);
 
-    const directionBadge =
-        data.direction === "LONG"
-            ? "bg-emerald-600/90 text-white"
-            : data.direction === "SHORT"
-                ? "bg-red-600/90 text-white"
-                : "bg-white/10 text-white/60";
+    // Optional: derive a better default “nextAction” if not provided
+    const nextAction =
+        data.nextAction ??
+        (data.suggestion === "NO_TRADE"
+            ? "Wait for alignment (PSP + Bias/Value + Liquidity)."
+            : data.suggestion === "LONG"
+                ? "Look for LONG execution: sweep → displacement → pullback entry."
+                : "Look for SHORT execution: sweep → displacement → pullback entry.");
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${confidenceStyle.border}`}>
-
-            {/* HEADER */}
-            <div className="flex items-center justify-between">
+        <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 ${conf.ring}`}>
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
                 <div>
-                    <div className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400 font-bold tracking-wide text-lg">
+                    <div className="text-lg font-extrabold tracking-wide text-fuchsia-400">
                         TRADE DECISION
                     </div>
-                    <div className="text-xs text-white/50">
-                        Final Aggregated Signal Engine
+                    <div className="text-xs text-white/50 -mt-0.5">
+                        Final aggregated signal (core indicators)
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${directionBadge}`}>
-                        {data.direction === "NO_TRADE" ? "NO TRADE" : data.direction}
+                <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClassForDirection(data.suggestion)}`}>
+                        {data.suggestion}
                     </span>
-
-                    <span className={`text-xl font-bold ${confidenceStyle.text}`}>
-                        {data.confidence}%
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClassForStatus(data.status)}`}>
+                        {data.status}
+                    </span>
+                    <span className={`text-lg font-extrabold ${conf.text}`}>
+                        {confidence}%
                     </span>
                 </div>
             </div>
 
-            {/* SHORT REASON */}
-            <div className="text-sm text-white/70">
-                {data.reason}
+            {/* Body */}
+            <div className="mt-3 text-sm text-white/80">
+                {data.reason ?? "Market condition is neutral or conflicting."}
             </div>
 
-            {/* FACTORS */}
-            {data.factors?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {data.factors.slice(0, 4).map((f, i) => (
-                        <span
-                            key={i}
-                            className="text-xs bg-white/10 px-2 py-1 rounded-md text-white/70"
-                        >
+            {/* Top Factors chips */}
+            {topFactors.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {topFactors.map((f, i) => (
+                        <span key={i} className="px-2 py-1 rounded-lg bg-white/7 text-xs text-white/70">
                             {f}
                         </span>
                     ))}
                 </div>
             )}
 
-            {/* HELP */}
-            <details className="text-xs text-white/60 mt-2">
-                <summary className="cursor-pointer hover:text-white">
-                    What Trade Decision checks
-                </summary>
-                <div className="mt-2 space-y-1">
-                    <div>• Aggregates Confluence, PSP, Liquidity, Bias, Structure, Value.</div>
-                    <div>• Confidence % = signal strength (not direction).</div>
-                    <div>• LONG/SHORT shown only when indicators align.</div>
-                </div>
-            </details>
+            {/* What to do now */}
+            <div className="mt-3 text-xs text-white/60">
+                <span className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${conf.dot}`} />
+                <span className="align-middle">
+                    <b className="text-white/75">Next:</b> {nextAction}
+                </span>
+            </div>
+
+            {/* Help (short + clear) */}
+            <div className="mt-3">
+                <PanelHelp
+                    title="Trade Decision"
+                    bullets={[
+                        "Aggregates: Confluence + PSP + Liquidity + Bias + Structure + Value.",
+                        "Confidence color = strength only (not direction).",
+                        "LONG/SHORT appears only when inputs align; otherwise NO_TRADE.",
+                        "WARN = delayed feed or conflicting signals.",
+                    ]}
+                />
+            </div>
         </div>
     );
 }

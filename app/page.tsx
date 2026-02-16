@@ -248,14 +248,14 @@ export default function Home() {
               </div>
 
               {/* 2. ANALYTICS SIDEBAR (Col-span-1) - The STACK */}
-              <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-3 h-full overflow-y-auto">
+              <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-4 h-full overflow-y-auto">
 
                 {/* 0) Decision strip always on top */}
                 {confluence && (
                   <DecisionPanel
                     data={{
-                      direction: confluence.suggestion || 'NO_TRADE',
-                      confidence: confluence.scorePct || 0,
+                      suggestion: confluence.suggestion || 'NO_TRADE',
+                      confidencePct: confluence.scorePct || 0,
                       status: (confluence.status === 'BLOCKED' || confluence.status === 'OFF') ? 'WARN' : (confluence.status as any) || 'OK',
                       reason: confluence.level !== 'NO_TRADE'
                         ? `Strong alignment detected (${confluence.level})`
