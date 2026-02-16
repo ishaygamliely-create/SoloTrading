@@ -125,15 +125,21 @@ export interface MarketRegime {
     reason: string;
 }
 
-export interface Quote {
-    time: number;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume: number;
+import { Candle } from './marketDataTypes';
+
+export type Quote = Candle;
+
+export interface LegacyQuote extends Candle {
     date: Date;
 }
+
+export function toLegacyQuote(candle: Candle): LegacyQuote {
+    return {
+        ...candle,
+        date: new Date(candle.time * 1000)
+    };
+}
+
 
 export interface MarketStructure {
     type: 'UP_TREND' | 'DOWN_TREND' | 'CONSOLIDATION';
@@ -1475,7 +1481,9 @@ export function detectTimeContext(currentDate: Date, quotes: Quote[]): TimeConte
 
     for (let i = quotes.length - 1; i >= 0; i--) {
         const q = quotes[i];
-        const qDate = q.date;
+        // Replace q.date with new Date(q.time * 1000)
+        const qDate = new Date(q.time * 1000);
+
         if (qDate.getUTCDate() !== todayDay) break; // Stop if we hit yesterday
 
         const qUtcHours = qDate.getUTCHours();
@@ -1702,7 +1710,7 @@ export function detectSweeps(quotes: Quote[], pdRanges: PDRange): SweepEvent[] {
         // Scan quotes (optimize: scan backwards)
         for (let i = quotes.length - 1; i >= 0; i--) {
             const q = quotes[i];
-            const isToday = new Date(q.date).getDate() === new Date().getDate();
+            const isToday = new Date(q.time * 1000).getDate() === new Date().getDate();
             if (!isToday) break; // Only today's sweeps
 
             if (lvl.type === 'HIGH') {

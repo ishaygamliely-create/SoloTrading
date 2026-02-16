@@ -11,8 +11,9 @@ import {
 } from '../app/lib/analysis';
 
 // Mock helpers
+// Mock helpers
 const createCandle = (time: number, open: number, high: number, low: number, close: number): Quote => ({
-    time, open, high, low, close, volume: 1000, date: new Date(time * 1000)
+    time, open, high, low, close, volume: 1000
 });
 
 // TEST 1: EMA Slope Calculation

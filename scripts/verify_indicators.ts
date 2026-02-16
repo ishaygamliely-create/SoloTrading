@@ -34,7 +34,6 @@ function generateCandles(count: number, trend: 'UP' | 'DOWN' | 'RANGE', startPri
 
         quotes.push({
             time,
-            date: new Date(time),
             open,
             high,
             low,

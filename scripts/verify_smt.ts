@@ -6,7 +6,7 @@ import {
 } from '../app/lib/analysis';
 
 const createCandleMock = (time: number, open: number, high: number, low: number, close: number): Quote => ({
-    time, open, high, low, close, volume: 1000, date: new Date(time * 1000)
+    time, open, high, low, close, volume: 1000
 });
 
 // Helper to generate a swing structure
