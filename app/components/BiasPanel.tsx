@@ -109,12 +109,21 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {/* 6. Help Toggle */}
             <div className="pt-1">
                 <PanelHelp title="What BIAS checks" bullets={[
-                    "Uses NY Midnight Open as daily anchor.",
-                    "Above upper trigger = LONG bias.",
-                    "Below lower trigger = SHORT bias.",
-                    "Inside buffer = Neutral (avoid forcing).",
-                    "Score = Strength, Badge = Direction."
-                ]} />
+                    "Anchor: Uses NY Midnight Open as the daily reference price.",
+                    "Zones (using Buffer):",
+                    "• Above (Midnight + Buffer) = LONG bias (prefer long setups).",
+                    "• Below (Midnight − Buffer) = SHORT bias (prefer short setups).",
+                    "• Inside the Buffer = NEUTRAL zone (avoid forcing trades).",
+                    "How to use:",
+                    "• If Bias = LONG, filter out most SHORT ideas unless you have very strong confluence.",
+                    "• If Bias = SHORT, filter out most LONG ideas unless you have very strong confluence.",
+                    "Score color = strength (0–59 red, 60–74 yellow, 75–100 green). NOT direction.",
+                    "Direction badge (LONG/SHORT) = preferred direction."
+                ]}>
+                    <div className="text-[10px] text-zinc-500 mt-1 pt-1 border-t border-zinc-800">
+                        Midnight: {midnightOpen?.toFixed(2)} | Upper: {(midnightOpen + buffer).toFixed(2)} | Lower: {(midnightOpen - buffer).toFixed(2)}
+                    </div>
+                </PanelHelp>
             </div>
         </div>
     );
