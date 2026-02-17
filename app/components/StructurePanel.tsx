@@ -1,6 +1,6 @@
 import React from 'react';
 import { IndicatorSignal } from '../lib/types';
-import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 interface StructurePanelProps {
@@ -27,13 +27,19 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
         borderColor = "ring-1 ring-yellow-500/30";
     }
 
+    // Global Status Law: derive from score (OFF already filtered above)
+    const rawStatus = structure.status;
+    const computedStatus: IndicatorStatus = rawStatus === "ERROR"
+        ? "ERROR"
+        : getStatusFromScore(score);
+
     const directionClass = structure.direction === 'LONG'
         ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
         : structure.direction === 'SHORT'
             ? "text-red-400 bg-red-500/10 border-red-500/20"
             : "text-zinc-500 bg-zinc-500/10";
 
-    const statusColor = structure.status === 'OK' ? 'text-emerald-400' : structure.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // Debug Data
     const { playbook, bias, ema20, ema50, scoreBreakdown } = (structure.debug || {}) as any;
@@ -49,8 +55,8 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                         {structure.direction}
                     </span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={`text-[10px] font-bold ${statusColor}`}>
-                        {structure.status}
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-lg font-bold ${scoreColor}`}>

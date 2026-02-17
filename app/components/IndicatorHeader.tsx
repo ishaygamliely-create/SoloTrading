@@ -1,6 +1,6 @@
 import { getDirectionBadgeClass } from "@/app/lib/uiSignalStyles";
 
-export type IndicatorStatus = "OK" | "WARN" | "OFF" | "ERROR";
+export type IndicatorStatus = "OK" | "WARN" | "STRONG" | "OFF" | "ERROR";
 export type IndicatorDirection = "LONG" | "SHORT" | "NEUTRAL";
 
 export type IndicatorSignal = {

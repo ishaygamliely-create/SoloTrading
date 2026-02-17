@@ -1,4 +1,4 @@
-export type SignalStatus = 'OK' | 'WARN' | 'OFF' | 'ERROR';
+export type SignalStatus = 'OK' | 'WARN' | 'STRONG' | 'OFF' | 'ERROR';
 export type SignalDirection = 'LONG' | 'SHORT' | 'NEUTRAL';
 
 export interface IndicatorSignal {

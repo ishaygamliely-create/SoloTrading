@@ -1,6 +1,6 @@
 import React from 'react';
 import { IndicatorSignal } from '../lib/types';
-import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 interface ValueZonePanelProps {
@@ -24,7 +24,12 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             ? "text-red-400"
             : "text-zinc-500";
 
-    const statusColor = valueZone.status === 'OK' ? 'text-emerald-400' : valueZone.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+    // Global Status Law: derive from score
+    const computedStatus: IndicatorStatus = valueZone.status === "ERROR"
+        ? "ERROR"
+        : getStatusFromScore(valueZone.score);
+
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // Debug Data
     const { label, percentInRange, pdh, pdl, eq } = (valueZone.debug || {}) as any;
@@ -40,8 +45,8 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
                         {valueZone.direction}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
-                        {valueZone.status}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>

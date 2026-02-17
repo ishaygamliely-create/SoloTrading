@@ -4,7 +4,16 @@
  * 0-59% -> RED (Low/Weak)
  * 60-74% -> YELLOW (Medium/Caution)
  * 75-100% -> GREEN (High/Strong)
+ * 
+ * GLOBAL STATUS LAW:
+ * 0-59 -> WARN
+ * 60-74 -> OK
+ * 75-100 -> STRONG
+ * (OFF/ERROR override everything)
  */
+
+// Status type definition
+export type IndicatorStatus = "OK" | "WARN" | "STRONG" | "OFF" | "ERROR";
 
 // Normalized colors (Tailwind classes)
 const COLORS = {
@@ -36,6 +45,30 @@ const COLORS = {
 export function clampPct(n: number) {
     if (!Number.isFinite(n)) return 0;
     return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+/**
+ * GLOBAL STATUS LAW: Derive status from score
+ * 0-59 -> WARN
+ * 60-74 -> OK
+ * 75-100 -> STRONG
+ */
+export function getStatusFromScore(score: number): IndicatorStatus {
+    const s = clampPct(score);
+    if (s >= 75) return "STRONG";
+    if (s >= 60) return "OK";
+    return "WARN";
+}
+
+/**
+ * Get status badge styling
+ */
+export function getStatusBadgeClass(status: IndicatorStatus): string {
+    if (status === "STRONG") return "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30";
+    if (status === "OK") return "bg-yellow-500/20 text-yellow-200 border border-yellow-500/30";
+    if (status === "WARN") return "bg-red-500/20 text-red-200 border border-red-500/30";
+    if (status === "OFF") return "bg-white/10 text-white/50 border border-white/10";
+    return "bg-red-500/20 text-red-200 border border-red-500/30"; // ERROR
 }
 
 function getConfidenceLevel(score: number) {
@@ -112,7 +145,7 @@ export function getConfidenceBorderClass(score: number) {
 export function getDirectionBadgeClass(opts: {
     direction: "LONG" | "SHORT" | "NEUTRAL" | "NO_TRADE";
     score: number;
-    status?: "OK" | "WARN" | "OFF" | "ERROR" | "BLOCKED";
+    status?: "OK" | "WARN" | "OFF" | "ERROR" | "BLOCKED" | "STRONG";
 }) {
     const { direction, status } = opts;
 

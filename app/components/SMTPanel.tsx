@@ -1,6 +1,6 @@
 import React from 'react';
 import { IndicatorSignal } from '../lib/types';
-import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 type Props = {
@@ -21,7 +21,13 @@ export function SMTPanel({ data, loading }: Props) {
         : smt.direction === 'SHORT'
             ? "text-red-400"
             : "text-zinc-500";
-    const statusColor = smt.status === 'OK' ? 'text-emerald-400' : smt.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+
+    // Global Status Law: derive from score
+    const computedStatus: IndicatorStatus = smt.status === "ERROR"
+        ? "ERROR"
+        : getStatusFromScore(smt.score);
+
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // Debug Data
     const { isStrong, gate, factors } = (smt.debug || {}) as any;
@@ -37,8 +43,8 @@ export function SMTPanel({ data, loading }: Props) {
                         {smt.direction}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
-                        {smt.status}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>

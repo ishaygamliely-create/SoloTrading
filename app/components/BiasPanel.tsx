@@ -1,6 +1,6 @@
 import React from 'react';
 import { IndicatorSignal } from '../lib/types';
-import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
@@ -20,8 +20,13 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     const price = data.price || 0;
     const direction = bias.direction;
     const score = bias.score;
-    const status = bias.status;
+    const rawStatus = bias.status;
     const regime = data.analysis?.marketContext?.regime || "—";
+
+    // Global Status Law: derive from score (OFF already filtered above)
+    const computedStatus: IndicatorStatus = rawStatus === "ERROR"
+        ? "ERROR"
+        : getStatusFromScore(score);
 
     // --- Styling Logic ---
     // Strict Confidence Law: 0-59 Red, 60-74 Yellow, 75-100 Green
@@ -40,8 +45,8 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     if (direction === "LONG") dirBadgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
     if (direction === "SHORT") dirBadgeClass = "text-red-400 bg-red-500/10 border-red-500/20";
 
-    // Status Color (WARN affects valid status badge only)
-    const statusColor = status === 'OK' ? 'text-emerald-400' : status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+    // Status Badge (using global law)
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // Rule Line
     let ruleText = "Neutral Zone - Wait for break";
@@ -78,8 +83,8 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                         {direction}
                     </span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={`text-[10px] font-bold ${statusColor}`}>
-                        {status}
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-lg font-bold ${scoreColor}`}>

@@ -2,7 +2,7 @@ import React from 'react';
 import { PanelProps } from './DashboardPanels';
 import { Check, X, AlertTriangle, Clock } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
-import { getConfidenceColorClass, getDirectionBadgeClass } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getDirectionBadgeClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 export function PSPPanel({ data, loading }: PanelProps) {
@@ -22,8 +22,12 @@ export function PSPPanel({ data, loading }: PanelProps) {
             ? "text-red-400"
             : "text-zinc-500";
 
-    // Status Color
-    const statusColor = psp.status === 'OK' ? 'text-emerald-400' : psp.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+    // Global Status Law: derive from score (PSP doesn't have ERROR status)
+    const computedStatus: IndicatorStatus = psp.status === "OFF"
+        ? "OFF"
+        : getStatusFromScore(psp.score);
+
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // --- Progress Bar ---
     const steps = [
@@ -50,8 +54,8 @@ export function PSPPanel({ data, loading }: PanelProps) {
                         {psp.direction}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
-                        {psp.status}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>

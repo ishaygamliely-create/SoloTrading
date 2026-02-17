@@ -1,6 +1,6 @@
 import React from 'react';
 import { getLiquiditySignal } from '@/app/lib/liquidityRange';
-import { getConfidenceColorClass, getConfidenceLabel, clampPct } from '@/app/lib/uiSignalStyles';
+import { getConfidenceColorClass, getConfidenceLabel, clampPct, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 import { IndicatorSignal } from '../lib/types';
 
@@ -12,7 +12,13 @@ export function LiquidityPanel({ data, loading }: { data: any, loading: boolean 
 
     // --- Standard Colors ---
     const scoreStyle = getConfidenceColorClass(liquidity.score);
-    const statusColor = liquidity.status === 'OK' ? 'text-emerald-400' : liquidity.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+
+    // Global Status Law: derive from score
+    const computedStatus: IndicatorStatus = liquidity.status === "ERROR"
+        ? "ERROR"
+        : getStatusFromScore(liquidity.score);
+
+    const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
     // Debug Data
     const { state, adrPercent } = (liquidity.debug || {}) as any;
@@ -44,8 +50,8 @@ export function LiquidityPanel({ data, loading }: { data: any, loading: boolean 
                         NEUTRAL
                     </span>
                     <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
-                        {liquidity.status}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>
