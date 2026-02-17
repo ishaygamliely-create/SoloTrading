@@ -154,15 +154,19 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         else factors.push("Bias: Weak Bearish (EMA20 < EMA50)");
     }
 
-    // Session Soft Impact
-    const isOffHours = session.score <= 20;
-    if (isOffHours && score > 0) {
-        score -= 15;
-        status = "WARN";
-        factors.push("Off-hours: score reduced (-15)");
+    // V3 Logic: Structure Breakdown
+    const emaSpread = Math.abs(lastEMA20 - lastEMA50);
+    const bias: "LONG" | "SHORT" | "NEUTRAL" = lastEMA20 > lastEMA50 ? "LONG" : lastEMA20 < lastEMA50 ? "SHORT" : "NEUTRAL";
+
+    // Playbook
+    let playbook = "Range mode → favor mean reversion at extremes.";
+    if (label === "TRENDING") {
+        playbook = "Trend mode → trade pullbacks with structure.";
     }
 
-    score = Math.max(0, Math.min(100, score));
+    // Score Breakdown
+    // Example: "ADX 26.5 (>25) + spread 5.2 → score 90%"
+    const scoreBreakdown = `ADX ${adx?.toFixed(1)} (${isTrending ? '>=25' : '<25'}) + ${bias} Bias → ${Math.round(score)}%`;
 
     return {
         status,
@@ -172,9 +176,14 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         debug: {
             factors,
             label,
-            adx: adx?.toFixed(1),
+            regime: label, // V3 Standard
+            adx: adx,
             ema20: lastEMA20,
-            ema50: lastEMA50
+            ema50: lastEMA50,
+            bias,
+            emaSpread,
+            scoreBreakdown,
+            playbook
         }
     };
 }

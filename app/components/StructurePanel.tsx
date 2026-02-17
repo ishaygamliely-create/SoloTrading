@@ -15,69 +15,77 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     if (!structure || structure.status === 'OFF') return null;
 
     // --- Standard Colors ---
-    const scoreStyle = getConfidenceColorClass(structure.score);
+    // Global Confidence Law: 0-59 Red, 60-74 Yellow, 75-100 Green
+    const score = structure.score;
+    let scoreColor = "text-red-400";
+    let borderColor = "ring-1 ring-red-500/30";
+    if (score >= 75) {
+        scoreColor = "text-emerald-300";
+        borderColor = "ring-1 ring-emerald-500/30";
+    } else if (score >= 60) {
+        scoreColor = "text-yellow-300";
+        borderColor = "ring-1 ring-yellow-500/30";
+    }
 
     const directionClass = structure.direction === 'LONG'
-        ? "text-emerald-400"
+        ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
         : structure.direction === 'SHORT'
-            ? "text-red-400"
-            : "text-zinc-500";
+            ? "text-red-400 bg-red-500/10 border-red-500/20"
+            : "text-zinc-500 bg-zinc-500/10";
 
     const statusColor = structure.status === 'OK' ? 'text-emerald-400' : structure.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
 
     // Debug Data
-    const { adx, label, ema20, ema50 } = (structure.debug || {}) as any;
+    const { playbook, bias, ema20, ema50, scoreBreakdown } = (structure.debug || {}) as any;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
+        <div className={`rounded-xl border bg-white/5 p-4 space-y-2 ${borderColor}`}>
             {/* 1. Header: TITLE | Direction | Status | Score */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-blue-400 tracking-wide">STRUCTURE</span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${directionClass}`}>
+                    <span className="font-bold text-blue-400 tracking-wide text-sm">STRUCTURE</span>
+                    <div className="h-3 w-px bg-white/10" />
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${directionClass}`}>
                         {structure.direction}
                     </span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
+                    <div className="h-3 w-px bg-white/10" />
+                    <span className={`text-[10px] font-bold ${statusColor}`}>
                         {structure.status}
                     </span>
                 </div>
-                <div className={`text-xl font-bold ${scoreStyle.text}`}>
+                <div className={`text-lg font-bold ${scoreColor}`}>
                     {Math.round(structure.score)}%
                 </div>
             </div>
 
-            {/* 2. Hint */}
-            <div className="text-xs text-white/70 italic">
-                {structure.hint}
+            {/* 2. Playbook (V3) */}
+            <div className="text-sm text-white/90 font-medium leading-tight">
+                <span className="text-white/40 text-[10px] uppercase mr-1">Playbook:</span>
+                {playbook ?? "Analyzing structure..."}
             </div>
 
-            {/* 3. Data Visualization (ADX + EMAs) */}
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-white/5 rounded p-2 border border-white/5">
-                    <div className="text-zinc-500 font-bold uppercase">Regime</div>
-                    <div className="text-white font-mono">{label ?? 'UNKNOWN'}</div>
+            {/* 3. Context Lines (V3) */}
+            <div className="mt-1 text-[10px] text-zinc-500 font-mono space-y-0.5 border-t border-white/5 pt-2">
+                <div>
+                    Bias: <span className={bias === 'LONG' ? 'text-emerald-500' : bias === 'SHORT' ? 'text-red-500' : 'text-zinc-400'}>{bias ?? "NEUTRAL"}</span>
+                    <span className="opacity-50 mx-1">|</span>
+                    EMA20 <span className="text-zinc-300">{Number(ema20)?.toFixed(1) ?? "—"}</span>
+                    <span className="opacity-50 mx-1">|</span>
+                    EMA50 <span className="text-zinc-300">{Number(ema50)?.toFixed(1) ?? "—"}</span>
                 </div>
-                <div className="bg-white/5 rounded p-2 border border-white/5">
-                    <div className="text-zinc-500 font-bold uppercase">ADX (Strength)</div>
-                    <div className="text-white font-mono">{adx ?? 'N/A'}</div>
+                <div className="text-zinc-600">
+                    {scoreBreakdown ?? ""}
                 </div>
             </div>
-            {/* Sub-data: EMAs */}
-            <div className="flex justify-between px-1 text-[9px] text-zinc-600 font-mono">
-                <span>EMA20: {Number(ema20)?.toFixed(1)}</span>
-                <span>EMA50: {Number(ema50)?.toFixed(1)}</span>
-            </div>
 
-
-            {/* 4. Help Toggle */}
-            <div className="pt-2 border-t border-white/5">
-                <PanelHelp title="STRUCTURE" bullets={[
-                    "Analyzes Market Regime (Trending vs Ranging).",
-                    "Inputs: EMA20, EMA50, ADX.",
-                    "Score: Higher = Stronger Trend.",
-                    "Hint: Suggests pullback or mean reversion strategies."
+            {/* 4. Help Toggle (V3 Polish) */}
+            <div className="pt-1 border-t border-white/5 mt-1">
+                <PanelHelp title="STRUCTURE V3" bullets={[
+                    "High Score = Strong Trend (Pullbacks).",
+                    "Low Score = Range/Chop (Mean Reversion).",
+                    "Signaling: EMA20 > EMA50 = Bullish Bias.",
+                    "ADX Strength: <20 Choppy, >25 Trending.",
+                    "Playbook: Follow trend or fade extremes."
                 ]} />
             </div>
         </div>
