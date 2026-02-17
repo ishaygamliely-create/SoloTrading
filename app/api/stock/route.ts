@@ -390,12 +390,11 @@ export async function GET(request: Request) {
         };
 
         const biasSignal = getBiasSignal({
-            biasMode: nyBiasMode,
             price: lastPrice,
             midnightOpen,
-            buffer: 1.0,
             dataStatus: lagStatus.status as any,
-            session
+            session,
+            quotes: quotes15m
         });
 
         const valueZoneSignal = getValueZoneSignal({

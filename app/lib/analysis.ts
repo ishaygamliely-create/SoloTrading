@@ -26,7 +26,7 @@ class EMA {
 }
 
 // Volatility & Trend Indicators
-class Indicators {
+export class Indicators {
     static calculateTR(high: number, low: number, prevClose: number): number {
         return Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
     }
