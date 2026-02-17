@@ -29,7 +29,7 @@ const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart),
 });
 
 export default function Home() {
-  const [symbol, setSymbol] = useState('');
+  const [symbol, setSymbol] = useState('MNQ');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function Home() {
     setData(null);
 
     try {
-      const res = await fetch(`/api/stock?symbol=${symbol}`);
+      const res = await fetch(`/api/stock?symbol=MNQ`);
       const json = await res.json();
 
       if (!res.ok) {
@@ -158,11 +158,9 @@ export default function Home() {
 
               <input
                 type="text"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                placeholder="Symbol (e.g. MNQ)"
-                className="bg-zinc-950 border border-zinc-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 transition-all text-sm md:text-base"
-                onKeyDown={(e) => e.key === 'Enter' && fetchData()}
+                value="MNQ (locked)"
+                disabled
+                className="bg-zinc-950/50 border border-zinc-800 text-zinc-500 px-4 py-2 rounded-lg cursor-not-allowed w-full md:w-64 text-sm md:text-base"
               />
               <button
                 onClick={() => fetchData()}

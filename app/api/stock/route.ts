@@ -31,9 +31,7 @@ export async function GET(request: Request) {
     const intervalArg = searchParams.get('interval') || '1m';
     const interval = intervalArg as '1m' | '5m' | '15m' | '60m' | '1h' | '4h';
 
-    if (!symbol) {
-        return NextResponse.json({ error: 'Symbol is required' }, { status: 400 });
-    }
+    if (!symbol) symbol = "MNQ";
 
     if (symbol.toUpperCase() === 'MNQ') symbol = 'MNQ=F';
     else if (symbol.toUpperCase() === 'NQ') symbol = 'NQ=F';

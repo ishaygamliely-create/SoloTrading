@@ -10,16 +10,22 @@ export async function POST(req: Request) {
     try {
         const { image, additionalContext } = await req.json();
 
+        // Ensure context defaults to MNQ
+        const context = {
+            ...additionalContext,
+            symbol: additionalContext?.symbol || "MNQ"
+        };
+
         if (!image) {
             return new Response('Image data is required', { status: 400 });
         }
 
         // Context Construction
         let userPrompt = 'Analyze this chart based on institutional smart money concepts.';
-        if (additionalContext?.symbol || additionalContext?.timeframe) {
+        if (context?.symbol || context?.timeframe) {
             userPrompt += `\n\nCONTEXT:\n`;
-            if (additionalContext.symbol) userPrompt += `- Symbol: ${additionalContext.symbol}\n`;
-            if (additionalContext.timeframe) userPrompt += `- Timeframe: ${additionalContext.timeframe}\n`;
+            if (context.symbol) userPrompt += `- Symbol: ${context.symbol}\n`;
+            if (context.timeframe) userPrompt += `- Timeframe: ${context.timeframe}\n`;
             userPrompt += `Use this context to confirm indicators or market session, but prioritize visual evidence.`;
         }
 
