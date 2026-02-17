@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorSignal } from '../lib/types';
 import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
+import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 interface BiasPanelProps {
     data: any;
@@ -14,66 +15,105 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     const bias = data?.analysis?.bias as IndicatorSignal;
     if (!bias || bias.status === 'OFF') return null;
 
-    // --- Standard Colors ---
-    const scoreStyle = getConfidenceColorClass(bias.score);
-    const directionClass = bias.direction === 'LONG'
-        ? "text-emerald-400"
-        : bias.direction === 'SHORT'
-            ? "text-red-400"
-            : "text-zinc-500";
-    const statusColor = bias.status === 'OK' ? 'text-emerald-400' : bias.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+    // --- Data Extraction ---
+    const { midnightOpen, buffer } = (bias.debug || {}) as any;
+    const price = data.price || 0;
+    const direction = bias.direction;
+    const score = bias.score;
+    const status = bias.status;
 
-    // Debug Data
-    const { midnightOpen, buffer, biasMode } = (bias.debug || {}) as any;
+    // --- Styling Logic ---
+    // 1. Score Text + Ring -> Global Confidence Law
+    const scoreStyle = getConfidenceColorClass(score);
+
+    // 2. Direction Badge -> Directional Colors (Green/Red/Gray)
+    let dirBadgeClass = "text-zinc-500 bg-zinc-500/10";
+    if (direction === "LONG") dirBadgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+    if (direction === "SHORT") dirBadgeClass = "text-red-400 bg-red-500/10 border-red-500/20";
+
+    // 3. Status Color
+    const statusColor = status === 'OK' ? 'text-emerald-400' : status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+
+    // --- Rule Line ---
+    let ruleText = "Wait for break beyond buffer";
+    if (direction === "LONG") ruleText = `Prefer LONGs above ${(midnightOpen + buffer).toFixed(2)}`;
+    if (direction === "SHORT") ruleText = `Prefer SHORTs below ${(midnightOpen - buffer).toFixed(2)}`;
+
+    // --- Price Position Label ---
+    let priceLabel = "Inside";
+    let priceLabelColor = "text-zinc-400";
+    if (price > midnightOpen + buffer) { priceLabel = "Above"; priceLabelColor = "text-emerald-400"; }
+    if (price < midnightOpen - buffer) { priceLabel = "Below"; priceLabelColor = "text-red-400"; }
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
-            {/* 1. Header: TITLE | Direction | Status | Score */}
-            <div className="flex items-center justify-between">
+        <div className={`rounded-xl border bg-white/5 p-3 space-y-2 h-full flex flex-col justify-center ${scoreStyle.border}`}>
+
+            {/* 1. Header: BIAS | Direction | Status | Score */}
+            <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-amber-500 tracking-wide">BIAS</span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${directionClass}`}>
-                        {bias.direction}
+                    <span className="font-bold text-amber-500 tracking-wide text-sm">BIAS</span>
+                    <div className="h-3 w-px bg-white/10" />
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${dirBadgeClass}`}>
+                        {direction}
                     </span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
-                        {bias.status}
+                    <div className="h-3 w-px bg-white/10" />
+                    <span className={`text-[10px] font-bold ${statusColor}`}>
+                        {status}
                     </span>
                 </div>
-                <div className={`text-xl font-bold ${scoreStyle.text}`}>
-                    {Math.round(bias.score)}%
+                <div className={`text-lg font-bold ${scoreStyle.text}`}>
+                    {Math.round(score)}%
                 </div>
             </div>
 
-            {/* 2. Hint */}
-            <div className="text-xs text-white/70 italic">
-                {bias.hint}
+            {/* 2. Rule Line */}
+            <div className="text-xs font-medium text-white/90 text-center bg-white/5 py-1 rounded border border-white/5">
+                {ruleText}
             </div>
 
-            {/* 3. Data Visualization */}
-            <div className="flex items-center gap-4 text-[10px] text-zinc-400 bg-white/5 p-2 rounded border border-white/5">
-                <div className="flex flex-col">
-                    <span className="uppercase text-zinc-600 font-bold">Midnight Open</span>
-                    <span className="font-mono text-white">{midnightOpen?.toFixed(2) ?? '---'}</span>
+            {/* 3. Status Warning (if WARN) */}
+            {status === 'WARN' && (
+                <div className="text-[9px] text-yellow-500/80 text-center italic">
+                    WARN: Off-hours / Low Reliability
                 </div>
-                <div className="flex flex-col">
-                    <span className="uppercase text-zinc-600 font-bold">Buffer</span>
-                    <span className="font-mono text-white">± {buffer}</span>
+            )}
+
+            {/* 4. Mini Table (Compact) */}
+            <div className="grid grid-cols-3 gap-1 text-[10px] border-t border-white/10 pt-2 mt-1">
+                {/* Upper Buffer */}
+                <div className="flex flex-col items-center">
+                    <span className="text-zinc-500 uppercase text-[9px]">Upper</span>
+                    <span className="font-mono text-zinc-300">{(midnightOpen + buffer).toFixed(2)}</span>
                 </div>
-                <div className="flex flex-col">
-                    <span className="uppercase text-zinc-600 font-bold">NY Mode</span>
-                    <span className="font-mono text-white">{biasMode}</span>
+                {/* Midnight */}
+                <div className="flex flex-col items-center border-l border-r border-white/5">
+                    <span className="text-zinc-500 uppercase text-[9px]">Midnight</span>
+                    <span className="font-mono text-blue-300">{midnightOpen?.toFixed(2)}</span>
+                </div>
+                {/* Lower Buffer */}
+                <div className="flex flex-col items-center">
+                    <span className="text-zinc-500 uppercase text-[9px]">Lower</span>
+                    <span className="font-mono text-zinc-300">{(midnightOpen - buffer).toFixed(2)}</span>
                 </div>
             </div>
 
-            {/* 4. Help Toggle */}
-            <div className="pt-2 border-t border-white/5">
-                <PanelHelp title="BIAS" bullets={[
-                    "Compares current price to NY Midnight Open.",
-                    "Above Midnight = Bullish Bias.",
-                    "Below Midnight = Bearish Bias.",
-                    "Score reflects conviction and buffer clearance."
+            {/* 5. Current Price Status */}
+            <div className="flex justify-between items-center text-[10px] bg-black/20 p-1 rounded px-2">
+                <span className="text-zinc-500">Current Price</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-white">{price.toFixed(2)}</span>
+                    <span className={`font-bold ${priceLabelColor}`}>({priceLabel})</span>
+                </div>
+            </div>
+
+            {/* 6. Help Toggle */}
+            <div className="pt-1">
+                <PanelHelp title="What BIAS checks" bullets={[
+                    "Uses NY Midnight Open as daily anchor.",
+                    "Above upper trigger = LONG bias.",
+                    "Below lower trigger = SHORT bias.",
+                    "Inside buffer = Neutral (avoid forcing).",
+                    "Score = Strength, Badge = Direction."
                 ]} />
             </div>
         </div>
