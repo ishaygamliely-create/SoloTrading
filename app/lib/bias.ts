@@ -31,7 +31,7 @@ export function getBiasSignal(params: BiasParams): IndicatorSignal {
 
     let score = 0;
     let direction: "LONG" | "SHORT" | "NEUTRAL" = "NEUTRAL";
-    let status: "OK" | "WARN" | "OFF" | "ERROR" = "OK";
+    let status: "OK" | "WARN" | "BLOCKED" | "OFF" = "OK";
     let hint = "";
 
     // 2. Base Scoring
@@ -67,13 +67,10 @@ export function getBiasSignal(params: BiasParams): IndicatorSignal {
 
     // 4. Session Soft Impact
     const isOffHours = session.score <= 20; // Check session score for off-hours
-    if (isOffHours) {
+    if (isOffHours && score > 0) {
         score -= 15;
         status = "WARN";
         factors.push("Off-hours: score reduced (-15)");
-        factors.push("Session OFF-HOURS");
-    } else {
-        factors.push("Session ACTIVE");
     }
 
     // 5. Clamp Score
@@ -84,6 +81,11 @@ export function getBiasSignal(params: BiasParams): IndicatorSignal {
         direction,
         score,
         hint,
-        debug: { factors }
+        debug: {
+            factors,
+            midnightOpen,
+            buffer,
+            biasMode
+        }
     };
 }
