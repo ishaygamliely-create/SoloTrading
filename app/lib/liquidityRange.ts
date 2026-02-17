@@ -1,4 +1,6 @@
 
+import type { IndicatorSignal } from "@/app/lib/types";
+
 export type LiquidityConfidenceResult = {
     confidenceScore: number;
     factors: string[];
@@ -50,6 +52,66 @@ export function getLiquidityConfidenceScore(opts: {
         confidenceScore: score,
         factors,
         mappingText: `ADR ${adr.toFixed(0)}% | Sweep ${opts.hasMajorSweep ? "Yes" : "No"} | PSP ${opts.pspState ?? "None"}`,
+    };
+}
+
+export function getLiquiditySignal(data: any): IndicatorSignal {
+    const lrRaw = data?.analysis?.liquidityRange;
+    if (!lrRaw) {
+        return {
+            status: "OFF", direction: "NEUTRAL", score: 0, hint: "No liquidity data",
+            debug: { factors: [] }
+        };
+    }
+
+    const { currentRange = 0, avgRange = 1, hasMajorSweep } = lrRaw;
+    const adrPercent = avgRange > 0 ? (currentRange / avgRange) * 100 : 0;
+    const pspState = data.analysis?.psp?.state || 'NONE';
+
+    // Calculation
+    const { confidenceScore, factors } = getLiquidityConfidenceScore({
+        adrPercent,
+        hasMajorSweep,
+        pspState
+    });
+
+    // Derive State
+    let state = "COMPRESSED";
+    if (adrPercent >= 60) state = "EXPANDING";
+    if (adrPercent >= 85) state = "EXHAUSTED";
+
+    // Playbook Hint
+    let hint = "Wait for Sweep → Displacement.";
+    if (state === "EXPANDING") hint = "Momentum Phase: Trade with structure.";
+    if (state === "EXHAUSTED") hint = "Range Exhausted: Prefer mean reversion.";
+
+    // Map to Standard Status
+    let status: "OK" | "WARN" | "OFF" | "BLOCKED" = "OK";
+    if (state === "EXHAUSTED") status = "WARN";
+
+    // Nearest Zones (Calculated here for debug/display)
+    const currentPrice = data.price || 0;
+    const fvgs = data.analysis?.fvgs || [];
+    const pools = data.analysis?.liquidity || [];
+
+    // Simple filter
+    const fvgsAbove = fvgs.filter((f: any) => f.bottom > currentPrice).length;
+    const fvgsBelow = fvgs.filter((f: any) => f.top < currentPrice).length;
+
+    return {
+        status,
+        direction: "NEUTRAL", // Liquidity is context
+        score: confidenceScore,
+        hint,
+        debug: {
+            factors,
+            state,
+            adrPercent: adrPercent.toFixed(1),
+            fvgsAbove,
+            fvgsBelow,
+            sweep: hasMajorSweep,
+            psp: pspState
+        }
     };
 }
 

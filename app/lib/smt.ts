@@ -186,17 +186,21 @@ export function getSmtSignal(
         }
     }
 
+    let status: "OK" | "WARN" | "OFF" | "BLOCKED" = "OK";
+    if (gate.isActive) status = "WARN";
+
     return {
-        status: score > 0 ? "OK" : "OK",
+        status,
         direction,
         score,
-        hint:
-            score > 0
-                ? `SMT ${direction} divergence detected`
-                : "No SMT divergence",
-        isStrong,
-        lastSwingTimeSec: swingTimeSec,
-        gate,
-        debug: { factors }
+        hint: score > 0
+            ? `SMT ${direction} divergence detected`
+            : "No SMT divergence",
+        debug: {
+            factors,
+            isStrong,
+            lastSwingTimeSec: swingTimeSec,
+            gate
+        }
     }
 }

@@ -1,7 +1,6 @@
 import React from 'react';
-import type { IndicatorSignal } from '../lib/types';
-import IndicatorHeader from './IndicatorHeader';
-import { getConfidenceBorderClass } from '@/app/lib/uiSignalStyles';
+import { IndicatorSignal } from '../lib/types';
+import { getConfidenceColorClass } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
 
 interface ValueZonePanelProps {
@@ -10,40 +9,79 @@ interface ValueZonePanelProps {
 }
 
 export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
-    if (loading || !data?.analysis?.valueZone) {
-        return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
-    }
+    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
-    const valueZone = data.analysis.valueZone as IndicatorSignal;
-    const debug = valueZone.debug || {};
-    const { pdh, pdl, eq, percentInRange, label, zone } = debug as any;
+    const valueZone = data?.analysis?.valueZone as IndicatorSignal;
+    if (!valueZone || valueZone.status === 'OFF') return null;
 
-    const borderClass = getConfidenceBorderClass(valueZone.score);
+    // --- Standard Colors ---
+    const scoreStyle = getConfidenceColorClass(valueZone.score);
+
+    // Direction Color
+    const directionClass = valueZone.direction === 'LONG'
+        ? "text-emerald-400"
+        : valueZone.direction === 'SHORT'
+            ? "text-red-400"
+            : "text-zinc-500";
+
+    const statusColor = valueZone.status === 'OK' ? 'text-emerald-400' : valueZone.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
+
+    // Debug Data
+    const { label, percentInRange, pdh, pdl, eq } = (valueZone.debug || {}) as any;
 
     return (
-        <div className={`rounded-xl bg-white/5 p-3 hover:bg-white/[0.06] transition h-full flex flex-col justify-center ${borderClass}`}>
-            <IndicatorHeader
-                title="VALUE"
-                signal={valueZone}
-                rightBadgeText={zone || label}
-            />
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
+            {/* 1. Header: TITLE | Direction | Status | Score */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-indigo-400 tracking-wide">VALUE</span>
+                    <div className="h-4 w-px bg-white/10" />
+                    <span className={`text-xs font-bold uppercase ${directionClass}`}>
+                        {valueZone.direction}
+                    </span>
+                    <div className="h-4 w-px bg-white/10" />
+                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
+                        {valueZone.status}
+                    </span>
+                </div>
+                <div className={`text-xl font-bold ${scoreStyle.text}`}>
+                    {Math.round(valueZone.score)}%
+                </div>
+            </div>
 
-            <div className="text-[10px] text-zinc-500 leading-tight truncate">
-                <span className="text-zinc-400">{percentInRange}% in Range</span>
-                <span className="mx-2 text-zinc-700">|</span>
-                <span className="text-zinc-500">{valueZone.hint}</span>
+            {/* 2. Hint */}
+            <div className="text-xs text-white/70 italic">
+                {valueZone.hint}
             </div>
-            {/* Optional detailed debug line if space permits */}
-            <div className="text-[9px] text-zinc-600 mt-1 hidden md:block">
-                PDH {pdh?.toFixed(2)} | EQ {eq?.toFixed(2)} | PDL {pdl?.toFixed(2)}
+
+            {/* 3. Data Visualization */}
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-white/5 rounded p-2 border border-white/5">
+                    <div className="text-zinc-500 font-bold uppercase">Zone</div>
+                    <div className="text-white font-mono">{label ?? 'UNKNOWN'}</div>
+                </div>
+                <div className="bg-white/5 rounded p-2 border border-white/5">
+                    <div className="text-zinc-500 font-bold uppercase">Position</div>
+                    <div className="text-white font-mono">{percentInRange}% of Range</div>
+                </div>
             </div>
-            <PanelHelp title="VALUE">
-                <ul className="list-disc pl-5 space-y-1">
-                    <li><b>Zone</b>: Premium (Expensive) or Discount (Cheap).</li>
-                    <li><b>Range</b>: % of time spent inside value area.</li>
-                    <li><b>EQ</b>: Equilibrium price level.</li>
-                </ul>
-            </PanelHelp>
+
+            {/* Levels */}
+            <div className="flex justify-between px-1 text-[9px] text-zinc-600 font-mono">
+                <span>PDL: {Number(pdl)?.toFixed(2)}</span>
+                <span>EQ: {Number(eq)?.toFixed(2)}</span>
+                <span>PDH: {Number(pdh)?.toFixed(2)}</span>
+            </div>
+
+            {/* 4. Help Toggle */}
+            <div className="pt-2 border-t border-white/5">
+                <PanelHelp title="VALUE" bullets={[
+                    "Compares Price to Previous Day Range.",
+                    "Premium (>EQ): Favor Shorts.",
+                    "Discount (<EQ): Favor Longs.",
+                    "Score reflects separation from Equilibrium."
+                ]} />
+            </div>
         </div>
     );
 }

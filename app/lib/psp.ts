@@ -5,9 +5,11 @@ export type PSPState = 'NONE' | 'FORMING' | 'CONFIRMED';
 export type PSPDirection = 'LONG' | 'SHORT' | 'NEUTRAL';
 
 export interface PSPResult {
+    status: 'OK' | 'WARN' | 'BLOCKED' | 'OFF'; // Standard
     state: PSPState;
-    direction: PSPDirection;
-    score: number; // 0-100
+    direction: PSPDirection; // Standard
+    score: number; // 0-100 Standard
+    hint: string; // Standard
     checklist: {
         sweep: boolean;
         displacement: boolean;
@@ -127,9 +129,11 @@ export function detectPSP(quotes15m: Quote[], opts?: any): PSPResult {
     if (Date.now() > winner.meta.expiresAtMs) {
         return {
             ...winner,
+            status: 'OK',
             state: "NONE",
             direction: "NEUTRAL",
             score: 0,
+            hint: "Setup expired",
             checklist: { sweep: false, displacement: false, pullback: false, continuation: false },
             levels: undefined,
             meta: { ...winner.meta, ageMinutes: Math.round((Date.now() - winner.meta.detectedAtMs) / 60000) },
@@ -145,9 +149,11 @@ export function detectPSP(quotes15m: Quote[], opts?: any): PSPResult {
 
 function createEmptyResult(): PSPResult {
     return {
+        status: 'OFF',
         state: 'NONE',
         direction: 'NEUTRAL',
         score: 0,
+        hint: 'No data',
         checklist: { sweep: false, displacement: false, pullback: false, continuation: false },
         meta: { tf: '15m', detectedAtMs: 0, expiresAtMs: 0, ageMinutes: 0 },
         debug: { factors: [], pivots: {} }
@@ -272,7 +278,7 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
 
     if (!sweepFound) {
         return {
-            state: 'NONE', direction, score: 0,
+            status: 'OK', state: 'NONE', direction, score: 0, hint: 'No recent sweep',
             checklist: { sweep: false, displacement: false, pullback: false, continuation: false },
             meta: { tf: '15m', detectedAtMs: 0, expiresAtMs: 0, ageMinutes: 0 },
             debug: { factors: [], pivots: { lastSwingHigh: isLong ? undefined : swingPrice, lastSwingLow: isLong ? swingPrice : undefined } }
@@ -401,7 +407,7 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
             if (invalidated) {
                 // Killed
                 return {
-                    state: 'NONE', direction, score: 0,
+                    status: 'OK', state: 'NONE', direction, score: 0, hint: 'Invalidated during pullback',
                     checklist: { sweep: true, displacement: true, pullback: false, continuation: false },
                     meta: { tf: '15m', detectedAtMs: 0, expiresAtMs: 0, ageMinutes: 0 },
                     debug: { factors: [...factors, 'Invalidated during Pullback'], pivots: {} }
@@ -466,10 +472,6 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
     // State
     let state: PSPState = 'NONE';
     if (score >= 75 && (continuationFound || pullbackFound)) state = 'CONFIRMED';
-    // Spec says "CONFIRMED: all 4 steps true". Check score logic.
-    // 25+25+20+20 = 90 base. 
-    // If confirmation is missing, max score is 70 + bonuses.
-    // So if score >= 90 it's definitely confirmed.
     // Let's follow strictly: 
     if (continuationFound) state = 'CONFIRMED';
     else if (sweepFound) state = 'FORMING';
@@ -483,10 +485,22 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
     const expiresAtMs = detectedAtMs + (3 * 60 * 60 * 1000);
     const ageMinutes = Math.floor((Date.now() - detectedAtMs) / 60000);
 
+    // Map State to Standard Status
+    let status: 'OK' | 'WARN' | 'BLOCKED' | 'OFF' = 'OK';
+    if (state === 'FORMING') status = 'WARN';
+    if (state === 'NONE') status = 'OK';
+
+    // Human readable hint
+    let hint = "Waiting for setup...";
+    if (state === 'FORMING') hint = "Sweep detected. Watch for displacement.";
+    if (state === 'CONFIRMED') hint = `Confirmed ${direction} PSP. Entry in zone.`;
+
     return {
-        state,
+        status, // Standard Field
+        state,  // Internal Field
         direction,
         score,
+        hint,   // Standard Field
         checklist: {
             sweep: sweepFound,
             displacement: displacementFound,

@@ -1,254 +1,109 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { getLiquiditySignal } from '@/app/lib/liquidityRange';
 import { getConfidenceColorClass, getConfidenceLabel, clampPct } from '@/app/lib/uiSignalStyles';
-import { getLiquidityConfidenceScore } from '@/app/lib/liquidityRange';
 import { PanelHelp } from './PanelHelp';
-
-type LiquidityRangeStatus = "COMPRESSED" | "EXPANDING" | "EXHAUSTED";
-type PSPState = "NONE" | "FORMING" | "CONFIRMED";
-
-export interface LiquidityRangeData {
-    status: LiquidityRangeStatus;
-    adrPercent: number;              // 0–100 (ADR usage)
-    expansionLikelihood: number;     // 0–100 (probability)
-    hasMajorSweep?: boolean;
-    pspState?: PSPState;
-    playbook?: string;
-
-    // optional zones
-    nearestAbove?: { fvg?: string; pool?: string };
-    nearestBelow?: { fvg?: string; pool?: string };
-
-    // optional debug
-    checks?: string;
-    explanation?: {
-        title: string;
-        bullets: string[];
-    };
-}
+import { IndicatorSignal } from '../lib/types';
 
 export function LiquidityPanel({ data, loading }: { data: any, loading: boolean }) {
-    if (loading) {
-        return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-full min-h-[160px]"></div>;
-    }
+    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
-    if (!data?.analysis) return null;
+    const liquidity = getLiquiditySignal(data);
+    if (liquidity.status === 'OFF') return null;
 
-    // --- DATA MAPPING ---
-    const lrRaw = data.analysis.liquidityRange || {};
-    const fvgs = data.analysis.fvgs || [];
-    const pools = data.analysis.liquidity || [];
-    const psp = data.analysis.psp || {};
+    // --- Standard Colors ---
+    const scoreStyle = getConfidenceColorClass(liquidity.score);
+    const statusColor = liquidity.status === 'OK' ? 'text-emerald-400' : liquidity.status === 'WARN' ? 'text-yellow-400' : 'text-zinc-500';
 
-    const currentRange = lrRaw.currentRange || 0;
-    const adr = lrRaw.avgRange || 1;
-    const adrPercent = adr > 0 ? (currentRange / adr) * 100 : 0;
-    const sweepDetected = lrRaw.hasMajorSweep;
-    const pspState = (psp.state || 'NONE') as PSPState;
+    // Debug Data
+    const { state, adrPercent } = (liquidity.debug || {}) as any;
 
-    const { confidenceScore } = getLiquidityConfidenceScore({
-        adrPercent: Math.round(adrPercent),
-        hasMajorSweep: sweepDetected,
-        pspState
-    });
-
-    // Derive Status
-    let status: LiquidityRangeStatus = "COMPRESSED";
-    if (adrPercent < 60) status = "COMPRESSED";
-    else if (adrPercent < 85) status = "EXPANDING";
-    else status = "EXHAUSTED";
-
-    // Playbook Logic
-    const playbook =
-        status === "COMPRESSED"
-            ? "Wait for Sweep → Displacement (Compression)"
-            : status === "EXPANDING"
-                ? "Momentum Phase — Trade with Structure"
-                : "Exhausted — Prefer Mean Reversion / Take Profits";
-
-    // Nearest Zones logic
+    // Nearest Zones (re-calculate or pass via debug if simple enough, but panel has richer display)
+    // We can fetch raw data for the richer display parts
     const currentPrice = data.price || 0;
+    const fvgs = data.analysis?.fvgs || [];
+    const pools = data.analysis?.liquidity || [];
+
+    // Sort logic for display
     const fvgsAbove = fvgs.filter((f: any) => f.bottom > currentPrice).sort((a: any, b: any) => a.bottom - b.bottom);
     const fvgsBelow = fvgs.filter((f: any) => f.top < currentPrice).sort((a: any, b: any) => b.top - a.top);
     const poolsAbove = pools.filter((p: any) => p.price > currentPrice).sort((a: any, b: any) => a.price - b.price);
     const poolsBelow = pools.filter((p: any) => p.price < currentPrice).sort((a: any, b: any) => b.price - a.price);
 
-    const checks = `Checks: ADR ${Math.round(adrPercent)}% • Sweep ${sweepDetected ? "YES" : "NO"} • PSP ${pspState} • FVG Proximity • Pools`;
-
-    const liquidityData: LiquidityRangeData = {
-        status,
-        adrPercent,
-        expansionLikelihood: confidenceScore,
-        hasMajorSweep: sweepDetected,
-        pspState,
-        playbook,
-        checks,
-        nearestAbove: {
-            fvg: fvgsAbove.length > 0 ? `${(fvgsAbove[0].bottom as number).toFixed(0)}-${(fvgsAbove[0].top as number).toFixed(0)}` : undefined,
-            pool: poolsAbove.length > 0 ? (poolsAbove[0].price as number).toFixed(0) : undefined
-        },
-        nearestBelow: {
-            fvg: fvgsBelow.length > 0 ? `${(fvgsBelow[0].bottom as number).toFixed(0)}-${(fvgsBelow[0].top as number).toFixed(0)}` : undefined,
-            pool: poolsBelow.length > 0 ? (poolsBelow[0].price as number).toFixed(0) : undefined
-        }
-    };
-
-    return <LiquidityPanelContent data={liquidityData} />;
-}
-
-function LiquidityPanelContent({ data }: { data: LiquidityRangeData }) {
-    if (!data) return null;
-
-    // ✅ ADR Usage: Custom Logic (Green = Low/Good, Red = High/Bad)
-    // ✅ ADR Usage: Standard Global Color Law (Red < 60, Yellow < 75, Green >= 75)
-    // User requested "Arranged according to color law"
-    const adrPct = clampPct(data.adrPercent);
-    let adrLabel = "LOW (Compressed)";
-    let adrColorClass = getConfidenceColorClass(adrPct);
-
-    if (adrPct >= 75) adrLabel = "HIGH (Expanded)";
-    else if (adrPct >= 60) adrLabel = "MID";
-
-    const adrColor = adrColorClass.text;
-
-    // ✅ Expansion Probability: Global Confidence Law (Green = High)
-    const expPct = clampPct(data.expansionLikelihood);
-    const expStyle = getConfidenceColorClass(expPct);
+    // Expansion Bar using Score
+    const expPct = clampPct(liquidity.score);
     const expLabel = getConfidenceLabel(expPct);
 
-    // Manual open state not needed if we rely on PanelHelp's internal state, 
-    // but PanelHelp might be a controlled component or stateless? 
-    // Checking PanelHelp usually: it accepts children. 
-    // If it has internal state, we just pass title. 
-    // Assuming PanelHelp handles the toggle.
-
-    const title = "LIQUIDITY & RANGE";
-
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3">
-                {/* Just text header now, Help is at bottom */}
-                <div className="text-cyan-300 font-extrabold tracking-widest text-lg">
-                    {title}
-                </div>
-
-                <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${data.status === "COMPRESSED"
-                        ? "bg-red-500/20 text-red-300" // Compressed (<60) -> Red
-                        : data.status === "EXPANDING"
-                            ? "bg-emerald-500/20 text-emerald-300" // Expanding (High) -> Green
-                            : "bg-yellow-500/20 text-yellow-300" // Exhausted/High -> Yellow? Or Red? 
-                        // Wait, "Color Law": 0-59 Red, 60-74 Yellow, 75+ Green.
-                        // ADR < 60 (Compressed) -> Red.
-                        // ADR 60-85 (Expanding) -> Yellow/Green?
-                        // ADR > 85 (Exhausted) -> Green? 
-                        // Actually, let's use the adrColorClass for consistency.
-                        }`}
-                >
-                    {data.status}
-                </span>
-            </div>
-
-            {/* Playbook */}
-            <div className="text-sm text-white/80">
-                <span className="font-semibold text-white">PLAYBOOK:</span>{" "}
-                <span className="text-sky-300 font-semibold">
-                    {data.playbook ?? (data.status === "COMPRESSED"
-                        ? "Wait for Sweep → Displacement (Compression)"
-                        : data.status === "EXPANDING"
-                            ? "Momentum Phase — Trade with Structure"
-                            : "Exhausted — Prefer Mean Reversion / Take Profits")}
-                </span>
-            </div>
-
-            {/* Expansion Probability */}
-            <div className="space-y-1">
-                <div className="flex items-center justify-between text-sm text-white/80">
-                    <span>Expansion Probability</span>
-                    <span className={`font-bold ${expStyle.text}`}>
-                        {expPct}% <span className="text-xs opacity-70">{expLabel}</span>
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
+            {/* 1. Header: TITLE | Direction | Status | Score */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-cyan-400 tracking-wide">LIQUIDITY</span>
+                    <div className="h-4 w-px bg-white/10" />
+                    <span className="text-xs font-bold uppercase text-zinc-500">
+                        NEUTRAL
+                    </span>
+                    <div className="h-4 w-px bg-white/10" />
+                    <span className={`text-xs font-bold uppercase ${statusColor}`}>
+                        {liquidity.status}
                     </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div
-                        className={`h-full ${expStyle.bar}`}
-                        style={{ width: `${expPct}%` }}
-                    />
+                <div className={`text-xl font-bold ${scoreStyle.text}`}>
+                    {Math.round(liquidity.score)}%
                 </div>
             </div>
 
-            {/* ADR Usage (Custom Colors) */}
-            <div className="flex items-baseline justify-between pt-2">
-                <div className="text-white/60 text-sm">ADR Usage</div>
-                <div className="flex items-baseline gap-2">
-                    <div className={`text-3xl font-extrabold ${adrColor}`}>
-                        {adrPct}%
-                    </div>
-                    <div className={`text-xs font-bold ${adrColor}`}>
-                        {adrLabel}
-                    </div>
+            {/* 2. Hint + State Label */}
+            <div className="flex items-center justify-between">
+                <div className="text-xs text-white/70 italic truncate pr-2">
+                    {liquidity.hint}
+                </div>
+                <div className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-white/10 text-white/80">
+                    {state}
                 </div>
             </div>
 
-            {/* Nearest zones */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-                <div>
-                    <div className="text-xs text-white/50 mb-1">NEAREST ABOVE</div>
-                    <div className="space-y-2">
-                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                            <div className="text-xs text-white/40 mb-1">FVG</div>
-                            <div className="text-sm text-white/80">
-                                {data.nearestAbove?.fvg ?? "No FVG"}
-                            </div>
-                        </div>
-                        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-                            <div className="text-xs text-white/40 mb-1">Pool</div>
-                            <div className="text-sm text-white/80">
-                                {data.nearestAbove?.pool ?? "—"}
-                            </div>
-                        </div>
+            {/* 3. Expansion Probability Bar */}
+            <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] text-white/60">
+                    <span>Expansion Probability</span>
+                    <span>{expPct}% ({expLabel})</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div className={`h-full ${scoreStyle.bar}`} style={{ width: `${expPct}%` }} />
+                </div>
+            </div>
+
+            {/* 4. Nearest Zones (Compact Grid) */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+                {/* Above */}
+                <div className="bg-white/5 rounded p-2 border border-white/5">
+                    <div className="text-[9px] text-zinc-500 uppercase mb-1">Nearest Above</div>
+                    <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-red-300">Pool: {poolsAbove[0]?.price?.toFixed(0) ?? '-'}</span>
+                        <span className="text-white/60">FVG: {fvgsAbove[0]?.bottom ? fvgsAbove[0].bottom.toFixed(0) : '-'}</span>
                     </div>
                 </div>
-
-                <div>
-                    <div className="text-xs text-white/50 mb-1">NEAREST BELOW</div>
-                    <div className="space-y-2">
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                            <div className="text-xs text-white/40 mb-1">FVG</div>
-                            <div className="text-sm text-white/80">
-                                {data.nearestBelow?.fvg ?? "No FVG"}
-                            </div>
-                        </div>
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                            <div className="text-xs text-white/40 mb-1">Pool</div>
-                            <div className="text-sm text-white/80">
-                                {data.nearestBelow?.pool ?? "—"}
-                            </div>
-                        </div>
+                {/* Below */}
+                <div className="bg-white/5 rounded p-2 border border-white/5">
+                    <div className="text-[9px] text-zinc-500 uppercase mb-1">Nearest Below</div>
+                    <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-emerald-300">Pool: {poolsBelow[0]?.price?.toFixed(0) ?? '-'}</span>
+                        <span className="text-white/60">FVG: {fvgsBelow[0]?.top ? fvgsBelow[0].top.toFixed(0) : '-'}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Checks line */}
-            <div className="pt-1 text-[11px] text-white/40 font-mono">
-                {data.checks ?? `Checks: ADR ${adrPct}% • Sweep ${data.hasMajorSweep ? "YES" : "NO"} • PSP ${data.pspState ?? "NONE"} • FVG Proximity • Pools`}
-            </div>
 
-            {/* Help Section */}
-            <PanelHelp title="Liquidity & Range">
-                <div className="text-xs text-white/60">
-                    <ul className="list-disc pl-5 space-y-1">
-                        <li><b>ADR Usage</b>: % of today's average range used.</li>
-                        <li><b>Compression</b>: Low ADR usage → Risk of expansion.</li>
-                        <li><b>Sweep + Displacement</b>: High quality breakout signs.</li>
-                        <li><b>PSP</b>: Precision Swing Point confirmation.</li>
-                        <li><b>Nearest Zones</b>: FVG/Pools closest to price.</li>
-                    </ul>
-                    <div className="mt-2 text-[10px] text-white/40">
-                        read: COMPRESSED (low ADR) = Setup brewing. EXPANDING = Trend/Momentum. EXHAUSTED (high ADR) = Be careful.
-                    </div>
-                </div>
-            </PanelHelp>
+            {/* 5. Help Toggle */}
+            <div className="pt-2 border-t border-white/5">
+                <PanelHelp title="LIQUIDITY" bullets={[
+                    "ADR Compression: Low range = High expansion probability.",
+                    "Nearest Zones: Targets for liquidity sweeps.",
+                    "Score: Probability of imminent expansion.",
+                    "Status: COMPRESSED (Setup) vs EXPANDING (Motion) vs EXHAUSTED."
+                ]} />
+            </div>
         </div>
     );
 }
