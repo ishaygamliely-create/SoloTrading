@@ -159,20 +159,24 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         score += breakdown.bias;
     }
 
-    score = Math.min(score, 100);
+    // --- RAW SCORE (before reliability cap) ---
+    const rawScore = Math.min(score, 100);
+
+    // --- RELIABILITY CAP ---
+    let finalScore = rawScore;
+    let capApplied: number | undefined;
+
+    if (dataStatus === "DELAYED" && rawScore >= 75) {
+        capApplied = 74;
+        finalScore = 74;
+    }
 
     // --- STATUS (GLOBAL LAW) ---
     // 0–59 WARN | 60–74 OK | 75+ STRONG
     let status: "WARN" | "OK" | "STRONG" | "OFF" | "ERROR" = "WARN";
-    if (score >= 75) status = "STRONG";
-    else if (score >= 60) status = "OK";
+    if (finalScore >= 75) status = "STRONG";
+    else if (finalScore >= 60) status = "OK";
     else status = "WARN";
-
-    // If delayed feed, cap at 74 (never STRONG)
-    if (dataStatus === "DELAYED" && score >= 75) {
-        score = 74;
-        status = "OK";
-    }
 
     const playbook =
         regime === "TRENDING"
@@ -186,7 +190,7 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
     return {
         status,
         direction: structureDirection,
-        score: Math.round(score),
+        score: Math.round(finalScore),
         hint,
         debug: {
             factors: [
@@ -204,5 +208,11 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
             playbook,
             breakdown,
         } as any,
+        meta: {
+            rawScore: Math.round(rawScore),
+            reliability: dataStatus === "DELAYED" ? "DELAYED" : "REALTIME",
+            capApplied,
+            dataStatus,
+        },
     };
 }

@@ -20,4 +20,10 @@ export interface IndicatorSignal {
         factors: string[];
         [key: string]: any;
     };
+    meta?: {
+        rawScore?: number;
+        reliability?: "REALTIME" | "DELAYED" | "LOW";
+        capApplied?: number;
+        dataStatus?: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
+    };
 }

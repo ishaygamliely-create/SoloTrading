@@ -58,6 +58,12 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     const computedStatus: IndicatorStatus = getStatusFromScore(score);
     const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
+    // ===== Reliability meta =====
+    const rawMeta = structure.meta;
+    const rawScore = rawMeta?.rawScore;
+    const capApplied = rawMeta?.capApplied;
+    const metaDataStatus = rawMeta?.dataStatus;
+
     // ===== Direction label refinement in TRANSITION =====
     const directionLabel =
         regime === "TRANSITION" && (direction === "LONG" || direction === "SHORT")
@@ -107,6 +113,11 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                     </div>
 
                     <div className={`text-lg font-bold ${scoreStyle.text}`}>{score}%</div>
+                    {typeof rawScore === "number" && typeof capApplied === "number" && rawScore > score && (
+                        <div className="text-xs text-white/40 mt-0.5">
+                            {metaDataStatus} · Raw {rawScore}% → Capped {capApplied}%
+                        </div>
+                    )}
                 </div>
             </div>
 
