@@ -81,6 +81,7 @@ interface StructureParams {
     quotes: Quote[]; // Should be 15m quotes
     session: IndicatorSignal;
     dataStatus: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
+    biasDirection?: "LONG" | "SHORT" | "NEUTRAL";
 }
 
 export function getStructureSignal(params: StructureParams): IndicatorSignal {
@@ -114,76 +115,98 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
     const lastEMA20 = ema20[ema20.length - 1];
     const lastEMA50 = ema50[ema50.length - 1];
 
+    // --- V4 REGIME LOGIC ---
+    let regime: "TRENDING" | "TRANSITION" | "RANGING";
+    if (adx !== null && adx >= 25) {
+        regime = "TRENDING";
+    } else if (adx !== null && adx >= 20) {
+        regime = "TRANSITION";
+    } else {
+        regime = "RANGING";
+    }
+
+    // --- V4 SCORING LOGIC (0-100) ---
+    let score = 0;
+    const breakdown = {
+        trend: 0,
+        ema: 0,
+        bias: 0
+    };
+
+    // 1. Trend Strength (ADX-based)
+    if (adx !== null) {
+        if (adx >= 30) {
+            breakdown.trend = 45;
+        } else if (adx >= 25) {
+            breakdown.trend = 40;
+        } else if (adx >= 20) {
+            breakdown.trend = 25;
+        } else {
+            breakdown.trend = 15;
+        }
+        score += breakdown.trend;
+    }
+
+    // 2. EMA Alignment (directional structure)
+    if (lastEMA20 > lastEMA50) {
+        breakdown.ema = 25;
+    } else if (lastEMA20 < lastEMA50) {
+        breakdown.ema = 25;
+    }
+    score += breakdown.ema;
+
+    // 3. Bias Alignment Bonus (compare with Bias indicator direction)
+    const structureDirection: "LONG" | "SHORT" | "NEUTRAL" =
+        lastEMA20 > lastEMA50 ? "LONG" : lastEMA20 < lastEMA50 ? "SHORT" : "NEUTRAL";
+
+    const biasDir = params.biasDirection || "NEUTRAL";
+    if (biasDir === structureDirection && structureDirection !== "NEUTRAL") {
+        breakdown.bias = 10;
+        score += breakdown.bias;
+    }
+
+    // Cap score
+    score = Math.min(score, 100);
+
+    // --- STATUS (Global Law) ---
+    let status: "OK" | "WARN" | "STRONG" | "OFF" | "ERROR" = "OK";
+    if (score >= 75) status = "STRONG";
+    else if (score >= 60) status = "OK";
+    else status = "WARN";
+
+    // --- PLAYBOOK ---
+    let playbook = "";
+    if (regime === "TRENDING") {
+        playbook = "Trend mode → trade pullbacks with structure.";
+    } else if (regime === "RANGING") {
+        playbook = "Range mode → fade extremes / mean reversion.";
+    } else {
+        playbook = "Transition → wait for breakout confirmation.";
+    }
+
+    // --- HINT ---
+    const hint = `${regime} market (ADX ${adx?.toFixed(1) || "—"}). ${structureDirection} structure.`;
+
     const factors: string[] = [];
     factors.push(`EMA20: ${lastEMA20?.toFixed(2)}`);
     factors.push(`EMA50: ${lastEMA50?.toFixed(2)}`);
     factors.push(`ADX: ${adx?.toFixed(1) ?? 'N/A'}`);
-
-    let direction: "LONG" | "SHORT" | "NEUTRAL" = "NEUTRAL";
-    let score = 0;
-    let label = "RANGING";
-    let status: "OK" | "WARN" | "OFF" | "ERROR" = "OK";
-    let hint = "";
-
-    const isTrending = (adx !== null && adx >= 25);
-
-    if (isTrending) {
-        label = "TRENDING";
-        score = 70; // Base Trending Score
-
-        if (lastEMA20 > lastEMA50) {
-            direction = "LONG";
-            hint = "Trend UP: prefer pullback longs.";
-        } else {
-            direction = "SHORT";
-            hint = "Trend DOWN: prefer pullback shorts.";
-        }
-
-        if (adx >= 30) {
-            score += 20;
-            factors.push("Strong Trend (ADX >= 30) (+20)");
-        }
-    } else {
-        label = "RANGING";
-        score = 40; // Base Ranging Score
-        direction = "NEUTRAL";
-        hint = "Range conditions: favor mean reversion.";
-
-        // Minor directional bias based on EMA stack even if ranging
-        if (lastEMA20 > lastEMA50) factors.push("Bias: Weak Bullish (EMA20 > EMA50)");
-        else factors.push("Bias: Weak Bearish (EMA20 < EMA50)");
-    }
-
-    // V3 Logic: Structure Breakdown
-    const emaSpread = Math.abs(lastEMA20 - lastEMA50);
-    const bias: "LONG" | "SHORT" | "NEUTRAL" = lastEMA20 > lastEMA50 ? "LONG" : lastEMA20 < lastEMA50 ? "SHORT" : "NEUTRAL";
-
-    // Playbook
-    let playbook = "Range mode → favor mean reversion at extremes.";
-    if (label === "TRENDING") {
-        playbook = "Trend mode → trade pullbacks with structure.";
-    }
-
-    // Score Breakdown
-    // Example: "ADX 26.5 (>25) + spread 5.2 → score 90%"
-    const scoreBreakdown = `ADX ${adx?.toFixed(1)} (${isTrending ? '>=25' : '<25'}) + ${bias} Bias → ${Math.round(score)}%`;
+    factors.push(`Regime: ${regime}`);
 
     return {
         status,
-        direction,
-        score,
+        direction: structureDirection,
+        score: Math.round(score),
         hint,
         debug: {
             factors,
-            label,
-            regime: label, // V3 Standard
-            adx: adx,
-            ema20: lastEMA20,
-            ema50: lastEMA50,
-            bias,
-            emaSpread,
-            scoreBreakdown,
-            playbook
+            regime,
+            adx: adx !== null ? Math.round(adx * 10) / 10 : null,
+            ema20: Math.round(lastEMA20 * 10) / 10,
+            ema50: Math.round(lastEMA50 * 10) / 10,
+            bias: biasDir,
+            playbook,
+            breakdown
         }
     };
 }

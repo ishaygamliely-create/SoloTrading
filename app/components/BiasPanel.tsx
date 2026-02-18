@@ -13,7 +13,10 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
     const bias = data?.analysis?.bias as IndicatorSignal;
-    if (!bias || bias.status === 'OFF') return null;
+
+    // ✅ CORE PANEL: Only hide if no data or hard ERROR
+    if (!bias) return null;
+    if (bias.status === 'ERROR') return null;
 
     // --- Data Extraction ---
     const { midnightOpen, buffer } = (bias.debug || {}) as any;
@@ -23,10 +26,8 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     const rawStatus = bias.status;
     const regime = data.analysis?.marketContext?.regime || "—";
 
-    // Global Status Law: derive from score (OFF already filtered above)
-    const computedStatus: IndicatorStatus = rawStatus === "ERROR"
-        ? "ERROR"
-        : getStatusFromScore(score);
+    // Global Status Law: derive from score
+    const computedStatus: IndicatorStatus = getStatusFromScore(score);
 
     // --- Styling Logic ---
     // Strict Confidence Law: 0-59 Red, 60-74 Yellow, 75-100 Green

@@ -408,7 +408,8 @@ export async function GET(request: Request) {
         const structureSignal = getStructureSignal({
             quotes: quotes15m,
             session,
-            dataStatus: lagStatus.status as any
+            dataStatus: lagStatus.status as any,
+            biasDirection: biasSignal.direction
         });
 
         const pspResult = detectPSPNew(quotes15m);

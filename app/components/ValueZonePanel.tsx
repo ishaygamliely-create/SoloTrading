@@ -12,7 +12,10 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
     const valueZone = data?.analysis?.valueZone as IndicatorSignal;
-    if (!valueZone || valueZone.status === 'OFF') return null;
+
+    // ✅ CORE PANEL: Only hide if no data or hard ERROR
+    if (!valueZone) return null;
+    if (valueZone.status === 'ERROR') return null;
 
     // --- Standard Colors ---
     const scoreStyle = getConfidenceColorClass(valueZone.score);
@@ -25,9 +28,7 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             : "text-zinc-500";
 
     // Global Status Law: derive from score
-    const computedStatus: IndicatorStatus = valueZone.status === "ERROR"
-        ? "ERROR"
-        : getStatusFromScore(valueZone.score);
+    const computedStatus: IndicatorStatus = getStatusFromScore(valueZone.score);
 
     const statusBadgeClass = getStatusBadgeClass(computedStatus);
 

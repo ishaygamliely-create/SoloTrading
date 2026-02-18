@@ -8,7 +8,9 @@ export function LiquidityPanel({ data, loading }: { data: any, loading: boolean 
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
     const liquidity = getLiquiditySignal(data);
-    if (liquidity.status === 'OFF') return null;
+
+    // ✅ CORE PANEL: Only hide if no data
+    if (!liquidity || !data) return null;
 
     // --- Standard Colors ---
     const scoreStyle = getConfidenceColorClass(liquidity.score);
