@@ -71,7 +71,7 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     if (i.session?.status === "WARN") { warn = true; factors.push("~ WARN Off-hours"); }
     if (i.feedIsDelayed) { warn = true; factors.push("~ WARN Delayed feed"); }
 
-    // True Open soft influence (does not block)
+    // True Open soft influence (does not block, does not gate)
     if (i.trueOpen && i.trueOpen.direction !== "NEUTRAL" && i.trueOpen.status !== "OFF") {
         const toDir = i.trueOpen.direction;
         const biasDir = i.bias?.direction;
@@ -83,7 +83,8 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
             raw += 1;
             factors.push(`+1 TrueOpen ${toDir} aligns`);
         } else if (conflicts) {
-            factors.push(`~ WARN Open context conflicts with Bias/Structure`);
+            // Context only — no score impact, no WARN flag
+            factors.push(`~ Open context conflicts with Bias/Structure`);
         }
     }
 
