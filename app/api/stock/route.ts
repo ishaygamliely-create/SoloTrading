@@ -12,6 +12,7 @@ import { getStructureSignal } from '../../lib/structure';
 import { getConfluenceV1 } from '../../lib/confluence';
 import { detectPSP as detectPSPNew } from '../../lib/psp';
 import { calcExpansionLikelihood, getRangeStatus, getRangeHint } from '../../lib/liquidityRange';
+import { getTrueOpenSignal } from '../../lib/trueOpen';
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
 
 const yahooFinance = new YahooFinance();
@@ -427,6 +428,17 @@ export async function GET(request: Request) {
 
         const pspResult = detectPSPNew(quotes15m);
 
+        // True Open Engine
+        const trueOpenSignal = getTrueOpenSignal({
+            lastPrice,
+            trueDayOpen: trueDayOpen || 0,
+            trueWeekOpen: trueWeekOpen ?? null,
+            quotes15m,
+            lastBarTimeMs: lastBar15mMs,
+            source: "YAHOO",
+            marketStatus: mktStatus,
+        });
+
         // Calculate Liquidity Range using normalized data
         const liquidityRangeForConfluence = (() => {
             const currentRange = pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0;
@@ -472,7 +484,8 @@ export async function GET(request: Request) {
                 hint: liquidityRangeForConfluence.hint,
                 debug: { factors: [`Range: ${liquidityRangeForConfluence.status}`] }
             },
-            feedIsDelayed: lagStatus.isWarning || lagStatus.isBlocked
+            feedIsDelayed: lagStatus.isWarning || lagStatus.isBlocked,
+            trueOpen: trueOpenSignal,
         });
 
         return NextResponse.json({
@@ -528,6 +541,7 @@ export async function GET(request: Request) {
                 session,
                 smt: smtSignal,
                 psp: pspResult,
+                trueOpen: trueOpenSignal,
                 psps: [],
                 timeContext,
                 pdRanges,

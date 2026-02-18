@@ -20,7 +20,8 @@ type Inputs = {
     smt: IndicatorSignal;
     psp: IndicatorSignal;
     liquidity: IndicatorSignal;
-    feedIsDelayed?: boolean; // from API
+    feedIsDelayed?: boolean;
+    trueOpen?: IndicatorSignal; // soft driver — optional
 };
 
 function contributes(sig: IndicatorSignal) {
@@ -69,6 +70,22 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     // soft warns
     if (i.session?.status === "WARN") { warn = true; factors.push("~ WARN Off-hours"); }
     if (i.feedIsDelayed) { warn = true; factors.push("~ WARN Delayed feed"); }
+
+    // True Open soft influence (does not block)
+    if (i.trueOpen && i.trueOpen.direction !== "NEUTRAL" && i.trueOpen.status !== "OFF") {
+        const toDir = i.trueOpen.direction;
+        const biasDir = i.bias?.direction;
+        const structDir = i.structure?.direction;
+        const aligned = (biasDir === toDir || structDir === toDir);
+        const conflicts = (biasDir && biasDir !== "NEUTRAL" && biasDir !== toDir)
+            || (structDir && structDir !== "NEUTRAL" && structDir !== toDir);
+        if (aligned) {
+            raw += 1;
+            factors.push(`+1 TrueOpen ${toDir} aligns`);
+        } else if (conflicts) {
+            factors.push(`~ WARN Open context conflicts with Bias/Structure`);
+        }
+    }
 
     // normalize
     const scorePct = Math.max(0, Math.min(100, Math.round((raw / maxScore) * 100)));

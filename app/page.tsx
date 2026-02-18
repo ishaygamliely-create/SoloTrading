@@ -13,6 +13,7 @@ import { LiquidityPanel } from './components/LiquidityPanel';
 import ConfluencePanel from './components/ConfluencePanel';
 import { LevelsPanel } from './components/LevelsPanel';
 import { BiasPanel } from './components/BiasPanel';
+import { TrueOpenPanel } from './components/TrueOpenPanel';
 import { ValueZonePanel } from './components/ValueZonePanel';
 import { StructurePanel } from './components/StructurePanel';
 import { RiskPanel } from './components/RiskPanel';
@@ -273,6 +274,7 @@ export default function Home() {
                 <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
                 <LiquidityPanel data={data} loading={loading} />
+                <TrueOpenPanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />
                 <StructurePanel data={data} loading={loading} />
                 <ValueZonePanel data={data} loading={loading} />
