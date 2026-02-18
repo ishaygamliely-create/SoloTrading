@@ -407,7 +407,6 @@ export async function GET(request: Request) {
 
         const structureSignal = getStructureSignal({
             quotes: quotes15m,
-            session,
             dataStatus: lagStatus.status as any,
             biasDirection: biasSignal.direction
         });
