@@ -1,52 +1,17 @@
 import React from 'react';
-import { IndicatorSignal } from '../lib/types';
 import { TrueOpenResult, OpenAnchor } from '../lib/trueOpen';
 import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
-import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 interface TrueOpenPanelProps {
     data: any;
     loading: boolean;
 }
 
-function AnchorRow({ anchor }: { anchor: OpenAnchor }) {
-    const sideColor =
-        anchor.side === "ABOVE" ? "text-emerald-400" :
-            anchor.side === "BELOW" ? "text-red-400" :
-                "text-zinc-400";
-
-    const dispColor =
-        anchor.displacement === "STRONG" ? "text-white" :
-            anchor.displacement === "MED" ? "text-white/70" :
-                "text-zinc-500";
-
-    const SideIcon =
-        anchor.side === "ABOVE" ? ArrowUp :
-            anchor.side === "BELOW" ? ArrowDown :
-                Minus;
-
+function formatAnchorStatus(anchor: OpenAnchor): string {
     const sign = anchor.distancePts >= 0 ? "+" : "";
-
-    return (
-        <div className="flex items-center justify-between text-[10px] font-mono bg-white/5 rounded px-2 py-1.5 border border-white/5">
-            {/* Left: label + side */}
-            <div className="flex items-center gap-1.5">
-                <span className="text-zinc-500 uppercase font-bold w-10">{anchor.label}</span>
-                <SideIcon size={10} className={sideColor} />
-                <span className={`font-bold uppercase ${sideColor}`}>{anchor.side}</span>
-                {anchor.reclaim && (
-                    <span className="text-amber-400 text-[9px] font-bold ml-1">↩ RECLAIM</span>
-                )}
-            </div>
-
-            {/* Right: distance + displacement */}
-            <div className="flex items-center gap-2 text-right">
-                <span className="text-zinc-400">{sign}{anchor.distancePts.toFixed(1)}pts</span>
-                <span className={`uppercase font-bold ${dispColor}`}>{anchor.displacement}</span>
-            </div>
-        </div>
-    );
+    const reclaim = anchor.reclaim ? " ↩ RECLAIM" : "";
+    return `${anchor.side} · ${sign}${anchor.distancePts.toFixed(1)}pts · ${anchor.displacement}${reclaim}`;
 }
 
 export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
@@ -61,59 +26,83 @@ export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
     const computedStatus: IndicatorStatus = getStatusFromScore(score);
     const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
-    const dirClass =
-        direction === "LONG" ? "text-emerald-400" :
-            direction === "SHORT" ? "text-red-400" :
-                "text-zinc-500";
-
     const meta = trueOpen.meta;
     const showReliability = meta && (meta.capApplied || meta.dataAgeMs > 15 * 60_000);
 
+    const dayStatus = formatAnchorStatus(trueOpen.dayAnchor);
+    const weekStatus = trueOpen.weekAnchor ? formatAnchorStatus(trueOpen.weekAnchor) : null;
+
     return (
-        <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
-            {/* Header: TRUE OPEN | Direction | Status | Score */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-orange-400 tracking-wide text-sm">TRUE OPEN</span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${dirClass}`}>
-                        {direction}
-                    </span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                        {computedStatus}
-                    </span>
+        <div className={`rounded-xl border bg-white/5 p-4 space-y-4 ${scoreStyle.border}`}>
+
+            {/* HEADER */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <div className="text-orange-400 font-semibold text-sm tracking-wide">
+                        TRUE OPEN CONTEXT
+                    </div>
+                    <div className="text-xs text-white/50">
+                        Macro Directional Engine
+                    </div>
                 </div>
-                <div className={`text-xl font-bold ${scoreStyle.text}`}>
-                    {score}%
+
+                <div className="flex flex-col items-end gap-1">
+                    <div className="flex gap-2">
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/80">
+                            {direction === "LONG" ? "MACRO LONG" :
+                                direction === "SHORT" ? "MACRO SHORT" :
+                                    "NEUTRAL"}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusBadgeClass}`}>
+                            {computedStatus}
+                        </span>
+                    </div>
+                    <div className={`text-lg font-bold ${scoreStyle.text}`}>
+                        {score}%
+                    </div>
+                    {/* Reliability row */}
+                    {showReliability && (
+                        <div className="text-[9px] text-white/40 font-mono">
+                            {meta.source}{meta.capApplied
+                                ? ` · Raw ${meta.rawScore}% → ${meta.finalScore}%`
+                                : ` · Age ${Math.round(meta.dataAgeMs / 60000)}m`}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Reliability row */}
-            {showReliability && (
-                <div className="text-[9px] text-white/40 text-right font-mono">
-                    {meta.source}{meta.capApplied
-                        ? ` · Raw ${meta.rawScore}% → ${meta.finalScore}%`
-                        : ` · Age ${Math.round(meta.dataAgeMs / 60000)}m`}
+            {/* PLAYBOOK */}
+            <div className="text-sm text-white/80 leading-tight">
+                {direction === "LONG" && "Macro bias bullish. Prefer longs on pullbacks into discount."}
+                {direction === "SHORT" && "Macro bias bearish. Prefer shorts on rallies into premium."}
+                {direction === "NEUTRAL" && "Mixed open context. Wait for alignment with structure."}
+            </div>
+
+            {/* ANCHORS */}
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono border-t border-white/10 pt-3">
+                <div>
+                    <div className="text-white/50 mb-0.5">DAY OPEN</div>
+                    <div className="text-white/80">{dayStatus}</div>
                 </div>
-            )}
+                <div>
+                    <div className="text-white/50 mb-0.5">WEEK OPEN</div>
+                    <div className="text-white/80">{weekStatus ?? "N/A"}</div>
+                </div>
+            </div>
 
-            {/* Row A: Day Open */}
-            <AnchorRow anchor={trueOpen.dayAnchor} />
-
-            {/* Row B: Week Open */}
-            {trueOpen.weekAnchor && <AnchorRow anchor={trueOpen.weekAnchor} />}
+            {/* NOTE */}
+            <div className="text-[11px] text-white/40 border-t border-white/10 pt-2">
+                Context only. Not an entry trigger. Combine with PSP / Liquidity / Value.
+            </div>
 
             {/* Help */}
-            <div className="pt-1 border-t border-white/5">
-                <PanelHelp title="True Open Engine" bullets={[
-                    "Day Open = RTH 09:30 NY open. Week Open = Monday 00:00 NY.",
-                    "ABOVE/BELOW = directional context vs. the anchor level.",
-                    "NEAR = within adaptive buffer (ATR×0.15). Treat as neutral.",
-                    "RECLAIM = price crossed and held 2 closes on the other side.",
-                    "Use PSP/Liquidity for entry timing — this is macro context only.",
-                ]} />
-            </div>
+            <PanelHelp title="True Open Engine" bullets={[
+                "Day Open = RTH 09:30 NY bar open. Week Open = Monday 00:00 NY.",
+                "ABOVE/BELOW = directional context vs. the anchor level.",
+                "NEAR = within adaptive buffer (ATR×0.15). Treat as neutral.",
+                "RECLAIM = price crossed and held 2 closes on the other side.",
+                "Use PSP/Liquidity for entry timing — this is macro context only.",
+            ]} />
         </div>
     );
 }
