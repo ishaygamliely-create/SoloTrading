@@ -61,6 +61,13 @@ export function LiquidityPanel({ data, loading }: { data: any, loading: boolean 
                 </div>
             </div>
 
+            {/* Reliability row */}
+            {liquidity.meta && (liquidity.meta.capApplied || liquidity.meta.dataAgeMs > 15 * 60_000) && (
+                <div className="text-[9px] text-white/40 text-right font-mono">
+                    {liquidity.meta.source}{liquidity.meta.capApplied ? ` · Raw ${liquidity.meta.rawScore}% → ${liquidity.meta.finalScore}%` : ` · Age ${Math.round(liquidity.meta.dataAgeMs / 60000)}m`}
+                </div>
+            )}
+
             {/* 2. Hint + State Label */}
             <div className="flex items-center justify-between">
                 <div className="text-xs text-white/70 italic truncate pr-2">

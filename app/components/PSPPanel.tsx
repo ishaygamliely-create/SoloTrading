@@ -63,6 +63,13 @@ export function PSPPanel({ data, loading }: PanelProps) {
                 </div>
             </div>
 
+            {/* Reliability row */}
+            {psp.reliabilityMeta && (psp.reliabilityMeta.capApplied || psp.reliabilityMeta.dataAgeMs > 15 * 60_000) && (
+                <div className="text-[9px] text-white/40 text-right font-mono">
+                    {psp.reliabilityMeta.source}{psp.reliabilityMeta.capApplied ? ` · Raw ${psp.reliabilityMeta.rawScore}% → ${psp.reliabilityMeta.finalScore}%` : ` · Age ${Math.round(psp.reliabilityMeta.dataAgeMs / 60000)}m`}
+                </div>
+            )}
+
             {/* 2. Hint / Description */}
             <div className="text-xs text-white/70 italic">
                 {psp.hint}

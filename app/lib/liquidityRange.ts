@@ -1,5 +1,6 @@
 
 import type { IndicatorSignal } from "@/app/lib/types";
+import { applyReliability } from "@/app/lib/reliability";
 
 export type LiquidityConfidenceResult = {
     confidenceScore: number;
@@ -98,10 +99,20 @@ export function getLiquiditySignal(data: any): IndicatorSignal {
     const fvgsAbove = fvgs.filter((f: any) => f.bottom > currentPrice).length;
     const fvgsBelow = fvgs.filter((f: any) => f.top < currentPrice).length;
 
+    // Reliability (Liquidity uses 15m data — same bar as structure)
+    const lastBarMs = data?.analysis?.liquidityRange?.lastBarTimeMs
+        ?? (Date.now() - 20 * 60_000);
+    const reliability = applyReliability({
+        rawScore: confidenceScore,
+        lastBarTimeMs: lastBarMs,
+        source: "YAHOO",
+        marketStatus: "OPEN",
+    });
+
     return {
         status,
-        direction: "NEUTRAL", // Liquidity is context
-        score: confidenceScore,
+        direction: "NEUTRAL",
+        score: Math.round(reliability.finalScore),
         hint,
         debug: {
             factors,
@@ -111,7 +122,15 @@ export function getLiquiditySignal(data: any): IndicatorSignal {
             fvgsBelow,
             sweep: hasMajorSweep,
             psp: pspState
-        }
+        },
+        meta: {
+            rawScore: Math.round(confidenceScore),
+            finalScore: Math.round(reliability.finalScore),
+            source: "YAHOO" as const,
+            dataAgeMs: reliability.dataAgeMs,
+            lastBarTimeMs: lastBarMs,
+            capApplied: reliability.capApplied,
+        },
     };
 }
 

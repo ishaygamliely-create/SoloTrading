@@ -113,9 +113,9 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                     </div>
 
                     <div className={`text-lg font-bold ${scoreStyle.text}`}>{score}%</div>
-                    {capApplied && typeof rawScore === "number" && (
-                        <div className="text-xs text-white/40 mt-0.5">
-                            {metaSource} · Raw {rawScore}% → Capped {rawMeta?.finalScore}%
+                    {rawMeta && (rawMeta.capApplied || rawMeta.dataAgeMs > 15 * 60_000) && (
+                        <div className="text-[9px] text-white/40 mt-0.5 font-mono">
+                            {rawMeta.source}{rawMeta.capApplied ? ` · Raw ${rawMeta.rawScore}% → ${rawMeta.finalScore}%` : ` · Age ${Math.round(rawMeta.dataAgeMs / 60000)}m`}
                         </div>
                     )}
                 </div>

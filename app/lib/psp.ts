@@ -1,15 +1,17 @@
 
 import { Quote } from './analysis';
+import { applyReliability } from './reliability';
+import type { IndicatorMeta } from './types';
 
 export type PSPState = 'NONE' | 'FORMING' | 'CONFIRMED';
 export type PSPDirection = 'LONG' | 'SHORT' | 'NEUTRAL';
 
 export interface PSPResult {
-    status: 'OK' | 'WARN' | 'BLOCKED' | 'OFF'; // Standard
+    status: 'OK' | 'WARN' | 'BLOCKED' | 'OFF';
     state: PSPState;
-    direction: PSPDirection; // Standard
-    score: number; // 0-100 Standard
-    hint: string; // Standard
+    direction: PSPDirection;
+    score: number;
+    hint: string;
     checklist: {
         sweep: boolean;
         displacement: boolean;
@@ -27,9 +29,10 @@ export interface PSPResult {
     meta: {
         tf: "15m";
         detectedAtMs: number;
-        expiresAtMs: number; // 3h TTL
+        expiresAtMs: number;
         ageMinutes: number;
     };
+    reliabilityMeta?: IndicatorMeta;
     debug: {
         factors: string[];
         pivots: {
@@ -497,10 +500,10 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
 
     return {
         status, // Standard Field
-        state,  // Internal Field
+        state,
         direction,
         score,
-        hint,   // Standard Field
+        hint,
         checklist: {
             sweep: sweepFound,
             displacement: displacementFound,
@@ -512,8 +515,8 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
             entryHigh: entryHigh,
             invalidation: isLong ? (sweepExtreme - 0.1 * sweepATR) : (sweepExtreme + 0.1 * sweepATR),
             swing: swingPrice,
-            displacementFrom: isLong ? sweepExtreme : dispHigh, // approx
-            displacementTo: isLong ? dispHigh : dispLow // approx
+            displacementFrom: isLong ? sweepExtreme : dispHigh,
+            displacementTo: isLong ? dispHigh : dispLow
         } : undefined,
         meta: {
             tf: '15m',
@@ -521,6 +524,23 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
             expiresAtMs,
             ageMinutes
         },
+        reliabilityMeta: (() => {
+            const lastBarMs = quotes.length > 0 ? quotes[quotes.length - 1].time * 1000 : Date.now() - 20 * 60_000;
+            const rel = applyReliability({
+                rawScore: score,
+                lastBarTimeMs: lastBarMs,
+                source: 'YAHOO',
+                marketStatus: 'OPEN',
+            });
+            return {
+                rawScore: Math.round(score),
+                finalScore: Math.round(rel.finalScore),
+                source: 'YAHOO' as const,
+                dataAgeMs: rel.dataAgeMs,
+                lastBarTimeMs: lastBarMs,
+                capApplied: rel.capApplied,
+            };
+        })(),
         debug: {
             factors,
             pivots: {
