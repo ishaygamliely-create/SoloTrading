@@ -58,7 +58,7 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             {/* Reliability row — show if cap applied or data is delayed */}
             {valueZone.meta && (valueZone.meta.capApplied || valueZone.meta.dataAgeMs > 15 * 60_000) && (
                 <div className="text-[9px] text-white/40 text-right font-mono">
-                    {valueZone.meta.source}{valueZone.meta.capApplied ? ` · Raw ${valueZone.meta.rawScore}% → ${valueZone.meta.finalScore}%` : ` · Age ${Math.round(valueZone.meta.dataAgeMs / 60000)}m`}
+                    {valueZone.meta.sourceUsed}{valueZone.meta.capApplied ? ` · Raw ${valueZone.meta.rawScore}% → ${valueZone.meta.finalScore}%` : ` · Age ${Math.round(valueZone.meta.dataAgeMs / 60000)}m`}
                 </div>
             )}
 

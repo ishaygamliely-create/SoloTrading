@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
-import { normalizeYahooToCandles } from '../../lib/providers/yahooAdapter'; // Adapter Import
+import { normalizeYahooToCandles } from '../../lib/providers/yahooAdapter';
+import { getBestCandles } from '../../lib/marketDataProviders';
 
 import { getSmtSignal } from '../../lib/smt';
 import { getSessionSignal } from '../../lib/session';
@@ -45,42 +46,45 @@ export async function GET(request: Request) {
         startDate.setDate(startDate.getDate() - 7);
         const startDateHTF = new Date();
         startDateHTF.setDate(startDateHTF.getDate() - 60);
-
-        // Fetch Data for Multiple Tiers in Parallel
-        const p1m = yahooFinance.chart(symbol, { period1: startDate, interval: '1m' }).catch(e => { console.error('p1m error', e); return null; });
-        const p5m = yahooFinance.chart(symbol, { period1: startDateHTF, interval: '5m' }).catch(e => { console.error('p5m error', e); return null; });
-        const p15m = yahooFinance.chart(symbol, { period1: startDateHTF, interval: '15m' }).catch(e => { console.error('p15m error', e); return null; });
-        const p60m = yahooFinance.chart(symbol, { period1: startDateHTF, interval: '60m' }).catch(e => { console.error('p60m error', e); return null; });
-
-        // Daily for Levels
         const startDaily = new Date();
         startDaily.setDate(startDaily.getDate() - 20);
-        const pDaily = yahooFinance.chart(symbol, { period1: startDaily, interval: '1d' }).catch(e => { console.error('pDaily error', e); return null; });
 
-        // DXY Fetch (M1)
+        // --- PRIORITY FETCH: BROKER > TRADINGVIEW > YAHOO ---
+        // Each timeframe gets its own FeedResult with sourceUsed + lastBarTimeMs
+        const [feed1m, feed5m, feed15m, feed60m, feedDaily] = await Promise.all([
+            getBestCandles(symbol, '1m', startDate),
+            getBestCandles(symbol, '5m', startDateHTF),
+            getBestCandles(symbol, '15m', startDateHTF),
+            getBestCandles(symbol, '60m', startDateHTF),
+            getBestCandles(symbol, '1d', startDaily),
+        ]);
+
+        // SMT ref symbols and DXY stay on Yahoo (correlation data, no priority needed)
+        const pRefs_resolved = await pRefs;
         const pDXY_Index = yahooFinance.chart('DX-Y.NYB', { period1: startDate, interval: '1m' }).catch(() => null);
         const pDXY_Fut = yahooFinance.chart('DX=F', { period1: startDate, interval: '1m' }).catch(() => null);
+        const [dxyResIndex, dxyResFut] = await Promise.all([pDXY_Index, pDXY_Fut]);
+        const resRefs = pRefs_resolved;
 
-        const [res1m, res5m, res15m, res60m, resDaily, resRefs, dxyResIndex, dxyResFut] = await Promise.all([p1m, p5m, p15m, p60m, pDaily, pRefs, pDXY_Index, pDXY_Fut]);
+        const quotes1m = feed1m.candles;
+        const quotes5m = feed5m.candles;
+        const quotes15m = feed15m.candles;
+        const quotes60m = feed60m.candles;
+        const quotesDaily = feedDaily.candles;
 
-        let resMain = res1m;
-        if (interval === '15m') resMain = res15m;
-        if (interval === '60m' || interval === '1h') resMain = res60m;
-
-        if (!resMain || !resMain.quotes || resMain.quotes.length === 0) {
-            console.error('[API] No data found for main interval');
-            return NextResponse.json({ error: 'No data found' }, { status: 404 });
-        }
-
-        // --- ADAPTER NORMALIZATION ---
-        const quotes1m = normalizeYahooToCandles(res1m);
-        const quotes5m = normalizeYahooToCandles(res5m);
-        const quotes15m = normalizeYahooToCandles(res15m);
-        const quotes60m = normalizeYahooToCandles(res60m);
-        const quotesDaily = normalizeYahooToCandles(resDaily);
+        // Primary source for indicators (use 1m feed source as the global source)
+        const primarySource = feed1m.sourceUsed;
+        const primaryFallbackFrom = feed1m.fallbackFrom;
 
         let dxyQuotes = normalizeYahooToCandles(dxyResIndex);
         if (dxyQuotes.length === 0) dxyQuotes = normalizeYahooToCandles(dxyResFut);
+
+        // Validate main data
+        const mainQuotesRaw = interval === '15m' ? quotes15m : interval === '60m' || interval === '1h' ? quotes60m : quotes1m;
+        if (!mainQuotesRaw || mainQuotesRaw.length === 0) {
+            console.error('[API] No data found for main interval');
+            return NextResponse.json({ error: 'No data found' }, { status: 404 });
+        }
 
         // --- LEVEL CALCULATION (Daily) ---
         let pdh = null;
@@ -359,7 +363,7 @@ export async function GET(request: Request) {
 
         scenarios.sort((a, b) => b.score - a.score);
 
-        const safeMeta = resMain.meta || {};
+        const safeMeta: Record<string, any> = {};
 
         // NY Midnight & Lag Detection
         const nyDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -447,7 +451,7 @@ export async function GET(request: Request) {
             session,
             quotes: quotes15m,
             lastBarTimeMs: lastBar15mMs,
-            source: "YAHOO",
+            source: primarySource,
             marketStatus: mktStatus,
         });
 
@@ -458,7 +462,7 @@ export async function GET(request: Request) {
             session,
             dataStatus: lagStatus.status as any,
             lastBarTimeMs: lastBar15mMs,
-            source: "YAHOO",
+            source: primarySource,
             marketStatus: mktStatus,
         });
 
@@ -467,7 +471,7 @@ export async function GET(request: Request) {
             dataStatus: lagStatus.status as any,
             biasDirection: biasSignal.direction,
             lastBarTimeMs: lastBar15mMs,
-            source: "YAHOO",
+            source: primarySource,
             marketStatus: mktStatus,
         });
 
@@ -480,7 +484,7 @@ export async function GET(request: Request) {
             trueWeekOpen: trueWeekOpen ?? null,
             quotes15m,
             lastBarTimeMs: lastBar15mMs,
-            source: "YAHOO",
+            source: primarySource,
             marketStatus: mktStatus,
         });
 

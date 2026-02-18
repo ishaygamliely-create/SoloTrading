@@ -105,7 +105,7 @@ export function getLiquiditySignal(data: any): IndicatorSignal {
     const reliability = applyReliability({
         rawScore: confidenceScore,
         lastBarTimeMs: lastBarMs,
-        source: "YAHOO",
+        sourceUsed: "YAHOO",
         marketStatus: "OPEN",
     });
 
@@ -126,7 +126,7 @@ export function getLiquiditySignal(data: any): IndicatorSignal {
         meta: {
             rawScore: Math.round(confidenceScore),
             finalScore: Math.round(reliability.finalScore),
-            source: "YAHOO" as const,
+            sourceUsed: "YAHOO" as const,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,

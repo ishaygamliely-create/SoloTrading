@@ -529,13 +529,13 @@ function analyzeSingleSwing(quotes: Quote[], swing: SwingPoint, atrs: number[], 
             const rel = applyReliability({
                 rawScore: score,
                 lastBarTimeMs: lastBarMs,
-                source: 'YAHOO',
+                sourceUsed: 'YAHOO',
                 marketStatus: 'OPEN',
             });
             return {
                 rawScore: Math.round(score),
                 finalScore: Math.round(rel.finalScore),
-                source: 'YAHOO' as const,
+                sourceUsed: 'YAHOO' as const,
                 dataAgeMs: rel.dataAgeMs,
                 lastBarTimeMs: lastBarMs,
                 capApplied: rel.capApplied,

@@ -79,7 +79,7 @@ export function SMTPanel({ data, loading }: Props) {
             {/* 4. Reliability row — show if cap applied or data is delayed */}
             {smt.meta && (smt.meta.capApplied || smt.meta.dataAgeMs > 15 * 60_000) && (
                 <div className="text-[9px] text-white/40 font-mono border-t border-white/5 pt-1 mt-1">
-                    {smt.meta.source}{smt.meta.capApplied ? ` · Raw ${smt.meta.rawScore}% → ${smt.meta.finalScore}%` : ` · Age ${Math.round(smt.meta.dataAgeMs / 60000)}m`}
+                    {smt.meta.sourceUsed}{smt.meta.capApplied ? ` · Raw ${smt.meta.rawScore}% → ${smt.meta.finalScore}%` : ` · Age ${Math.round(smt.meta.dataAgeMs / 60000)}m`}
                 </div>
             )}
 

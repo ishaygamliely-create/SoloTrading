@@ -96,7 +96,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {/* Reliability row — show if cap applied or data is delayed */}
             {bias.meta && (bias.meta.capApplied || bias.meta.dataAgeMs > 15 * 60_000) && (
                 <div className="text-[9px] text-white/40 text-right font-mono">
-                    {bias.meta.source}{bias.meta.capApplied ? ` · Raw ${bias.meta.rawScore}% → ${bias.meta.finalScore}%` : ` · Age ${Math.round(bias.meta.dataAgeMs / 60000)}m`}
+                    {bias.meta.sourceUsed}{bias.meta.capApplied ? ` · Raw ${bias.meta.rawScore}% → ${bias.meta.finalScore}%` : ` · Age ${Math.round(bias.meta.dataAgeMs / 60000)}m`}
                 </div>
             )}
 

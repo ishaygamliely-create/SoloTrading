@@ -4,10 +4,17 @@ export type SignalDirection = 'LONG' | 'SHORT' | 'NEUTRAL';
 export interface IndicatorMeta {
     rawScore: number;          // Score before reliability cap
     finalScore: number;        // Score after reliability cap (= signal.score)
-    source: "BROKER" | "TRADINGVIEW" | "YAHOO";
+    /** Primary: which provider actually served the data */
+    sourceUsed: "BROKER" | "TRADINGVIEW" | "YAHOO";
+    /** Which provider was tried first but failed (if any) */
+    fallbackFrom?: "BROKER" | "TRADINGVIEW";
+    /** Human-readable cap reason, e.g. "YAHOO delayed >15m" */
+    capReason?: string;
     dataAgeMs: number;         // Date.now() - lastBarTimeMs
     lastBarTimeMs: number;     // Unix ms of the last bar
     capApplied: boolean;       // true if finalScore < rawScore
+    /** @deprecated use sourceUsed */
+    source?: "BROKER" | "TRADINGVIEW" | "YAHOO";
 }
 
 export interface IndicatorSignal {

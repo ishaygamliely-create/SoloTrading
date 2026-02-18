@@ -63,7 +63,7 @@ export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
                     {/* Reliability row */}
                     {showReliability && (
                         <div className="text-[9px] text-white/40 font-mono">
-                            {meta.source}{meta.capApplied
+                            {meta.sourceUsed}{meta.capApplied
                                 ? ` · Raw ${meta.rawScore}% → ${meta.finalScore}%`
                                 : ` · Age ${Math.round(meta.dataAgeMs / 60000)}m`}
                         </div>
@@ -86,7 +86,7 @@ export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
                 </div>
                 <div>
                     <div className="text-white/50 mb-0.5">WEEK OPEN</div>
-                    <div className="text-white/80">{weekStatus ?? "N/A"}</div>
+                    <div className="text-white/80">{weekStatus ?? "N/A (insufficient week data)"}</div>
                 </div>
             </div>
 

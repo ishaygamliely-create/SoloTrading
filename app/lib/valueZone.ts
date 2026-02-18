@@ -128,7 +128,7 @@ export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
         meta: {
             rawScore: Math.round(rawScore),
             finalScore: Math.round(finalScore),
-            source: src,
+            sourceUsed: src,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,

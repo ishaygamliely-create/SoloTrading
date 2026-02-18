@@ -172,7 +172,7 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
     const reliability = applyReliability({
         rawScore,
         lastBarTimeMs: lastBarMs,
-        source: src,
+        sourceUsed: src,
         marketStatus: mktStatus,
     });
 
@@ -217,7 +217,7 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         meta: {
             rawScore: Math.round(rawScore),
             finalScore: Math.round(finalScore),
-            source: src,
+            sourceUsed: src,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,

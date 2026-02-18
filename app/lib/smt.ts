@@ -218,7 +218,7 @@ export function getSmtSignal(
         meta: {
             rawScore: Math.round(score),
             finalScore: Math.round(reliability.finalScore),
-            source: "YAHOO" as const,
+            sourceUsed: "YAHOO" as const,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,
