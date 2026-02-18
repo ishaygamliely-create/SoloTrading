@@ -8,6 +8,7 @@
 // ==========================================
 
 import { IndicatorSignal } from "./types"
+import { applyReliability } from "./reliability"
 
 export type Quote = {
     time: number
@@ -189,18 +190,38 @@ export function getSmtSignal(
     let status: "OK" | "WARN" | "OFF" | "BLOCKED" = "OK";
     if (gate.isActive) status = "WARN";
 
+    // Reliability meta (SMT uses last bar of MNQ quotes)
+    const lastBarMs = mnq.length > 0 ? mnq[mnq.length - 1].time * 1000 : Date.now() - 20 * 60_000;
+    const reliability = applyReliability({
+        rawScore: score,
+        lastBarTimeMs: lastBarMs,
+        source: "YAHOO",
+        marketStatus: "OPEN",
+    });
+
     return {
         status,
         direction,
-        score,
+        score: Math.round(reliability.finalScore),
         hint: score > 0
             ? `SMT ${direction} divergence detected`
             : "No SMT divergence",
+        isStrong,
+        lastSwingTimeSec: swingTimeSec,
+        gate,
         debug: {
             factors,
             isStrong,
             lastSwingTimeSec: swingTimeSec,
             gate
-        }
+        },
+        meta: {
+            rawScore: Math.round(score),
+            finalScore: Math.round(reliability.finalScore),
+            source: "YAHOO" as const,
+            dataAgeMs: reliability.dataAgeMs,
+            lastBarTimeMs: lastBarMs,
+            capApplied: reliability.capApplied,
+        },
     }
 }

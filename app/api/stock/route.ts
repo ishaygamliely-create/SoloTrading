@@ -389,12 +389,20 @@ export async function GET(request: Request) {
             lastBarTimeNy
         };
 
+        // Derive market status for reliability engine
+        const mktStatus: "OPEN" | "CLOSED" = (lagStatus.status === 'MARKET_CLOSED') ? "CLOSED" : "OPEN";
+        // lastBarMs for 15m quotes (used by structure/bias)
+        const lastBar15mMs = quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : lastBarMs;
+
         const biasSignal = getBiasSignal({
             price: lastPrice,
             midnightOpen,
             dataStatus: lagStatus.status as any,
             session,
-            quotes: quotes15m
+            quotes: quotes15m,
+            lastBarTimeMs: lastBar15mMs,
+            source: "YAHOO",
+            marketStatus: mktStatus,
         });
 
         const valueZoneSignal = getValueZoneSignal({
@@ -402,13 +410,19 @@ export async function GET(request: Request) {
             pdh: pdh || 0,
             pdl: pdl || 0,
             session,
-            dataStatus: lagStatus.status as any
+            dataStatus: lagStatus.status as any,
+            lastBarTimeMs: lastBar15mMs,
+            source: "YAHOO",
+            marketStatus: mktStatus,
         });
 
         const structureSignal = getStructureSignal({
             quotes: quotes15m,
             dataStatus: lagStatus.status as any,
-            biasDirection: biasSignal.direction
+            biasDirection: biasSignal.direction,
+            lastBarTimeMs: lastBar15mMs,
+            source: "YAHOO",
+            marketStatus: mktStatus,
         });
 
         const pspResult = detectPSPNew(quotes15m);

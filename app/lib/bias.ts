@@ -1,5 +1,6 @@
 import type { IndicatorSignal } from "@/app/lib/types";
 import { Indicators, Quote } from "@/app/lib/analysis";
+import { applyReliability, type DataSource } from "@/app/lib/reliability";
 
 interface BiasParams {
     price: number;
@@ -7,6 +8,9 @@ interface BiasParams {
     dataStatus: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
     session: IndicatorSignal;
     quotes: Quote[]; // 15m candles for ATR and Flip detection
+    lastBarTimeMs?: number;
+    source?: DataSource;
+    marketStatus?: "OPEN" | "CLOSED";
 }
 
 export function getBiasSignal(params: BiasParams): IndicatorSignal {
@@ -105,37 +109,51 @@ export function getBiasSignal(params: BiasParams): IndicatorSignal {
         }
     }
 
-    // 6. Data Reliability Handling
+    // 6. Reliability
     let status: "OK" | "WARN" | "BLOCKED" | "OFF" = "OK";
-    if (dataStatus === "DELAYED") {
+    const rawScore = Math.max(0, Math.min(100, score));
+    const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000);
+    const src = params.source ?? "YAHOO";
+    const mktStatus = params.marketStatus ?? "OPEN";
+
+    const reliability = applyReliability({
+        rawScore,
+        lastBarTimeMs: lastBarMs,
+        source: src,
+        marketStatus: mktStatus,
+    });
+
+    const finalScore = reliability.finalScore;
+    if (reliability.capApplied) {
         status = "WARN";
-        score = Math.min(score, 74); // Cap score
-        factors.push("Data Delayed: Score capped");
+        factors.push(`Data cap applied (${src}): ${rawScore} → ${finalScore}`);
     }
 
     // Session Soft Impact (if Off-hours)
     if (session.score <= 20) {
-        // status = "WARN"; // Optional, but usually Bias is valid 24/7 if price is moving. 
-        // We'll just document it.
         factors.push("Off-hours session");
     }
 
-    // Clamp Score
-    score = Math.max(0, Math.min(100, score));
-
-    // Hint
     const hint = "Bias is a directional FILTER, not an entry trigger.";
 
     return {
         status,
         direction,
-        score,
+        score: Math.round(finalScore),
         hint,
         debug: {
             factors,
             midnightOpen,
             buffer,
-            biasMode: direction // Compatibility
-        }
+            biasMode: direction
+        },
+        meta: {
+            rawScore: Math.round(rawScore),
+            finalScore: Math.round(finalScore),
+            source: src,
+            dataAgeMs: reliability.dataAgeMs,
+            lastBarTimeMs: lastBarMs,
+            capApplied: reliability.capApplied,
+        },
     };
 }

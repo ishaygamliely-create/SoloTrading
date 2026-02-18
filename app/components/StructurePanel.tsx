@@ -62,7 +62,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     const rawMeta = structure.meta;
     const rawScore = rawMeta?.rawScore;
     const capApplied = rawMeta?.capApplied;
-    const metaDataStatus = rawMeta?.dataStatus;
+    const metaSource = rawMeta?.source;
 
     // ===== Direction label refinement in TRANSITION =====
     const directionLabel =
@@ -113,9 +113,9 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                     </div>
 
                     <div className={`text-lg font-bold ${scoreStyle.text}`}>{score}%</div>
-                    {typeof rawScore === "number" && typeof capApplied === "number" && rawScore > score && (
+                    {capApplied && typeof rawScore === "number" && (
                         <div className="text-xs text-white/40 mt-0.5">
-                            {metaDataStatus} · Raw {rawScore}% → Capped {capApplied}%
+                            {metaSource} · Raw {rawScore}% → Capped {rawMeta?.finalScore}%
                         </div>
                     )}
                 </div>

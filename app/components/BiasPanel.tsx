@@ -93,6 +93,13 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                 </div>
             </div>
 
+            {/* Reliability row — only if cap applied */}
+            {bias.meta?.capApplied && (
+                <div className="text-[9px] text-white/40 text-right font-mono">
+                    {bias.meta.source} · Raw {bias.meta.rawScore}% → Capped {bias.meta.finalScore}%
+                </div>
+            )}
+
             {/* 2. Main Hint & Rule & Context */}
             <div className="space-y-1">
                 <div className="text-xs font-medium text-white/90 text-center bg-white/5 py-1 rounded border border-white/5">

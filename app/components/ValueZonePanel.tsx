@@ -55,6 +55,13 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
                 </div>
             </div>
 
+            {/* Reliability row — only if cap applied */}
+            {valueZone.meta?.capApplied && (
+                <div className="text-[9px] text-white/40 text-right font-mono">
+                    {valueZone.meta.source} · Raw {valueZone.meta.rawScore}% → Capped {valueZone.meta.finalScore}%
+                </div>
+            )}
+
             {/* 2. Hint */}
             <div className="text-xs text-white/70 italic">
                 {valueZone.hint}

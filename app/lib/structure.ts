@@ -1,5 +1,6 @@
 import type { IndicatorSignal } from "@/app/lib/types";
 import { Quote } from "@/app/lib/analysis";
+import { applyReliability, type DataSource } from "@/app/lib/reliability";
 
 // ADX Calculation (Wilder's Smoothing)
 function calculateADX(quotes: Quote[], period = 14): number | null {
@@ -83,6 +84,9 @@ interface StructureParams {
     quotes: Quote[];
     dataStatus: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
     biasDirection?: "LONG" | "SHORT" | "NEUTRAL";
+    lastBarTimeMs?: number;
+    source?: DataSource;
+    marketStatus?: "OPEN" | "CLOSED";
 }
 
 export function getStructureSignal(params: StructureParams): IndicatorSignal {
@@ -159,20 +163,22 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         score += breakdown.bias;
     }
 
-    // --- RAW SCORE (before reliability cap) ---
+    // --- RELIABILITY ---
     const rawScore = Math.min(score, 100);
+    const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000); // fallback: assume 20min old
+    const src = params.source ?? "YAHOO";
+    const mktStatus = params.marketStatus ?? "OPEN";
 
-    // --- RELIABILITY CAP ---
-    let finalScore = rawScore;
-    let capApplied: number | undefined;
+    const reliability = applyReliability({
+        rawScore,
+        lastBarTimeMs: lastBarMs,
+        source: src,
+        marketStatus: mktStatus,
+    });
 
-    if (dataStatus === "DELAYED" && rawScore >= 75) {
-        capApplied = 74;
-        finalScore = 74;
-    }
+    const finalScore = reliability.finalScore;
 
-    // --- STATUS (GLOBAL LAW) ---
-    // 0–59 WARN | 60–74 OK | 75+ STRONG
+    // --- STATUS (GLOBAL LAW: derived from finalScore only) ---
     let status: "WARN" | "OK" | "STRONG" | "OFF" | "ERROR" = "WARN";
     if (finalScore >= 75) status = "STRONG";
     else if (finalScore >= 60) status = "OK";
@@ -210,9 +216,11 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         } as any,
         meta: {
             rawScore: Math.round(rawScore),
-            reliability: dataStatus === "DELAYED" ? "DELAYED" : "REALTIME",
-            capApplied,
-            dataStatus,
+            finalScore: Math.round(finalScore),
+            source: src,
+            dataAgeMs: reliability.dataAgeMs,
+            lastBarTimeMs: lastBarMs,
+            capApplied: reliability.capApplied,
         },
     };
 }

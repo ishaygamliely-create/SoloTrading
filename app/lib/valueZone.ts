@@ -1,11 +1,15 @@
 import type { IndicatorSignal } from "@/app/lib/types";
+import { applyReliability, type DataSource } from "@/app/lib/reliability";
 
 interface ValueZoneParams {
     price: number;
-    pdh: number; // Previous Day High
-    pdl: number; // Previous Day Low
+    pdh: number;
+    pdl: number;
     session: IndicatorSignal;
     dataStatus: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
+    lastBarTimeMs?: number;
+    source?: DataSource;
+    marketStatus?: "OPEN" | "CLOSED";
 }
 
 export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
@@ -92,8 +96,20 @@ export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
         factors.push("Off-hours: score reduced (-15)");
     }
 
-    // 5. Clamp Score
-    score = Math.max(0, Math.min(100, score));
+    // 5. Reliability
+    const rawScore = Math.max(0, Math.min(100, score));
+    const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000);
+    const src = params.source ?? "YAHOO";
+    const mktStatus = params.marketStatus ?? "OPEN";
+
+    const reliability = applyReliability({
+        rawScore,
+        lastBarTimeMs: lastBarMs,
+        source: src,
+        marketStatus: mktStatus,
+    });
+
+    const finalScore = reliability.finalScore;
 
     // Percent In Range (0 = Low, 100 = High)
     const percentInRange = Math.max(0, Math.min(100, ((price - pdl) / range) * 100));
@@ -101,13 +117,21 @@ export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
     return {
         status,
         direction,
-        score,
+        score: Math.round(finalScore),
         hint,
         debug: {
             factors,
             label: zoneLabel,
             percentInRange: percentInRange.toFixed(1),
             pdh, pdl, eq
-        }
+        },
+        meta: {
+            rawScore: Math.round(rawScore),
+            finalScore: Math.round(finalScore),
+            source: src,
+            dataAgeMs: reliability.dataAgeMs,
+            lastBarTimeMs: lastBarMs,
+            capApplied: reliability.capApplied,
+        },
     };
 }

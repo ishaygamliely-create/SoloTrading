@@ -18,7 +18,7 @@ export function applySessionSoftImpact(
         ...signal,
         score: reduced,
         status: signal.status === "OK" ? "WARN" : signal.status,
-        hint: signal.hint.includes("Off-hours") ? signal.hint : `${signal.hint}${hintSuffix}`,
+        hint: (signal.hint ?? "").includes("Off-hours") ? signal.hint : `${signal.hint ?? ""}${hintSuffix}`,
         debug: {
             factors: [
                 ...(signal.debug?.factors ?? []),

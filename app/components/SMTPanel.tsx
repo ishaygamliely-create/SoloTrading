@@ -76,10 +76,12 @@ export function SMTPanel({ data, loading }: Props) {
                 </div>
             )}
 
-            {/* 4. Delayed Feed Warning */}
-            <div className="text-[9px] text-zinc-600 italic border-t border-white/5 pt-1 mt-1">
-                Feed is delayed. Signals may be late.
-            </div>
+            {/* 4. Reliability row — only if cap applied */}
+            {smt.meta?.capApplied && (
+                <div className="text-[9px] text-white/40 font-mono border-t border-white/5 pt-1 mt-1">
+                    {smt.meta.source} · Raw {smt.meta.rawScore}% → Capped {smt.meta.finalScore}%
+                </div>
+            )}
 
             {/* 5. Help Toggle */}
             <div className="pt-2 border-t border-white/5">

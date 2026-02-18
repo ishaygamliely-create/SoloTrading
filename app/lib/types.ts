@@ -1,11 +1,20 @@
 export type SignalStatus = 'OK' | 'WARN' | 'STRONG' | 'OFF' | 'ERROR';
 export type SignalDirection = 'LONG' | 'SHORT' | 'NEUTRAL';
 
+export interface IndicatorMeta {
+    rawScore: number;          // Score before reliability cap
+    finalScore: number;        // Score after reliability cap (= signal.score)
+    source: "BROKER" | "TRADINGVIEW" | "YAHOO";
+    dataAgeMs: number;         // Date.now() - lastBarTimeMs
+    lastBarTimeMs: number;     // Unix ms of the last bar
+    capApplied: boolean;       // true if finalScore < rawScore
+}
+
 export interface IndicatorSignal {
     status: SignalStatus;
     direction: SignalDirection;
-    score: number; // 0-100
-    hint: string;
+    score: number;             // ALWAYS finalScore (after cap)
+    hint?: string;
     // Extended SMT fields
     isStrong?: boolean;
     lastSwingTimeSec?: number;
@@ -20,10 +29,5 @@ export interface IndicatorSignal {
         factors: string[];
         [key: string]: any;
     };
-    meta?: {
-        rawScore?: number;
-        reliability?: "REALTIME" | "DELAYED" | "LOW";
-        capApplied?: number;
-        dataStatus?: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
-    };
+    meta?: IndicatorMeta;
 }
