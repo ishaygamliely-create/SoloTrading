@@ -72,9 +72,11 @@ export async function GET(request: Request) {
         const quotes60m = feed60m.candles;
         const quotesDaily = feedDaily.candles;
 
-        // Primary source for indicators (use 1m feed source as the global source)
-        const primarySource = feed1m.sourceUsed;
-        const primaryFallbackFrom = feed1m.fallbackFrom;
+        // Per-feed meta helpers — passed to indicators for correct reliability
+        const meta1m = { sourceUsed: feed1m.sourceUsed, lastBarTimeMs: feed1m.lastBarTimeMs, fallbackFrom: feed1m.fallbackFrom };
+        const meta5m = { sourceUsed: feed5m.sourceUsed, lastBarTimeMs: feed5m.lastBarTimeMs, fallbackFrom: feed5m.fallbackFrom };
+        const meta15m = { sourceUsed: feed15m.sourceUsed, lastBarTimeMs: feed15m.lastBarTimeMs, fallbackFrom: feed15m.fallbackFrom };
+        const meta1d = { sourceUsed: feedDaily.sourceUsed, lastBarTimeMs: feedDaily.lastBarTimeMs, fallbackFrom: feedDaily.fallbackFrom };
 
         let dxyQuotes = normalizeYahooToCandles(dxyResIndex);
         if (dxyQuotes.length === 0) dxyQuotes = normalizeYahooToCandles(dxyResFut);
@@ -123,12 +125,15 @@ export async function GET(request: Request) {
         }
 
         // --- TRUE DAY OPEN: 09:30 NY bar from 1m (fallback 5m) ---
-        // Scan backwards through 1m quotes to find today's 09:30 NY bar
+        // Track which feed produced the anchor for per-feed reliability meta
+        let dayOpenFoundFrom: "1m" | "5m" | "1d" | "none" = "none";
         const intraday = quotes1m.length > 0 ? quotes1m : quotes5m;
+        const intradaySource: "1m" | "5m" = quotes1m.length > 0 ? "1m" : "5m";
         for (let i = intraday.length - 1; i >= 0; i--) {
             const p = getNyParts(intraday[i].time);
             if (p.hour === 9 && p.minute === 30) {
                 trueDayOpen = intraday[i].open;
+                dayOpenFoundFrom = intradaySource;
                 break;
             }
             // Stop scanning if we go past today (more than 24h back)
@@ -137,7 +142,7 @@ export async function GET(request: Request) {
         // Fallback: daily candle open
         if (!trueDayOpen && quotesDaily.length > 0) {
             const today = quotesDaily[quotesDaily.length - 1];
-            if (today) trueDayOpen = today.open;
+            if (today) { trueDayOpen = today.open; dayOpenFoundFrom = "1d"; }
         }
 
         // --- TRUE WEEK OPEN: Monday 00:00 NY bar from 1m (fallback 5m, then daily) ---
@@ -300,7 +305,16 @@ export async function GET(request: Request) {
         }
 
         const session = getSessionSignal(nowMs);
-        const smtSignalRaw = getSmtSignal(quotes15m, smtReferenceData['ES'] || [], smtReferenceData['YM'] || []);
+        const smtSignalRaw = getSmtSignal(
+            quotes15m,
+            smtReferenceData['ES'] || [],
+            smtReferenceData['YM'] || [],
+            {                                       // MNQ 15m feed meta for reliability
+                sourceUsed: meta15m.sourceUsed,
+                lastBarTimeMs: meta15m.lastBarTimeMs ?? undefined,
+                fallbackFrom: meta15m.fallbackFrom,
+            }
+        );
         const smtSignal = applySessionSoftImpact(smtSignalRaw, session);
 
         // Legacy adapter for composite bias
@@ -442,7 +456,8 @@ export async function GET(request: Request) {
         // Derive market status for reliability engine
         const mktStatus: "OPEN" | "CLOSED" = (lagStatus.status === 'MARKET_CLOSED') ? "CLOSED" : "OPEN";
         // lastBarMs for 15m quotes (used by structure/bias)
-        const lastBar15mMs = quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : lastBarMs;
+        const lastBar15mMs = meta15m.lastBarTimeMs ?? (quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : lastBarMs);
+        const lastBar1mMs = meta1m.lastBarTimeMs ?? (quotes1m.length > 0 ? quotes1m[quotes1m.length - 1].time * 1000 : lastBarMs);
 
         const biasSignal = getBiasSignal({
             price: lastPrice,
@@ -450,8 +465,8 @@ export async function GET(request: Request) {
             dataStatus: lagStatus.status as any,
             session,
             quotes: quotes15m,
-            lastBarTimeMs: lastBar15mMs,
-            source: primarySource,
+            lastBarTimeMs: lastBar1mMs,          // bias uses 1m freshness
+            source: meta1m.sourceUsed,
             marketStatus: mktStatus,
         });
 
@@ -461,8 +476,8 @@ export async function GET(request: Request) {
             pdl: pdl || 0,
             session,
             dataStatus: lagStatus.status as any,
-            lastBarTimeMs: lastBar15mMs,
-            source: primarySource,
+            lastBarTimeMs: lastBar15mMs,          // valueZone uses 15m
+            source: meta15m.sourceUsed,
             marketStatus: mktStatus,
         });
 
@@ -470,21 +485,23 @@ export async function GET(request: Request) {
             quotes: quotes15m,
             dataStatus: lagStatus.status as any,
             biasDirection: biasSignal.direction,
-            lastBarTimeMs: lastBar15mMs,
-            source: primarySource,
+            lastBarTimeMs: lastBar15mMs,          // structure uses 15m
+            source: meta15m.sourceUsed,
             marketStatus: mktStatus,
         });
 
         const pspResult = detectPSPNew(quotes15m);
 
-        // True Open Engine
+        // True Open Engine — pass per-feed metas so it picks the one that produced the anchor
         const trueOpenSignal = getTrueOpenSignal({
             lastPrice,
             trueDayOpen: trueDayOpen || 0,
             trueWeekOpen: trueWeekOpen ?? null,
             quotes15m,
-            lastBarTimeMs: lastBar15mMs,
-            source: primarySource,
+            dayOpenFoundFrom,
+            meta1m,
+            meta5m,
+            meta1d,
             marketStatus: mktStatus,
         });
 

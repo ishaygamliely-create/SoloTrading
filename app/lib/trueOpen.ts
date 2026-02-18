@@ -24,19 +24,35 @@ export interface TrueOpenResult extends IndicatorSignal {
 }
 
 // ============================================================
+// Feed Meta (per-timeframe source info)
+// ============================================================
+
+export interface FeedMeta {
+    sourceUsed: DataSource;
+    lastBarTimeMs: number | null;
+    fallbackFrom?: DataSource;
+}
+
+// ============================================================
 // Params
 // ============================================================
 
 export interface TrueOpenParams {
     /** Last traded price */
     lastPrice: number;
-    /** RTH Day Open (09:30 NY) — from daily candle open */
+    /** RTH Day Open (09:30 NY) — from 1m/5m/daily scan */
     trueDayOpen: number;
-    /** Monday 00:00 NY open — from first daily candle of the week */
+    /** Monday 00:00 NY open — from 1m/5m/daily scan */
     trueWeekOpen: number | null;
     /** 15m candles for ATR14 + reclaim detection */
     quotes15m: Array<{ time: number; open: number; high: number; low: number; close: number }>;
-    /** Reliability params */
+    /** Which feed actually produced the Day Open anchor */
+    dayOpenFoundFrom?: "1m" | "5m" | "1d" | "none";
+    /** Per-feed metas — trueOpen picks the one matching dayOpenFoundFrom */
+    meta1m?: FeedMeta;
+    meta5m?: FeedMeta;
+    meta1d?: FeedMeta;
+    /** Fallback reliability params (used if per-feed metas not provided) */
     lastBarTimeMs?: number;
     source?: DataSource;
     marketStatus?: "OPEN" | "CLOSED";
@@ -192,16 +208,30 @@ export function getTrueOpenSignal(params: TrueOpenParams): TrueOpenResult {
     const rawScore = calcRawScore(dayAnchor, weekAnchor);
     const direction = calcDirection(dayAnchor, weekAnchor);
 
-    // Reliability
-    const lastBarMs = params.lastBarTimeMs
+    // ── Pick the feed meta that produced the Day Open anchor ──
+    // dayOpenFoundFrom tells us which feed was used for the anchor scan.
+    // We use that feed's meta for reliability (sourceUsed + lastBarTimeMs).
+    const dayOpenFoundFrom = params.dayOpenFoundFrom ?? "none";
+    const anchorMeta: FeedMeta =
+        dayOpenFoundFrom === "1m" && params.meta1m ? params.meta1m :
+            dayOpenFoundFrom === "5m" && params.meta5m ? params.meta5m :
+                dayOpenFoundFrom === "1d" && params.meta1d ? params.meta1d :
+                    // Fallback: use legacy params or 15m last bar
+                    {
+                        sourceUsed: params.source ?? "YAHOO",
+                        lastBarTimeMs: params.lastBarTimeMs
+                            ?? (quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : Date.now() - 20 * 60_000),
+                    };
+
+    const src = anchorMeta.sourceUsed;
+    const lastBarMs = anchorMeta.lastBarTimeMs
         ?? (quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : Date.now() - 20 * 60_000);
-    const src = params.source ?? "YAHOO";
     const mktStatus = params.marketStatus ?? "OPEN";
 
     const reliability = applyReliability({
         rawScore,
         lastBarTimeMs: lastBarMs,
-        source: src,
+        sourceUsed: src,
         marketStatus: mktStatus,
     });
 
@@ -221,20 +251,29 @@ export function getTrueOpenSignal(params: TrueOpenParams): TrueOpenResult {
     if (dayAnchor.reclaim) factors.push("Day Open reclaim detected");
     if (weekAnchor?.reclaim) factors.push("Week Open reclaim detected");
     if (reliability.capApplied) factors.push(`${src} cap: ${rawScore} → ${Math.round(finalScore)}`);
+    if (dayOpenFoundFrom !== "none") factors.push(`Anchor from: ${dayOpenFoundFrom}`);
 
     return {
         status: "OK",
         direction,
         score: Math.round(finalScore),
         hint,
-        debug: { factors, atr: atr.toFixed(2), bufferPts: bufferPts.toFixed(2) },
+        debug: {
+            factors,
+            atr: atr.toFixed(2),
+            bufferPts: bufferPts.toFixed(2),
+            dayOpenFoundFrom,
+            anchorSource: src,
+        },
         meta: {
             rawScore: Math.round(rawScore),
             finalScore: Math.round(finalScore),
             sourceUsed: src,
+            fallbackFrom: anchorMeta.fallbackFrom !== "YAHOO" ? anchorMeta.fallbackFrom : undefined,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,
+            capReason: reliability.capReason,
         },
         dayAnchor,
         weekAnchor,

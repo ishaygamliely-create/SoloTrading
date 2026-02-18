@@ -8,7 +8,7 @@
 // ==========================================
 
 import { IndicatorSignal } from "./types"
-import { applyReliability } from "./reliability"
+import { applyReliability, type DataSource } from "./reliability"
 
 export type Quote = {
     time: number
@@ -60,7 +60,13 @@ function hoursAgo(tsSec: number) {
 export function getSmtSignal(
     mnq: Quote[],
     mes: Quote[],
-    mym: Quote[]
+    mym: Quote[],
+    opts?: {
+        sourceUsed?: DataSource;
+        lastBarTimeMs?: number;
+        fallbackFrom?: DataSource;
+        marketStatus?: "OPEN" | "CLOSED";
+    }
 ): IndicatorSignal {
 
     if (!mnq?.length || !mes?.length || !mym?.length) {
@@ -190,13 +196,16 @@ export function getSmtSignal(
     let status: "OK" | "WARN" | "OFF" | "BLOCKED" = "OK";
     if (gate.isActive) status = "WARN";
 
-    // Reliability meta (SMT uses last bar of MNQ quotes)
-    const lastBarMs = mnq.length > 0 ? mnq[mnq.length - 1].time * 1000 : Date.now() - 20 * 60_000;
+    // Reliability meta — use MNQ 15m feed meta if provided, else derive from last bar
+    const lastBarMs = opts?.lastBarTimeMs
+        ?? (mnq.length > 0 ? mnq[mnq.length - 1].time * 1000 : Date.now() - 20 * 60_000);
+    const src: DataSource = opts?.sourceUsed ?? "YAHOO";
+    const mktStatus = opts?.marketStatus ?? "OPEN";
     const reliability = applyReliability({
         rawScore: score,
         lastBarTimeMs: lastBarMs,
-        source: "YAHOO",
-        marketStatus: "OPEN",
+        sourceUsed: src,
+        marketStatus: mktStatus,
     });
 
     return {
@@ -218,7 +227,8 @@ export function getSmtSignal(
         meta: {
             rawScore: Math.round(score),
             finalScore: Math.round(reliability.finalScore),
-            sourceUsed: "YAHOO" as const,
+            sourceUsed: src,
+            fallbackFrom: opts?.fallbackFrom !== "YAHOO" ? opts?.fallbackFrom : undefined,
             dataAgeMs: reliability.dataAgeMs,
             lastBarTimeMs: lastBarMs,
             capApplied: reliability.capApplied,
