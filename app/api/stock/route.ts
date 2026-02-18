@@ -316,6 +316,10 @@ export async function GET(request: Request) {
             }
         );
         const smtSignal = applySessionSoftImpact(smtSignalRaw, session);
+        // Transparency: SMT refs (MES/MYM) always fetched from Yahoo for correlation
+        if (smtSignal.debug) {
+            (smtSignal.debug as any).refsSourceNote = `Refs: YAHOO (correlation)`;
+        }
 
         // Legacy adapter for composite bias
         const smtLegacy: any[] = [];
@@ -480,6 +484,13 @@ export async function GET(request: Request) {
             source: meta15m.sourceUsed,
             marketStatus: mktStatus,
         });
+        // Transparency: note if PDH/PDL (daily) came from a different source than current price (15m)
+        if (meta1d.sourceUsed !== meta15m.sourceUsed) {
+            if (valueZoneSignal.debug) {
+                (valueZoneSignal.debug as any).levelsMixedSource =
+                    `~ Levels source differs: daily=${meta1d.sourceUsed}, price=${meta15m.sourceUsed}`;
+            }
+        }
 
         const structureSignal = getStructureSignal({
             quotes: quotes15m,

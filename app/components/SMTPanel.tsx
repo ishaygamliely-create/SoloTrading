@@ -83,6 +83,13 @@ export function SMTPanel({ data, loading }: Props) {
                 </div>
             )}
 
+            {/* 5. Refs source note — transparency only */}
+            {(smt.debug as any)?.refsSourceNote && (
+                <div className="text-[9px] text-white/30 font-mono italic">
+                    {(smt.debug as any).refsSourceNote}
+                </div>
+            )}
+
             {/* 5. Help Toggle */}
             <div className="pt-2 border-t border-white/5">
                 <PanelHelp title="SMT" bullets={[
