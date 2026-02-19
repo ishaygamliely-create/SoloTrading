@@ -311,6 +311,10 @@ export default function Home() {
                   </div>
                 </CollapsibleSection>
 
+                <div className="mt-4">
+                  <ConfidenceLegend />
+                </div>
+
                 <div className="mt-auto pt-4 text-xs text-zinc-600 text-center">
                   Conf: {confluence?.scorePct || 0}% | SMT: {analysis.smt?.score || 0} | Risk: {showRisk ? 'ON' : 'OFF'}
                 </div>
