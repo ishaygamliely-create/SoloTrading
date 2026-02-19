@@ -31,43 +31,52 @@ export function LevelsPanel({ data, loading }: Props) {
     );
 
     return (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 h-full flex flex-col justify-between">
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-400 uppercase">Key Levels</span>
-                    <span className="text-[10px] text-zinc-600 bg-zinc-950 px-1.5 rounded border border-zinc-800">
-                        VWAP Monitor
-                    </span>
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Key Levels</span>
+                <span className="text-[9px] text-zinc-600 bg-zinc-950 px-1.5 rounded border border-zinc-800">
+                    VWAP Monitor
+                </span>
+            </div>
+
+            {/* 2x2 Grid for Main Levels */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="bg-white/5 rounded p-1.5 flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold">True Open</span>
+                    <span className="text-sm font-mono font-bold text-blue-400">{trueDayOpen ? trueDayOpen.toFixed(2) : '-'}</span>
+                </div>
+                <div className="bg-white/5 rounded p-1.5 flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold">VWAP</span>
+                    <span className="text-sm font-mono font-bold text-orange-400">{vwap ? vwap.toFixed(2) : '-'}</span>
+                </div>
+                <div className="bg-white/5 rounded p-1.5 flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold">Prev High</span>
+                    <span className="text-sm font-mono font-bold text-red-400/80">{pdh ? pdh.toFixed(2) : '-'}</span>
+                </div>
+                <div className="bg-white/5 rounded p-1.5 flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold">Prev Low</span>
+                    <span className="text-sm font-mono font-bold text-green-400/80">{pdl ? pdl.toFixed(2) : '-'}</span>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col gap-0.5">
-                <LevelRow label="True Open" value={trueDayOpen} color="text-blue-400" />
-                <LevelRow label="Session VWAP" value={vwap} color="text-orange-400" />
-
-                <div className="my-1 h-px bg-zinc-800/50" />
-
-                <LevelRow label="Prev High" value={pdh} color="text-red-400/80" />
-                <LevelRow label="Prev Low" value={pdl} color="text-green-400/80" />
-
-                {sdValues && (
-                    <>
-                        <div className="my-1 h-px bg-zinc-800/50" />
-                        <div className="grid grid-cols-2 gap-2 mt-1">
-                            <div className="bg-zinc-950/30 p-1 rounded text-center">
-                                <div className="text-[9px] text-zinc-500 uppercase">Values</div>
-                                <div className="text-[10px] text-orange-300/60 font-mono">SD1: {sdValues.sd1_upper?.toFixed(0)}</div>
-                            </div>
-                            <div className="bg-zinc-950/30 p-1 rounded text-center">
-                                <div className="text-[9px] text-zinc-500 uppercase">Range</div>
-                                <div className="text-[10px] text-orange-300/40 font-mono">SD2: {sdValues.sd2_upper?.toFixed(0)}</div>
-                            </div>
+            {/* SD Ranges */}
+            {sdValues && (
+                <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2">
+                    <div className="text-center">
+                        <div className="text-[9px] text-zinc-500 uppercase">SD1 Range</div>
+                        <div className="text-[10px] text-orange-300/60 font-mono mt-0.5">
+                            {sdValues.sd1_lower?.toFixed(0)} - {sdValues.sd1_upper?.toFixed(0)}
                         </div>
-                    </>
-                )}
-            </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-[9px] text-zinc-500 uppercase">SD2 Range</div>
+                        <div className="text-[10px] text-orange-300/40 font-mono mt-0.5">
+                            {sdValues.sd2_lower?.toFixed(0)} - {sdValues.sd2_upper?.toFixed(0)}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

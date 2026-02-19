@@ -76,19 +76,18 @@ export function SMTPanel({ data, loading }: Props) {
                 </div>
             )}
 
-            {/* 4. Reliability row — show if cap applied or data is delayed */}
-            {smt.meta && (smt.meta.capApplied || smt.meta.dataAgeMs > 15 * 60_000) && (
-                <div className="text-[9px] text-white/40 font-mono border-t border-white/5 pt-1 mt-1">
-                    {smt.meta.sourceUsed}{smt.meta.capApplied ? ` · Raw ${smt.meta.rawScore}% → ${smt.meta.finalScore}%` : ` · Age ${Math.round(smt.meta.dataAgeMs / 60000)}m`}
-                </div>
-            )}
-
-            {/* 5. Refs source note — transparency only */}
-            {(smt.debug as any)?.refsSourceNote && (
-                <div className="text-[9px] text-white/30 font-mono italic">
-                    {(smt.debug as any).refsSourceNote}
-                </div>
-            )}
+            {/* 4. Reliability & Meta */}
+            <div className="text-[9px] text-zinc-600 font-mono border-t border-white/5 pt-1 mt-1 flex justify-between">
+                <span>
+                    {smt.meta?.sourceUsed}
+                    {smt.meta?.capApplied ? ` · Raw ${smt.meta.rawScore}%` : ` · Age ${Math.round((smt.meta?.dataAgeMs || 0) / 60000)}m`}
+                </span>
+                {(smt.debug as any)?.refsSourceNote && (
+                    <span className="opacity-50" title={(smt.debug as any).refsSourceNote}>
+                        Refs: Correlations
+                    </span>
+                )}
+            </div>
 
             {/* 5. Help Toggle */}
             <div className="pt-2 border-t border-white/5">
