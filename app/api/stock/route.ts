@@ -471,13 +471,15 @@ export async function GET(request: Request) {
         const lastBar15mMs = meta15m.lastBarTimeMs ?? (quotes15m.length > 0 ? quotes15m[quotes15m.length - 1].time * 1000 : lastBarMs);
         const lastBar1mMs = meta1m.lastBarTimeMs ?? (quotes1m.length > 0 ? quotes1m[quotes1m.length - 1].time * 1000 : lastBarMs);
 
-        const biasSignal = getBiasSignal({
+        // Preliminary bias — direction only, used for structure ordering
+        // (Full enriched bias is recomputed below with cross-indicator context)
+        const prelimBias = getBiasSignal({
             price: lastPrice,
             midnightOpen,
             dataStatus: lagStatus.status as any,
             session,
             quotes: quotes15m,
-            lastBarTimeMs: lastBar1mMs,          // bias uses 1m freshness
+            lastBarTimeMs: lastBar1mMs,
             source: meta1m.sourceUsed,
             marketStatus: mktStatus,
         });
@@ -503,8 +505,8 @@ export async function GET(request: Request) {
         const structureSignal = getStructureSignal({
             quotes: quotes15m,
             dataStatus: lagStatus.status as any,
-            biasDirection: biasSignal.direction,
-            lastBarTimeMs: lastBar15mMs,          // structure uses 15m
+            biasDirection: prelimBias.direction,
+            lastBarTimeMs: lastBar15mMs,
             source: meta15m.sourceUsed,
             marketStatus: mktStatus,
         });
@@ -555,6 +557,22 @@ export async function GET(request: Request) {
             weekOpenPrice: trueWeekOpen ?? null,
             feedMeta: trueOpenFeedMeta,
             valueZone: ((valueZoneSignal?.debug as any)?.label as "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null) ?? null,
+        });
+
+        // Enriched Bias V4 — recomputed with full cross-indicator context
+        const biasSignal = getBiasSignal({
+            price: lastPrice,
+            midnightOpen,
+            dataStatus: lagStatus.status as any,
+            session,
+            quotes: quotes15m,
+            lastBarTimeMs: lastBar1mMs,
+            source: meta1m.sourceUsed,
+            marketStatus: mktStatus,
+            // Cross-indicator confluence
+            trueOpenAlignment: ((trueOpenSignal?.debug as any)?.alignment as string | null) ?? null,
+            valueZone: ((valueZoneSignal?.debug as any)?.label as string | null) ?? null,
+            structureDirection: (structureSignal?.direction as string | null) ?? null,
         });
 
         // Calculate Liquidity Range using normalized data

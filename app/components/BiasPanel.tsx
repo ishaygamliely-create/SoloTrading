@@ -1,136 +1,213 @@
 import React from 'react';
 import { IndicatorSignal } from '../lib/types';
-import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
+import { getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { PanelHelp } from './PanelHelp';
-import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 interface BiasPanelProps {
     data: any;
     loading: boolean;
 }
 
-export function BiasPanel({ data, loading }: BiasPanelProps) {
-    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
+// ── Helpers ────────────────────────────────────────────────────────
 
-    const bias = data?.analysis?.bias as IndicatorSignal;
+function directionColor(dir: string | undefined): string {
+    if (dir === "LONG") return "text-emerald-400";
+    if (dir === "SHORT") return "text-red-400";
+    return "text-zinc-400";
+}
 
-    // ✅ CORE PANEL: Only hide if no data or hard ERROR
-    if (!bias) return null;
-    if (bias.status === 'ERROR') return null;
+function directionBadge(dir: string | undefined): string {
+    const base = "text-[10px] font-bold px-1.5 py-0.5 rounded border";
+    if (dir === "LONG") return `${base} text-emerald-400 bg-emerald-500/10 border-emerald-500/20`;
+    if (dir === "SHORT") return `${base} text-red-400 bg-red-500/10 border-red-500/20`;
+    return `${base} text-zinc-400 bg-zinc-500/10 border-zinc-500/20`;
+}
 
-    // --- Data Extraction ---
-    const { midnightOpen, buffer } = (bias.debug || {}) as any;
-    const price = data.price || 0;
-    const direction = bias.direction;
-    const score = bias.score;
-    const rawStatus = bias.status;
-    const regime = data.analysis?.marketContext?.regime || "—";
+function scoreColors(score: number): { text: string; border: string } {
+    if (score >= 75) return { text: "text-emerald-300", border: "border-emerald-500/30" };
+    if (score >= 60) return { text: "text-yellow-300", border: "border-yellow-500/30" };
+    return { text: "text-red-400", border: "border-red-500/30" };
+}
 
-    // Global Status Law: derive from score
-    const computedStatus: IndicatorStatus = getStatusFromScore(score);
+// Visual level bar: shows price position between lowerBuffer and upperBuffer
+function LevelBar({ price, mid, upper, lower }: { price: number; mid: number; upper: number; lower: number }) {
+    const range = upper - lower;
+    if (range <= 0) return null;
 
-    // --- Styling Logic ---
-    // Strict Confidence Law: 0-59 Red, 60-74 Yellow, 75-100 Green
-    let scoreColor = "text-red-400";
-    let borderColor = "ring-1 ring-red-500/30";
-    if (score >= 75) {
-        scoreColor = "text-emerald-300";
-        borderColor = "ring-1 ring-emerald-500/30";
-    } else if (score >= 60) {
-        scoreColor = "text-yellow-300";
-        borderColor = "ring-1 ring-yellow-500/30";
-    }
+    // Clamp price position 0–100%
+    const rawPct = ((price - lower) / range) * 100;
+    const pct = Math.max(2, Math.min(98, rawPct));
 
-    // Direction Badge
-    let dirBadgeClass = "text-zinc-500 bg-zinc-500/10";
-    if (direction === "LONG") dirBadgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    if (direction === "SHORT") dirBadgeClass = "text-red-400 bg-red-500/10 border-red-500/20";
-
-    // Status Badge (using global law)
-    const statusBadgeClass = getStatusBadgeClass(computedStatus);
-
-    // Rule Line
-    let ruleText = "Neutral Zone - Wait for break";
-    if (direction === "LONG") ruleText = `Prefer LONGs above ${(midnightOpen + buffer).toFixed(2)}`;
-    if (direction === "SHORT") ruleText = `Prefer SHORTs below ${(midnightOpen - buffer).toFixed(2)}`;
-
-    // Distance Calculation (V3)
-    let distText = "Inside buffer (neutral zone)";
-    if (direction === "LONG") {
-        const dist = Math.max(0, price - (midnightOpen + buffer));
-        const mult = buffer > 0 ? (dist / buffer).toFixed(1) : "0.0";
-        distText = `Distance from buffer: +${dist.toFixed(2)} pts (${mult}x buffer)`;
-    } else if (direction === "SHORT") {
-        const dist = Math.max(0, (midnightOpen - buffer) - price);
-        const mult = buffer > 0 ? (dist / buffer).toFixed(1) : "0.0";
-        distText = `Distance from buffer: +${dist.toFixed(2)} pts (${mult}x buffer)`;
-    }
-
-    // Flip Detection Visual
-    const isFlip = bias.debug?.factors?.includes("BIAS FLIP CONFIRMED");
+    const isAbove = price > upper;
+    const isBelow = price < lower;
+    const dotColor = isAbove ? "bg-emerald-400" : isBelow ? "bg-red-400" : "bg-amber-400";
+    const dotBorder = isAbove ? "border-emerald-400" : isBelow ? "border-red-400" : "border-amber-500";
 
     return (
-        <div className={`rounded-xl border bg-white/5 p-3 space-y-2 h-full flex flex-col justify-center ${borderColor} relative overflow-hidden`}>
+        <div className="space-y-1.5 py-1">
+            {/* Bar */}
+            <div className="relative h-1.5 rounded-full bg-gradient-to-r from-red-700/40 via-zinc-700/40 to-emerald-700/40">
+                {/* Buffer zone highlight (neutral zone = mid ± buffer) */}
+                <div
+                    className="absolute inset-y-0 bg-zinc-600/30 rounded-full"
+                    style={{
+                        left: `${((mid - lower - (upper - mid)) / range) * 100}%`,
+                        width: `${(((upper - lower) * 1) / range) * 100}%`,
+                    }}
+                />
+                {/* Price dot */}
+                <div
+                    className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 ${dotColor} ${dotBorder} shadow-sm -translate-x-1/2`}
+                    style={{ left: `${pct}%` }}
+                />
+            </div>
+            {/* Labels */}
+            <div className="flex justify-between text-[9px] font-mono text-white/25">
+                <span>{lower.toFixed(0)}</span>
+                <span className="text-white/35">{mid.toFixed(0)} mid</span>
+                <span>{upper.toFixed(0)}</span>
+            </div>
+        </div>
+    );
+}
 
-            {/* Flip Effect (Subtle Glow) */}
-            {isFlip && <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/10 to-transparent pointer-events-none" />}
+// Cross-indicator pill
+function ConfluencePill({ icon, label, aligned, conflict }: { icon: string; label: string; aligned: boolean; conflict: boolean }) {
+    if (!aligned && !conflict) return null;
+    const cls = aligned
+        ? "text-emerald-400/80 border-emerald-500/20 bg-emerald-500/5"
+        : "text-amber-400/80 border-amber-500/20 bg-amber-500/5";
+    return (
+        <div className={`flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${cls}`}>
+            <span>{icon}</span>
+            <span>{label}</span>
+            <span>{aligned ? "✓" : "✗"}</span>
+        </div>
+    );
+}
 
-            {/* 1. Header: BIAS | Direction | Status | Score */}
-            <div className="flex items-center justify-between mb-1">
+// ── Panel ──────────────────────────────────────────────────────────
+
+export function BiasPanel({ data, loading }: BiasPanelProps) {
+    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24" />;
+
+    const bias = data?.analysis?.bias as IndicatorSignal;
+    if (!bias || bias.status === 'ERROR') return null;
+
+    const dbg: any = bias.debug ?? {};
+    const meta: any = bias.meta ?? {};
+    const price = data.price || 0;
+
+    const direction = bias.direction;
+    const score = bias.score ?? 0;
+    const colors = scoreColors(score);
+    const computedStatus: IndicatorStatus = getStatusFromScore(score);
+    const statusBadge = getStatusBadgeClass(computedStatus);
+
+    const { midnightOpen, buffer, upperBuffer, lowerBuffer, biasZone, flipConfirmed, distancePts, atrVal, confluenceAdj } = dbg;
+
+    // Cross-indicator state
+    const toAlignment: string | null = dbg.trueOpenAlignment ?? null;
+    const vzLabel: string | null = dbg.valueZone ?? null;
+    const structDir: string | null = dbg.structureDirection ?? null;
+
+    const toAligned = (direction === "LONG" && toAlignment === "ALIGNED_BULL") || (direction === "SHORT" && toAlignment === "ALIGNED_BEAR");
+    const toConflict = (direction === "LONG" && toAlignment === "ALIGNED_BEAR") || (direction === "SHORT" && toAlignment === "ALIGNED_BULL");
+    const vzAligned = (direction === "LONG" && vzLabel === "DISCOUNT") || (direction === "SHORT" && vzLabel === "PREMIUM");
+    const vzConflict = (direction === "LONG" && vzLabel === "PREMIUM") || (direction === "SHORT" && vzLabel === "DISCOUNT");
+    const stAligned = (direction === "LONG" && structDir === "BULLISH") || (direction === "SHORT" && structDir === "BEARISH");
+    const stConflict = (direction === "LONG" && structDir === "BEARISH") || (direction === "SHORT" && structDir === "BULLISH");
+
+    const hasCrossContext = toAlignment || vzLabel || structDir;
+    const isNearBuffer = biasZone === "NEAR_UP" || biasZone === "NEAR_DOWN";
+
+    return (
+        <div className={`rounded-xl border bg-white/5 p-3 space-y-2.5 ${colors.border}`}>
+
+            {/* ── HEADER ─────────────────────────────────────────── */}
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-amber-500 tracking-wide text-sm">BIAS</span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${dirBadgeClass}`}>
-                        {direction}
-                    </span>
+                    <span className={directionBadge(direction)}>{direction}</span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadgeClass}`}>
-                        {computedStatus}
-                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadge}`}>{computedStatus}</span>
                 </div>
-                <div className={`text-lg font-bold ${scoreColor}`}>
-                    {Math.round(score)}%
+                <div className={`text-lg font-bold tabular-nums ${colors.text}`}>
+                    {score}%
                 </div>
             </div>
 
-            {/* Reliability row — show if cap applied or data is delayed */}
-            {bias.meta && (bias.meta.capApplied || bias.meta.dataAgeMs > 15 * 60_000) && (
-                <div className="text-[9px] text-white/40 text-right font-mono">
-                    {bias.meta.sourceUsed}{bias.meta.capApplied ? ` · Raw ${bias.meta.rawScore}% → ${bias.meta.finalScore}%` : ` · Age ${Math.round(bias.meta.dataAgeMs / 60000)}m`}
+            {/* ── RELIABILITY ─────────────────────────────────────── */}
+            {(meta.capApplied || meta.dataAgeMs > 15 * 60_000) && (
+                <div className="text-[9px] text-white/35 text-right font-mono">
+                    {meta.sourceUsed}{meta.capApplied ? ` · Raw ${meta.rawScore}% → ${meta.finalScore}%` : ` · Age ${Math.round(meta.dataAgeMs / 60000)}m`}
                 </div>
             )}
 
-            {/* 2. Main Hint & Rule & Context */}
-            <div className="space-y-1">
-                <div className="text-xs font-medium text-white/90 text-center bg-white/5 py-1 rounded border border-white/5">
-                    {ruleText}
+            {/* ── DYNAMIC HINT ────────────────────────────────────── */}
+            {bias.hint && (
+                <div className="text-xs text-white/85 bg-white/5 border border-white/8 rounded-lg px-3 py-2 leading-snug">
+                    {bias.hint}
                 </div>
+            )}
 
-                {/* V3: Distance / Explanation Line */}
-                <div className="text-[10px] text-zinc-400 text-center font-mono">
-                    {distText}
+            {/* ── NEAR-BUFFER ALERT ───────────────────────────────── */}
+            {isNearBuffer && (
+                <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80 border border-amber-500/20 bg-amber-500/5 rounded px-2 py-1">
+                    <span>⚠</span>
+                    <span>{biasZone === "NEAR_UP" ? "Approaching upper buffer — watch for bullish break" : "Approaching lower buffer — watch for bearish break"}</span>
                 </div>
+            )}
 
-                {/* V3: Low-key regime context */}
-                <div className="text-[9px] text-zinc-600 text-center uppercase tracking-wider">
-                    Regime: {regime}
+            {/* ── LEVEL BAR ───────────────────────────────────────── */}
+            {typeof midnightOpen === 'number' && typeof upperBuffer === 'number' && typeof lowerBuffer === 'number' && (
+                <LevelBar price={price} mid={midnightOpen} upper={upperBuffer} lower={lowerBuffer} />
+            )}
+
+            {/* ── DISTANCE + FLIP ─────────────────────────────────── */}
+            {direction !== "NEUTRAL" && typeof distancePts === 'number' && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] font-mono text-white/45">
+                    <span>
+                        {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} pts from open
+                    </span>
+                    {atrVal > 0 && (
+                        <span className="text-white/30">
+                            {(Math.abs(distancePts) / atrVal).toFixed(2)}× ATR
+                        </span>
+                    )}
+                    {flipConfirmed && (
+                        <span className="text-emerald-400/60">✓ flip confirmed</span>
+                    )}
                 </div>
-            </div>
+            )}
 
-            {/* 3. Inline Levels */}
-            <div className="flex justify-center gap-3 text-[10px] font-mono text-zinc-400 border-t border-white/5 pt-2 mt-1">
-                <span>Mid: {midnightOpen?.toFixed(2)}</span>
-                <span className="text-emerald-500/70">Up: {(midnightOpen + buffer).toFixed(2)}</span>
-                <span className="text-red-500/70">Low: ${(midnightOpen - buffer).toFixed(2)}</span>
-            </div>
+            {/* ── CROSS-INDICATOR CONFLUENCE ──────────────────────── */}
+            {hasCrossContext && (
+                <div className="space-y-1">
+                    <div className="text-[9px] text-white/25 uppercase tracking-widest">Confluence</div>
+                    <div className="flex flex-wrap gap-1">
+                        <ConfluencePill icon="◈" label="TrueOpen" aligned={toAligned} conflict={toConflict} />
+                        <ConfluencePill icon="▣" label={vzLabel ?? "Zone"} aligned={vzAligned} conflict={vzConflict} />
+                        <ConfluencePill icon="▷" label="Structure" aligned={stAligned} conflict={stConflict} />
+                        {typeof confluenceAdj === 'number' && confluenceAdj !== 0 && (
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${confluenceAdj > 0 ? "text-emerald-400/70 border-emerald-500/20" : "text-red-400/70 border-red-500/20"}`}>
+                                {confluenceAdj > 0 ? "+" : ""}{confluenceAdj} pts
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
 
-            {/* 4. Help Toggle (V3 Polish) */}
-            <div className="pt-1 border-t border-white/5 mt-1">
-                <PanelHelp title="Bias Precision V3" bullets={[
-                    "Bias is a FILTER (direction), not an entry trigger.",
-                    "Above UP = bullish filter, below LOW = bearish, inside = neutral.",
-                    "Confidence % = strength (distance + reliability caps).",
-                    "Flip confirmed = 2+ closes beyond opposite buffer."
+            {/* ── HELP ────────────────────────────────────────────── */}
+            <div className="pt-0.5 border-t border-white/5">
+                <PanelHelp title="Bias Precision V4" bullets={[
+                    "Bias is a directional FILTER, not an entry trigger.",
+                    "Score = distance from open (ATR-ratio) + cross-indicator confluence.",
+                    "Confluence: TrueOpen aligned = +5, ValueZone supports = +3, Structure = +4.",
+                    "Conflicts reduce score: structure/TO disagreement = -5 to -8.",
+                    "Near-buffer alert when NEUTRAL but approaching edge.",
+                    "Flip confirmed = 2 closed 15m candles beyond buffer (+10).",
                 ]} />
             </div>
         </div>
