@@ -63,16 +63,18 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Side + displacement */}
+                    <div className="flex items-center gap-1.5">
                         <span className={`text-sm font-bold ${sideColor(side)}`}>{side ?? "—"}</span>
-                        <span className="text-white/20">·</span>
-                        <span className="text-xs text-white/50 font-mono">Open {fmt(openPrice)}</span>
-                        <span className="text-white/20">·</span>
-                        <span className="text-xs text-white/50 font-mono">Now {fmt(currentPrice)}</span>
+                        <span className="text-[11px] text-white/40 font-mono">{ptsFmt(pts)}</span>
+                        {strength && <span className="text-[10px] text-white/30">· {strength}</span>}
                     </div>
-                    <div className="text-[11px] text-white/55 font-mono">
-                        <span>{ptsFmt(pts)}</span>
-                        {strength && <span className="text-white/30 ml-1">· {strength}</span>}
+                    {/* Prices — distinct labeled columns for auditability */}
+                    <div className="grid grid-cols-2 gap-x-2 text-[11px] font-mono">
+                        <span className="text-white/35">Open</span>
+                        <span className="text-white/35">Now</span>
+                        <span className="text-white/80 font-semibold">{fmt(openPrice)}</span>
+                        <span className="text-white/80 font-semibold">{fmt(currentPrice)}</span>
                     </div>
                     {note && <div className="text-[10px] text-amber-400/70 italic">{note}</div>}
                 </>
