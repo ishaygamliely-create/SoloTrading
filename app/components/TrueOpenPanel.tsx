@@ -1,75 +1,124 @@
-import React from 'react';
-import { TrueOpenResult, TrueOpenAlignment, OpenAnchor } from '../lib/trueOpen';
-import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
-import { PanelHelp } from './PanelHelp';
+import React from "react";
+import type { IndicatorSignal } from "@/app/lib/types";
+import type { TrueOpenAlignment } from "@/app/lib/trueOpen";
+import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass } from "@/app/lib/uiSignalStyles";
+import { PanelHelp } from "./PanelHelp";
 
-interface TrueOpenPanelProps {
-    data: any;
-    loading: boolean;
+// ── Helpers ──────────────────────────────────────────────────────
+
+function fmt(n: unknown): string {
+    return typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
+}
+function ptsFmt(n: unknown): string {
+    if (typeof n !== "number" || !Number.isFinite(n)) return "—";
+    return `${n >= 0 ? "+" : ""}${n.toFixed(1)}pts`;
 }
 
-// ── Alignment badge style ──────────────────────────────────────────
-function getAlignmentBadge(alignment: TrueOpenAlignment): { label: string; cls: string } {
-    switch (alignment) {
-        case "ALIGNED_BULL": return { label: "ALIGNED ▲", cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-700/50" };
-        case "ALIGNED_BEAR": return { label: "ALIGNED ▼", cls: "bg-red-900/60 text-red-300 border border-red-700/50" };
-        case "MIXED": return { label: "MIXED", cls: "bg-amber-900/60 text-amber-300 border border-amber-700/50" };
-        case "NEAR": return { label: "NEAR", cls: "bg-zinc-800 text-zinc-400 border border-zinc-700" };
-    }
+function alignmentChip(alignment?: string): string {
+    const base = "px-2 py-0.5 rounded-full text-[10px] font-bold";
+    if (alignment === "ALIGNED_BULL") return `${base} bg-emerald-900/60 text-emerald-300 border border-emerald-700/40`;
+    if (alignment === "ALIGNED_BEAR") return `${base} bg-red-900/60 text-red-300 border border-red-700/40`;
+    if (alignment === "MIXED") return `${base} bg-amber-900/60 text-amber-300 border border-amber-700/40`;
+    return `${base} bg-zinc-800 text-zinc-400 border border-zinc-700`;
 }
 
-// ── Anchor row ─────────────────────────────────────────────────────
-function AnchorRow({ anchor, label }: { anchor: OpenAnchor | null; label: string }) {
-    if (!anchor) {
-        return (
-            <div>
-                <div className="text-white/40 text-[10px] uppercase tracking-wide mb-0.5">{label}</div>
-                <div className="text-white/30 text-xs font-mono">N/A (provider/week data missing)</div>
-            </div>
-        );
-    }
-    const sign = anchor.distancePts >= 0 ? "+" : "";
-    const sideColor =
-        anchor.side === "ABOVE" ? "text-emerald-400" :
-            anchor.side === "BELOW" ? "text-red-400" :
-                "text-zinc-400";
+function alignmentLabel(alignment?: string): string {
+    if (alignment === "ALIGNED_BULL") return "ALIGNED ▲";
+    if (alignment === "ALIGNED_BEAR") return "ALIGNED ▼";
+    if (alignment === "MIXED") return "MIXED";
+    return "NEAR";
+}
+
+function sideColor(side?: string): string {
+    if (side === "ABOVE") return "text-emerald-400";
+    if (side === "BELOW") return "text-red-400";
+    return "text-zinc-400";
+}
+
+// ── AnchorCard ───────────────────────────────────────────────────
+
+interface AnchorCardProps {
+    label: string;
+    openPrice: number | null | undefined;
+    currentPrice: number | null | undefined;
+    side?: string;
+    pts?: number;
+    strength?: string;
+    unavailableReason?: string | null;
+    note?: string | null;
+}
+
+function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unavailableReason, note }: AnchorCardProps) {
+    const isUnavailable = openPrice == null;
     return (
-        <div>
-            <div className="text-white/40 text-[10px] uppercase tracking-wide mb-0.5">{label}</div>
-            <div className={`text-xs font-mono font-semibold ${sideColor}`}>{anchor.side}</div>
-            <div className="text-[11px] text-white/60 font-mono">
-                {sign}{anchor.distancePts.toFixed(1)}pts · {anchor.displacement}
-                {anchor.reclaim && <span className="text-amber-400 ml-1">↩ RECLAIM</span>}
-            </div>
+        <div className="rounded-lg border border-white/8 bg-black/20 p-3 space-y-1.5">
+            <div className="text-[10px] text-white/40 uppercase tracking-wide">{label}</div>
+
+            {isUnavailable ? (
+                <div className="text-xs text-white/40 italic">
+                    N/A
+                    {unavailableReason && (
+                        <span className="text-white/25 ml-1">({unavailableReason} · Day only)</span>
+                    )}
+                </div>
+            ) : (
+                <>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-sm font-bold ${sideColor(side)}`}>{side ?? "—"}</span>
+                        <span className="text-white/20">·</span>
+                        <span className="text-xs text-white/50 font-mono">Open {fmt(openPrice)}</span>
+                        <span className="text-white/20">·</span>
+                        <span className="text-xs text-white/50 font-mono">Now {fmt(currentPrice)}</span>
+                    </div>
+                    <div className="text-[11px] text-white/55 font-mono">
+                        <span>{ptsFmt(pts)}</span>
+                        {strength && <span className="text-white/30 ml-1">· {strength}</span>}
+                    </div>
+                    {note && <div className="text-[10px] text-amber-400/70 italic">{note}</div>}
+                </>
+            )}
         </div>
     );
 }
 
-// ──────────────────────────────────────────────────────────────────
+// ── Main Panel ───────────────────────────────────────────────────
 
-export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
+export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }) {
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24" />;
 
-    const trueOpen = data?.analysis?.trueOpen as TrueOpenResult | undefined;
-    if (!trueOpen || trueOpen.status === 'OFF') return null;
+    const sig = data?.analysis?.trueOpen as IndicatorSignal | undefined;
+    if (!sig || sig.status === "OFF") return null;
 
-    const score = trueOpen.score;
-    const alignment: TrueOpenAlignment = trueOpen.alignment ?? "NEAR";
+    const score = sig.score ?? 0;
     const scoreStyle = getConfidenceColorClass(score);
-    const computedStatus: IndicatorStatus = getStatusFromScore(score);
-    const statusBadgeClass = getStatusBadgeClass(computedStatus);
-    const alignBadge = getAlignmentBadge(alignment);
+    const computedStatus = getStatusFromScore(score);
+    const statusBadge = getStatusBadgeClass(computedStatus);
 
-    const meta = trueOpen.meta;
-    const showReliability = meta && (meta.capApplied || meta.dataAgeMs > 15 * 60_000);
+    const dbg: any = sig.debug ?? {};
+    const meta: any = sig.meta ?? {};
+
+    const alignment = dbg.alignment as TrueOpenAlignment | undefined;
+
+    // Reliability text
+    const reliabilityText = (() => {
+        const src = meta.sourceUsed ?? "—";
+        const ageMin = typeof meta.dataAgeMs === "number" ? Math.round(meta.dataAgeMs / 60000) : null;
+        if (meta.capApplied) {
+            return `${src} · Raw ${meta.rawScore}% → ${meta.finalScore}%${meta.capReason ? ` (${meta.capReason})` : ""}`;
+        }
+        if (ageMin !== null && ageMin > 15) {
+            return `${src} · Age ${ageMin}m`;
+        }
+        return null;
+    })();
 
     return (
         <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
 
-            {/* ── HEADER ──────────────────────────────────────────── */}
+            {/* ── HEADER ─────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-2">
                 <div>
-                    <div className="text-orange-400 font-semibold text-sm tracking-wide">
+                    <div className="text-orange-300 font-semibold tracking-wide text-sm">
                         TRUE OPEN CONTEXT
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
@@ -79,61 +128,77 @@ export function TrueOpenPanel({ data, loading }: TrueOpenPanelProps) {
 
                 <div className="flex flex-col items-end gap-1 shrink-0">
                     <div className="flex gap-1.5 flex-wrap justify-end">
-                        {/* Alignment badge */}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${alignBadge.cls}`}>
-                            {alignBadge.label}
+                        <span className={alignmentChip(alignment)}>
+                            {alignmentLabel(alignment)}
                         </span>
-                        {/* Status badge */}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadge}`}>
                             {computedStatus}
                         </span>
                     </div>
-                    {/* Score = clarity */}
-                    <div className="flex items-baseline gap-1">
-                        <span className={`text-xl font-bold ${scoreStyle.text}`}>{score}%</span>
-                        <span className="text-[9px] text-white/30 font-mono">clarity</span>
+                    <div className={`text-xl font-bold ${scoreStyle.text}`}>
+                        {score}%{" "}
+                        <span className="text-[10px] text-white/30 font-normal">clarity</span>
                     </div>
-                    {/* Reliability row */}
-                    {showReliability && (
-                        <div className="text-[9px] text-white/40 font-mono text-right">
-                            {meta.sourceUsed}
-                            {meta.capApplied
-                                ? ` · Raw ${meta.rawScore}% → ${meta.finalScore}%`
-                                : ` · Age ${Math.round(meta.dataAgeMs / 60000)}m`}
-                            {meta.capReason && <span className="text-white/30"> ({meta.capReason})</span>}
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* ── MACRO CONTEXT ────────────────────────────────────── */}
-            <div className="text-xs text-white/70 italic border-l-2 border-orange-500/40 pl-2">
-                {trueOpen.macroContext ?? trueOpen.hint}
-            </div>
-
-            {/* ── GUIDANCE (value-aware) ────────────────────────────── */}
-            {trueOpen.guidance && (
-                <div className="text-xs text-white/85 bg-white/5 rounded-lg px-3 py-2 border border-white/8 leading-snug">
-                    <span className="text-white/40 text-[10px] uppercase tracking-wide mr-1">Guidance</span>
-                    {trueOpen.guidance}
+            {/* ── RELIABILITY ────────────────────────────────────── */}
+            {reliabilityText && (
+                <div className="text-[10px] text-white/35 font-mono italic">
+                    {reliabilityText}
                 </div>
             )}
 
-            {/* ── ANCHOR GRID ──────────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-3 border-t border-white/8 pt-3">
-                <AnchorRow anchor={trueOpen.dayAnchor} label="Day Open" />
-                <AnchorRow anchor={trueOpen.weekAnchor} label="Week Open" />
+            {/* ── MACRO CONTEXT ──────────────────────────────────── */}
+            {dbg.macroContext && (
+                <div className="text-xs text-white/75 border-l-2 border-orange-400/40 pl-2.5 italic leading-snug">
+                    {dbg.macroContext}
+                </div>
+            )}
+
+            {/* ── GUIDANCE ───────────────────────────────────────── */}
+            {dbg.guidance && (
+                <div className="rounded-lg bg-white/5 border border-white/8 px-3 py-2.5">
+                    <div className="text-[10px] text-white/40 uppercase tracking-wide mb-1">Guidance</div>
+                    <div className="text-xs text-white/85 leading-snug">{dbg.guidance}</div>
+                </div>
+            )}
+
+            {/* ── ANCHOR GRID ────────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-2">
+                <AnchorCard
+                    label="Day Open"
+                    openPrice={dbg.dayOpenPrice}
+                    currentPrice={dbg.currentPrice}
+                    side={dbg.day?.side}
+                    pts={dbg.day?.pts}
+                    strength={dbg.day?.strength}
+                />
+                <AnchorCard
+                    label="Week Open"
+                    openPrice={dbg.weekOpenPrice}
+                    currentPrice={dbg.currentPrice}
+                    side={dbg.week?.side}
+                    pts={dbg.week?.pts}
+                    strength={dbg.week?.strength}
+                    unavailableReason={dbg.weekOpenReason}
+                    note={dbg.weekNote}
+                />
             </div>
 
-            {/* ── HELP ─────────────────────────────────────────────── */}
-            <div className="pt-1 border-t border-white/8">
-                <PanelHelp title="True Open Context" bullets={[
-                    "Score = clarity of macro context, NOT directional strength.",
-                    "High score = strong displacement from open → clear context.",
-                    "ALIGNED = day + week on same side. MIXED = they disagree.",
-                    "Guidance combines macro context with current ValueZone.",
-                    "Not an entry trigger. Use PSP/Liquidity for timing.",
-                ]} />
+            {/* ── HELP ───────────────────────────────────────────── */}
+            <div className="pt-0.5 border-t border-white/8">
+                <PanelHelp
+                    title="True Open Context"
+                    bullets={[
+                        "Score = CLARITY of macro context, NOT directional strength.",
+                        "High clarity = strong displacement from open (relative to ATR14).",
+                        "ALIGNED = day + week on same side. MIXED = disagreement.",
+                        "If WEEK is missing → Day-only mode (not MIXED).",
+                        "Guidance combines macro alignment with ValueZone (Premium/Discount/EQ).",
+                        "Context only: use PSP/Liquidity for entry timing.",
+                    ]}
+                />
             </div>
         </div>
     );

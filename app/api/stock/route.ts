@@ -503,18 +503,49 @@ export async function GET(request: Request) {
 
         const pspResult = detectPSPNew(quotes15m);
 
-        // True Open Engine — pass per-feed metas + valueZone for value-aware guidance
-        const trueOpenSignal = getTrueOpenSignal({
-            lastPrice,
-            trueDayOpen: trueDayOpen || 0,
-            trueWeekOpen: trueWeekOpen ?? null,
-            quotes15m,
-            dayOpenFoundFrom,
-            meta1m,
-            meta5m,
-            meta1d,
+        // True Open Engine V3 — clarity scoring, day-only mode when week missing
+        // Compute ATR14 from 15m candles for the trueOpen engine
+        const atr14ForTrueOpen = (() => {
+            const slice = quotes15m.slice(-15);
+            if (slice.length < 2) return 10;
+            let sum = 0;
+            for (let i = 1; i < slice.length; i++) {
+                sum += Math.max(
+                    slice[i].high - slice[i].low,
+                    Math.abs(slice[i].high - slice[i - 1].close),
+                    Math.abs(slice[i].low - slice[i - 1].close)
+                );
+            }
+            return sum / (slice.length - 1);
+        })();
+        // Select feed meta that produced the Day Open anchor
+        const trueOpenFeedMeta = {
+            sourceUsed: (
+                dayOpenFoundFrom === "1m" ? meta1m.sourceUsed :
+                    dayOpenFoundFrom === "5m" ? meta5m.sourceUsed :
+                        dayOpenFoundFrom === "1d" ? meta1d.sourceUsed :
+                            meta15m.sourceUsed
+            ),
+            lastBarTimeMs: (
+                dayOpenFoundFrom === "1m" ? meta1m.lastBarTimeMs :
+                    dayOpenFoundFrom === "5m" ? meta5m.lastBarTimeMs :
+                        dayOpenFoundFrom === "1d" ? meta1d.lastBarTimeMs :
+                            meta15m.lastBarTimeMs
+            ),
+            fallbackFrom: (
+                dayOpenFoundFrom === "1m" ? meta1m.fallbackFrom :
+                    dayOpenFoundFrom === "5m" ? meta5m.fallbackFrom :
+                        dayOpenFoundFrom === "1d" ? meta1d.fallbackFrom :
+                            meta15m.fallbackFrom
+            ),
             marketStatus: mktStatus,
-            // Passes ValueZone label so trueOpen can give context-aware guidance
+        };
+        const trueOpenSignal = getTrueOpenSignal({
+            currentPrice: lastPrice,
+            atr14: atr14ForTrueOpen,
+            dayOpenPrice: trueDayOpen || null,
+            weekOpenPrice: trueWeekOpen ?? null,
+            feedMeta: trueOpenFeedMeta,
             valueZone: ((valueZoneSignal?.debug as any)?.label as "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null) ?? null,
         });
 
