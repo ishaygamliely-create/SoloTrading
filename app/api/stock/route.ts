@@ -503,7 +503,7 @@ export async function GET(request: Request) {
 
         const pspResult = detectPSPNew(quotes15m);
 
-        // True Open Engine — pass per-feed metas so it picks the one that produced the anchor
+        // True Open Engine — pass per-feed metas + valueZone for value-aware guidance
         const trueOpenSignal = getTrueOpenSignal({
             lastPrice,
             trueDayOpen: trueDayOpen || 0,
@@ -514,6 +514,8 @@ export async function GET(request: Request) {
             meta5m,
             meta1d,
             marketStatus: mktStatus,
+            // Passes ValueZone label so trueOpen can give context-aware guidance
+            valueZone: ((valueZoneSignal?.debug as any)?.label as "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null) ?? null,
         });
 
         // Calculate Liquidity Range using normalized data

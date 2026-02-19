@@ -7,6 +7,11 @@ import { applyReliability, type DataSource } from "@/app/lib/reliability";
 
 export type OpenSide = "ABOVE" | "BELOW" | "NEAR";
 export type Displacement = "WEAK" | "MED" | "STRONG";
+export type TrueOpenAlignment =
+    | "ALIGNED_BULL"    // day ABOVE + week ABOVE
+    | "ALIGNED_BEAR"    // day BELOW + week BELOW
+    | "MIXED"           // day and week disagree, or week N/A with day present
+    | "NEAR";           // day is NEAR buffer — no clear context
 
 export interface OpenAnchor {
     label: "DAY" | "WEEK";
@@ -15,12 +20,15 @@ export interface OpenAnchor {
     distancePts: number;
     side: OpenSide;
     displacement: Displacement;
-    reclaim: boolean; // crossed and held 2 consecutive closes on the other side
+    reclaim: boolean;
 }
 
 export interface TrueOpenResult extends IndicatorSignal {
+    alignment: TrueOpenAlignment;
+    guidance: string;           // value-aware playbook line
+    macroContext: string;       // short one-liner, e.g. "Above Day + Week open → bullish context"
     dayAnchor: OpenAnchor;
-    weekAnchor: OpenAnchor | null; // null if week open unavailable
+    weekAnchor: OpenAnchor | null;
 }
 
 // ============================================================
@@ -38,11 +46,8 @@ export interface FeedMeta {
 // ============================================================
 
 export interface TrueOpenParams {
-    /** Last traded price */
     lastPrice: number;
-    /** RTH Day Open (09:30 NY) — from 1m/5m/daily scan */
     trueDayOpen: number;
-    /** Monday 00:00 NY open — from 1m/5m/daily scan */
     trueWeekOpen: number | null;
     /** 15m candles for ATR14 + reclaim detection */
     quotes15m: Array<{ time: number; open: number; high: number; low: number; close: number }>;
@@ -52,10 +57,12 @@ export interface TrueOpenParams {
     meta1m?: FeedMeta;
     meta5m?: FeedMeta;
     meta1d?: FeedMeta;
-    /** Fallback reliability params (used if per-feed metas not provided) */
+    /** Fallback reliability params (if per-feed metas not provided) */
     lastBarTimeMs?: number;
     source?: DataSource;
     marketStatus?: "OPEN" | "CLOSED";
+    /** ValueZone label from valueZone.ts debug.label ("PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null) */
+    valueZone?: "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null;
 }
 
 // ============================================================
@@ -63,7 +70,7 @@ export interface TrueOpenParams {
 // ============================================================
 
 function calcATR14(quotes: TrueOpenParams["quotes15m"]): number {
-    if (quotes.length < 2) return 10; // fallback for MNQ
+    if (quotes.length < 2) return 10;
     const slice = quotes.slice(-15);
     let sum = 0;
     for (let i = 1; i < slice.length; i++) {
@@ -89,10 +96,6 @@ function classifySide(distancePts: number, bufferPts: number): OpenSide {
     return distancePts > 0 ? "ABOVE" : "BELOW";
 }
 
-/**
- * Reclaim: price crossed the open and held 2 consecutive closes on the other side.
- * We look at the last 6 closes of 15m candles.
- */
 function detectReclaim(
     quotes: TrueOpenParams["quotes15m"],
     openPrice: number,
@@ -100,7 +103,6 @@ function detectReclaim(
 ): boolean {
     if (currentSide === "NEAR" || quotes.length < 6) return false;
     const recent = quotes.slice(-6);
-    // Count consecutive closes on the OPPOSITE side of current side
     const oppositeSide = currentSide === "ABOVE" ? "below" : "above";
     let consecutive = 0;
     for (let i = recent.length - 1; i >= 0; i--) {
@@ -132,39 +134,118 @@ function buildAnchor(
 }
 
 // ============================================================
-// Score rules
+// Clarity Scoring
+// Score represents HOW CLEAR the context is, not HOW BULLISH/BEARISH.
+// High score = strong displacement from anchor → clear macro context.
+// Low score = near anchor → ambiguous context.
 // ============================================================
 
-function calcRawScore(day: OpenAnchor, week: OpenAnchor | null): number {
-    // Both aligned ABOVE
-    if (
-        day.side === "ABOVE" &&
-        (week === null || week.side === "ABOVE")
-    ) {
-        if (day.displacement === "STRONG") return week?.displacement === "STRONG" ? 95 : 85;
-        if (day.displacement === "MED") return 70;
-        return 50;
+function calcClarityScore(
+    day: OpenAnchor,
+    week: OpenAnchor | null,
+    atr: number
+): number {
+    // Base: distance ratio of day open
+    const ratio = Math.abs(day.distancePts) / Math.max(atr, 1);
+
+    let base: number;
+    if (ratio < 0.5) base = 25;
+    else if (ratio < 1.0) base = 45;
+    else if (ratio < 2.0) base = 70;
+    else base = 85;
+
+    // Week bonus/penalty (only if week is present)
+    let weekAdj = 0;
+    if (week !== null && week.side !== "NEAR") {
+        if (week.side === day.side) {
+            weekAdj = +10;  // aligned → context is clearer
+        } else {
+            weekAdj = -10;  // conflicting → context is murkier
+        }
     }
-    // Both aligned BELOW
-    if (
-        day.side === "BELOW" &&
-        (week === null || week.side === "BELOW")
-    ) {
-        if (day.displacement === "STRONG") return week?.displacement === "STRONG" ? 95 : 85;
-        if (day.displacement === "MED") return 70;
-        return 50;
-    }
-    // Mixed
-    if (day.side !== "NEAR" && week && week.side !== "NEAR" && day.side !== week.side) {
-        return 45; // conflicting
-    }
-    // Near / unclear
-    return 25;
+    // Week N/A: no penalty — unavailability is a data issue, not a clarity issue
+
+    return Math.max(25, Math.min(95, base + weekAdj));
 }
 
-function calcDirection(day: OpenAnchor, week: OpenAnchor | null): "LONG" | "SHORT" | "NEUTRAL" {
-    if (day.side === "ABOVE" && (week === null || week.side === "ABOVE")) return "LONG";
-    if (day.side === "BELOW" && (week === null || week.side === "BELOW")) return "SHORT";
+// ============================================================
+// Alignment
+// ============================================================
+
+function calcAlignment(day: OpenAnchor, week: OpenAnchor | null): TrueOpenAlignment {
+    if (day.side === "NEAR") return "NEAR";
+    if (week === null || week.side === "NEAR") {
+        // Week unavailable or near — report based on day only, but mark as MIXED
+        // because we can't confirm multi-anchor alignment
+        return "MIXED";
+    }
+    if (day.side === "ABOVE" && week.side === "ABOVE") return "ALIGNED_BULL";
+    if (day.side === "BELOW" && week.side === "BELOW") return "ALIGNED_BEAR";
+    return "MIXED";
+}
+
+// ============================================================
+// Macro Context Sentence
+// ============================================================
+
+function buildMacroContext(day: OpenAnchor, week: OpenAnchor | null, alignment: TrueOpenAlignment): string {
+    if (alignment === "NEAR") return "Price near open → no clear macro context.";
+    if (alignment === "ALIGNED_BULL") return "Above Day + Week open → bullish macro context.";
+    if (alignment === "ALIGNED_BEAR") return "Below Day + Week open → bearish macro context.";
+    if (alignment === "MIXED") {
+        if (week === null) return `Above Day open → bullish context (week data unavailable).`;
+        return `Day ${day.side}, Week ${week.side} → mixed macro context.`;
+    }
+    return "Unclear macro context.";
+}
+
+// ============================================================
+// Value-Aware Guidance
+// Combines macro alignment with ValueZone location for actionable insight.
+// ============================================================
+
+function buildGuidance(
+    alignment: TrueOpenAlignment,
+    valueZone: "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null | undefined
+): string {
+    const macro: "BULL" | "BEAR" | "NEAR" | "MIXED" =
+        alignment === "ALIGNED_BULL" ? "BULL" :
+            alignment === "ALIGNED_BEAR" ? "BEAR" :
+                alignment === "NEAR" ? "NEAR" : "MIXED";
+
+    if (macro === "BULL" && valueZone === "PREMIUM")
+        return "Bullish context, but price is PREMIUM → wait for pullback into DISCOUNT for longs.";
+    if (macro === "BULL" && valueZone === "DISCOUNT")
+        return "Bullish context + DISCOUNT → long setups have better location.";
+    if (macro === "BULL" && valueZone === "EQUILIBRIUM")
+        return "Bullish context at EQ → wait for displacement before committing.";
+    if (macro === "BULL")
+        return "Bullish context → bias longs, confirm with PSP/Liquidity.";
+
+    if (macro === "BEAR" && valueZone === "DISCOUNT")
+        return "Bearish context, but price is DISCOUNT → wait for rally into PREMIUM for shorts.";
+    if (macro === "BEAR" && valueZone === "PREMIUM")
+        return "Bearish context + PREMIUM → short setups have better location.";
+    if (macro === "BEAR" && valueZone === "EQUILIBRIUM")
+        return "Bearish context at EQ → wait for displacement before committing.";
+    if (macro === "BEAR")
+        return "Bearish context → bias shorts, confirm with PSP/Liquidity.";
+
+    if (macro === "MIXED")
+        return "Mixed day/week context → reduce size, wait for alignment.";
+
+    // NEAR
+    return "Near open / unclear → treat as neutral context. No directional bias.";
+}
+
+// ============================================================
+// Direction (kept for backward compatibility with confluence engine)
+// Derived from alignment, not from score.
+// ============================================================
+
+function calcDirection(alignment: TrueOpenAlignment): "LONG" | "SHORT" | "NEUTRAL" {
+    if (alignment === "ALIGNED_BULL") return "LONG";
+    if (alignment === "ALIGNED_BEAR") return "SHORT";
     return "NEUTRAL";
 }
 
@@ -173,31 +254,27 @@ function calcDirection(day: OpenAnchor, week: OpenAnchor | null): "LONG" | "SHOR
 // ============================================================
 
 export function getTrueOpenSignal(params: TrueOpenParams): TrueOpenResult {
-    const { lastPrice, trueDayOpen, trueWeekOpen, quotes15m } = params;
+    const { lastPrice, trueDayOpen, trueWeekOpen, quotes15m, valueZone } = params;
 
-    // Fallback: if no day open, return OFF
-    if (!trueDayOpen || trueDayOpen === 0) {
-        return {
-            status: "OFF",
-            direction: "NEUTRAL",
-            score: 0,
-            hint: "Day open unavailable",
-            debug: { factors: ["No trueDayOpen data"] },
-            dayAnchor: {
-                label: "DAY",
-                openPrice: 0,
-                lastPrice,
-                distancePts: 0,
-                side: "NEAR",
-                displacement: "WEAK",
-                reclaim: false,
-            },
-            weekAnchor: null,
-        };
-    }
+    const offResult = (hint: string): TrueOpenResult => ({
+        status: "OFF",
+        direction: "NEUTRAL",
+        alignment: "NEAR",
+        guidance: "No anchor data — context unavailable.",
+        macroContext: hint,
+        score: 0,
+        hint,
+        debug: { factors: [hint] },
+        dayAnchor: {
+            label: "DAY", openPrice: 0, lastPrice,
+            distancePts: 0, side: "NEAR", displacement: "WEAK", reclaim: false,
+        },
+        weekAnchor: null,
+    });
+
+    if (!trueDayOpen || trueDayOpen === 0) return offResult("Day open unavailable");
 
     const atr = calcATR14(quotes15m);
-    // Adaptive buffer: ATR14 * 0.15, min 3pts for MNQ
     const bufferPts = Math.max(atr * 0.15, 3);
 
     const dayAnchor = buildAnchor("DAY", trueDayOpen, lastPrice, atr, bufferPts, quotes15m);
@@ -205,18 +282,20 @@ export function getTrueOpenSignal(params: TrueOpenParams): TrueOpenResult {
         ? buildAnchor("WEEK", trueWeekOpen, lastPrice, atr, bufferPts, quotes15m)
         : null;
 
-    const rawScore = calcRawScore(dayAnchor, weekAnchor);
-    const direction = calcDirection(dayAnchor, weekAnchor);
+    // Clarity score (not directional strength)
+    const rawScore = calcClarityScore(dayAnchor, weekAnchor, atr);
 
-    // ── Pick the feed meta that produced the Day Open anchor ──
-    // dayOpenFoundFrom tells us which feed was used for the anchor scan.
-    // We use that feed's meta for reliability (sourceUsed + lastBarTimeMs).
+    const alignment = calcAlignment(dayAnchor, weekAnchor);
+    const direction = calcDirection(alignment);
+    const macroContext = buildMacroContext(dayAnchor, weekAnchor, alignment);
+    const guidance = buildGuidance(alignment, valueZone);
+
+    // ── Feed meta: pick the feed that produced the Day Open anchor ──
     const dayOpenFoundFrom = params.dayOpenFoundFrom ?? "none";
     const anchorMeta: FeedMeta =
         dayOpenFoundFrom === "1m" && params.meta1m ? params.meta1m :
             dayOpenFoundFrom === "5m" && params.meta5m ? params.meta5m :
                 dayOpenFoundFrom === "1d" && params.meta1d ? params.meta1d :
-                    // Fallback: use legacy params or 15m last bar
                     {
                         sourceUsed: params.source ?? "YAHOO",
                         lastBarTimeMs: params.lastBarTimeMs
@@ -237,25 +316,31 @@ export function getTrueOpenSignal(params: TrueOpenParams): TrueOpenResult {
 
     const finalScore = reliability.finalScore;
 
-    // Hint
+    // Build hint
     const dayLabel = `Day: ${dayAnchor.side} (${dayAnchor.distancePts > 0 ? "+" : ""}${dayAnchor.distancePts.toFixed(1)}pts, ${dayAnchor.displacement})`;
     const weekLabel = weekAnchor
         ? ` | Week: ${weekAnchor.side} (${weekAnchor.distancePts > 0 ? "+" : ""}${weekAnchor.distancePts.toFixed(1)}pts)`
-        : "";
+        : " | Week: N/A";
     const hint = dayLabel + weekLabel;
 
     const factors: string[] = [
+        `Alignment: ${alignment}`,
         `Day Open: ${dayAnchor.side} | ${dayAnchor.displacement} displacement`,
     ];
     if (weekAnchor) factors.push(`Week Open: ${weekAnchor.side} | ${weekAnchor.displacement} displacement`);
+    else factors.push("Week Open: N/A (provider/week data missing)");
     if (dayAnchor.reclaim) factors.push("Day Open reclaim detected");
     if (weekAnchor?.reclaim) factors.push("Week Open reclaim detected");
+    if (valueZone) factors.push(`ValueZone: ${valueZone}`);
     if (reliability.capApplied) factors.push(`${src} cap: ${rawScore} → ${Math.round(finalScore)}`);
     if (dayOpenFoundFrom !== "none") factors.push(`Anchor from: ${dayOpenFoundFrom}`);
 
     return {
         status: "OK",
         direction,
+        alignment,
+        guidance,
+        macroContext,
         score: Math.round(finalScore),
         hint,
         debug: {
