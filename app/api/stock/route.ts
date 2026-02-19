@@ -145,32 +145,38 @@ export async function GET(request: Request) {
             if (today) { trueDayOpen = today.open; dayOpenFoundFrom = "1d"; }
         }
 
-        // --- TRUE WEEK OPEN: earliest Monday bar in NY time ---
-        // Scan backwards through intraday to find ALL Monday bars, keep the earliest open
+        // --- TRUE WEEK OPEN: first trading bar of the current week ---
+        // Handles holiday Mondays (e.g. Presidents' Day): finds earliest bar Mon–Fri of THIS week.
+        // Strategy: estimate "this Monday 00:00 NY" using current weekday, then find the
+        // first bar on or after that time (skipping Sat/Sun).
         const intradayForWeek = quotes1m.length > 0 ? quotes1m : quotes5m;
-        let foundMondayOpen: number | null = null;
-        for (let i = intradayForWeek.length - 1; i >= 0; i--) {
-            // Don't scan more than 7 days back
-            if (Date.now() / 1000 - intradayForWeek[i].time > 7 * 24 * 3600) break;
-            const p = getNyParts(intradayForWeek[i].time);
-            if (p.weekday === 'Mon') {
-                // Keep going back — the earliest Monday bar open = week open
-                foundMondayOpen = intradayForWeek[i].open;
-            } else if (foundMondayOpen !== null) {
-                // We were on Monday, now moved to Sunday (going backwards) → stop
+        const weekdayToIdx: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+        const tradingDays = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+        const nowSec = Math.floor(Date.now() / 1000);
+        const nowWeekday = getNyParts(nowSec).weekday;
+        // Days elapsed since Monday (Mon=0, Tue=1, ..., Fri=4; Sat/Sun fall to next)
+        const daysFromMon = Math.max(0, (weekdayToIdx[nowWeekday] ?? 1) - 1);
+        // Approximate start of week (Monday) — 1 day extra buffer for timezone drift
+        const weekStartApproxSec = nowSec - (daysFromMon + 1) * 86400;
+
+        // Scan forward: first bar on or after weekStartApproxSec that is Mon–Fri
+        for (let i = 0; i < intradayForWeek.length; i++) {
+            const bar = intradayForWeek[i];
+            if (bar.time < weekStartApproxSec) continue;
+            const p = getNyParts(bar.time);
+            if (tradingDays.has(p.weekday)) {
+                trueWeekOpen = bar.open;
                 break;
             }
         }
-        if (foundMondayOpen !== null) {
-            trueWeekOpen = foundMondayOpen;
-        }
-        // Fallback: daily candle scan for Monday (Yahoo daily usually has full history)
+        // Fallback: daily candles (same approach — first trading day of current week)
         if (trueWeekOpen === null && quotesDaily.length > 0) {
-            for (let i = quotesDaily.length - 1; i >= 0; i--) {
-                if (Date.now() / 1000 - quotesDaily[i].time > 7 * 24 * 3600) break;
-                const p = getNyParts(quotesDaily[i].time);
-                if (p.weekday === 'Mon') {
-                    trueWeekOpen = quotesDaily[i].open;
+            for (let i = 0; i < quotesDaily.length; i++) {
+                const bar = quotesDaily[i];
+                if (bar.time < weekStartApproxSec) continue;
+                const p = getNyParts(bar.time);
+                if (tradingDays.has(p.weekday)) {
+                    trueWeekOpen = bar.open;
                     break;
                 }
             }
