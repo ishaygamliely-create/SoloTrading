@@ -68,92 +68,98 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     // ===== Direction label refinement in TRANSITION =====
     const directionLabel =
         regime === "TRANSITION" && (direction === "LONG" || direction === "SHORT")
-            ? `${direction} (Developing)`
+            ? `${direction} (Dev)`
             : direction;
 
     return (
         <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
-            {/* HEADER */}
-            <div className="flex items-start justify-between min-w-0">
-                <div className="min-w-0 flex flex-col gap-1">
-                    <div className="text-blue-400 font-semibold tracking-wide text-sm flex items-center gap-2">
-                        STRUCTURE
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                        {strength && (
-                            <span className={`text-[10px] px-1.5 rounded border ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                                    strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                                        "text-zinc-400 border-zinc-700 bg-zinc-800"
-                                }`}>
-                                {strength}
-                            </span>
-                        )}
-                        {/* New Volume Badge - Now on its own line if needed, or wrapped nicely */}
-                        {volumeState && volumeState !== "NEUTRAL" && (
-                            <span className={`text-[10px] px-1.5 rounded border ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                                    "text-rose-400 border-rose-500/30 bg-rose-500/10"
-                                }`}>
-                                {volumeState === "CONFIRMATION" ? "VOL CONFIRMED" : "VOL DIVERGENCE"}
-                            </span>
-                        )}
+            {/* HEADER GRID: 2 Rows */}
+            <div className="space-y-2">
+                {/* ROW 1: Title + Context + Score */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="text-blue-400 font-bold tracking-wide text-sm">
+                            STRUCTURE
+                        </div>
                         <div className="text-xs text-white/50 font-mono">
                             {regime || "—"}
                         </div>
                     </div>
+                    <div className={`text-2xl font-bold ${scoreStyle.text}`}>{score}%</div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                    <div className="flex gap-2">
+                {/* ROW 2: Badges (Strength / Volume / Direction / Status) */}
+                <div className="flex flex-wrap gap-2 items-center">
+                    {/* Strength Badge */}
+                    {strength && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                                strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                                    "text-zinc-400 border-zinc-700 bg-zinc-800"
+                            }`}>
+                            {strength}
+                        </span>
+                    )}
+                    {/* Volume Badge */}
+                    {volumeState && volumeState !== "NEUTRAL" && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                                "text-rose-400 border-rose-500/30 bg-rose-500/10"
+                            }`}>
+                            {volumeState === "CONFIRMATION" ? "VOL 20" : "DIV 20"}
+                        </span>
+                    )}
+
+                    <div className="flex-1" />
+
+                    {/* Direction & Status */}
+                    <div className="flex gap-1.5 items-center">
                         <span
                             className={getDirectionBadgeClass({
                                 direction,
                                 score,
                                 status: computedStatus,
-                            })}
+                            }) + " text-[10px] px-2 py-0.5"}
                         >
                             {directionLabel}
                         </span>
 
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
                             {computedStatus}
                         </span>
                     </div>
-
-                    <div className={`text-lg font-bold ${scoreStyle.text}`}>{score}%</div>
                 </div>
             </div>
 
             {/* PLAYBOOK */}
-            <div className="text-sm text-white/80 leading-tight">
+            <div className="text-sm text-white/80 leading-tight border-t border-white/5 pt-2">
                 <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">Playbook</div>
-                <span className="text-white/90 font-semibold">
+                <span className="text-white/90 font-medium">
                     {playbook || "—"}
                 </span>
             </div>
 
-            {/* CONTEXT ROW */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/60 border-t border-white/10 pt-2 font-mono">
-                <div className="flex gap-1.5">
-                    <span>Bias:</span>
+            {/* CONTEXT GRID: 2 Columns */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/60 border-t border-white/10 pt-2 font-mono">
+                <div className="flex justify-between">
+                    <span>Bias</span>
                     <span className={bias === "LONG" ? "text-emerald-400" : bias === "SHORT" ? "text-red-400" : "text-zinc-400"}>
                         {bias || "—"}
                     </span>
                 </div>
-                <div className="flex gap-1.5">
-                    <span>Spread:</span>
+                <div className="flex justify-between">
+                    <span>Spread</span>
                     <span className={typeof emaSpreadPct === 'number' && emaSpreadPct > 0.05 ? "text-white/90" : "text-white/50"}>
                         {typeof emaSpreadPct === "number" ? `${emaSpreadPct.toFixed(3)}%` : "—"}
                     </span>
                 </div>
-                <div className="flex gap-1.5">
-                    <span>ADX:</span>
+                <div className="flex justify-between">
+                    <span>ADX</span>
                     <span className={typeof adx === 'number' && adx > 25 ? "text-amber-400" : "text-white/50"}>
                         {typeof adx === "number" ? adx.toFixed(1) : "—"}
                     </span>
                 </div>
                 {obvSlope !== undefined && Math.abs(obvSlope) > 0 && (
-                    <div className="flex gap-1.5">
-                        <span>OBV:</span>
+                    <div className="flex justify-between">
+                        <span>OBV Slope</span>
                         <span className={volumeState === "CONFIRMATION" ? "text-emerald-400" : volumeState === "DIVERGENCE" ? "text-rose-400" : "text-white/50"}>
                             {obvSlope > 0 ? "+" : ""}{obvSlope.toFixed(0)}
                         </span>
