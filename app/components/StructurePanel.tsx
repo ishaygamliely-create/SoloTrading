@@ -75,9 +75,11 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
         <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
             {/* HEADER */}
             <div className="flex items-start justify-between min-w-0">
-                <div className="min-w-0">
+                <div className="min-w-0 flex flex-col gap-1">
                     <div className="text-blue-400 font-semibold tracking-wide text-sm flex items-center gap-2">
                         STRUCTURE
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                         {strength && (
                             <span className={`text-[10px] px-1.5 rounded border ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
                                     strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
@@ -86,7 +88,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                                 {strength}
                             </span>
                         )}
-                        {/* New Volume Badge */}
+                        {/* New Volume Badge - Now on its own line if needed, or wrapped nicely */}
                         {volumeState && volumeState !== "NEUTRAL" && (
                             <span className={`text-[10px] px-1.5 rounded border ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
                                     "text-rose-400 border-rose-500/30 bg-rose-500/10"
@@ -94,13 +96,13 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                                 {volumeState === "CONFIRMATION" ? "VOL CONFIRMED" : "VOL DIVERGENCE"}
                             </span>
                         )}
-                    </div>
-                    <div className="text-xs text-white/50 mt-0.5 font-mono">
-                        {regime || "—"}
+                        <div className="text-xs text-white/50 font-mono">
+                            {regime || "—"}
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                     <div className="flex gap-2">
                         <span
                             className={getDirectionBadgeClass({
@@ -112,7 +114,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                             {directionLabel}
                         </span>
 
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusBadgeClass}`}>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
                             {computedStatus}
                         </span>
                     </div>
