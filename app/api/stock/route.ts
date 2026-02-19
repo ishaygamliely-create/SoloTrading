@@ -636,6 +636,7 @@ export async function GET(request: Request) {
             ...safeMeta,
             symbol: safeMeta.symbol || symbol,
             price: lastPrice,
+            regularMarketPrice: lastPrice, // Fallback for UI display when quote is missing
             trueDayOpen: trueDayOpen || (quotes1m.length > 0 ? quotes1m[0].open : 0),
             levels: {
                 trueDayOpen: trueDayOpen || (quotes1m.length > 0 ? quotes1m[0].open : 0),
