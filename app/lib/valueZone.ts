@@ -1,5 +1,6 @@
 import type { IndicatorSignal } from "@/app/lib/types";
 import { applyReliability, type DataSource } from "@/app/lib/reliability";
+import type { DXYContext } from "@/app/lib/macro";
 
 interface ValueZoneParams {
     price: number;
@@ -10,10 +11,11 @@ interface ValueZoneParams {
     lastBarTimeMs?: number;
     source?: DataSource;
     marketStatus?: "OPEN" | "CLOSED";
+    dxy?: DXYContext | null; // Added DXY Context
 }
 
 export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
-    const { price, pdh, pdl, session, dataStatus } = params;
+    const { price, pdh, pdl, session, dataStatus, dxy } = params;
 
     // 1. Check Data Status & Range Validity
     if (dataStatus === "BLOCKED" || dataStatus === "CLOSED") {
@@ -88,15 +90,52 @@ export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
         hint = "Premium: prefer shorts / look for short confirmations.";
     }
 
-    // 4. Session Soft Impact
+    // 4. DXY Correlation Logic (Value V2)
+    let dxyState: "SUPPORT" | "HEADWIND" | "NEUTRAL" = "NEUTRAL";
+    let dxyText = "";
+
+    if (dxy && dxy.trend !== "NEUTRAL") {
+        const dxyBullish = dxy.trend === "BULLISH"; // DXY Up = Bearish for Stocks
+        const dxyBearish = dxy.trend === "BEARISH"; // DXY Down = Bullish for Stocks
+
+        if (direction === "LONG") {
+            if (dxyBearish) {
+                score += 15;
+                dxyState = "SUPPORT";
+                factors.push("DXY Bearish (Tailwind for Longs) (+15)");
+                dxyText = `DXY ${dxy.price.toFixed(2)} ↘`;
+            } else if (dxyBullish) {
+                score -= 10;
+                dxyState = "HEADWIND";
+                status = "WARN"; // Downgrade confidence on divergence
+                factors.push("DXY Bullish (Headwind for Longs) (-10)");
+                dxyText = `DXY ${dxy.price.toFixed(2)} ↗`;
+            }
+        } else if (direction === "SHORT") {
+            if (dxyBullish) {
+                score += 15;
+                dxyState = "SUPPORT";
+                factors.push("DXY Bullish (Tailwind for Shorts) (+15)");
+                dxyText = `DXY ${dxy.price.toFixed(2)} ↗`;
+            } else if (dxyBearish) {
+                score -= 10;
+                dxyState = "HEADWIND";
+                status = "WARN"; // Downgrade confidence on divergence
+                factors.push("DXY Bearish (Headwind for Shorts) (-10)");
+                dxyText = `DXY ${dxy.price.toFixed(2)} ↘`;
+            }
+        }
+    }
+
+    // 5. Session Soft Impact
     const isOffHours = session.score <= 20;
     if (isOffHours && score > 0) { // Only reduce if active
         score -= 15;
-        status = "WARN";
+        if (status === "OK") status = "WARN";
         factors.push("Off-hours: score reduced (-15)");
     }
 
-    // 5. Reliability
+    // 6. Reliability
     const rawScore = Math.max(0, Math.min(100, score));
     const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000);
     const src = params.source ?? "YAHOO";
@@ -123,7 +162,9 @@ export function getValueZoneSignal(params: ValueZoneParams): IndicatorSignal {
             factors,
             label: zoneLabel,
             percentInRange: percentInRange.toFixed(1),
-            pdh, pdl, eq
+            pdh, pdl, eq,
+            dxyState, // Export DXY state for UI
+            dxyText   // Export DXY text for UI
         },
         meta: {
             rawScore: Math.round(rawScore),

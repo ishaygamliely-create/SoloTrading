@@ -443,6 +443,7 @@ export async function GET(request: Request) {
             lastBarTimeMs: lastBar15mMs,          // valueZone uses 15m
             source: meta15m.sourceUsed,
             marketStatus: mktStatus,
+            dxy: dxyContext, // Value V2: Pass DXY Context
         });
         // Transparency: note if PDH/PDL (daily) came from a different source than current price (15m)
         if (meta1d.sourceUsed !== meta15m.sourceUsed) {

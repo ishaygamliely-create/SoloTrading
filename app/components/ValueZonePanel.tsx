@@ -69,18 +69,36 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
 
             {/* 3. Data Visualization */}
             <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-white/5 rounded p-2 border border-white/5">
+                <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-between">
                     <div className="text-zinc-500 font-bold uppercase">Zone</div>
                     <div className="text-white font-mono">{label ?? 'UNKNOWN'}</div>
                 </div>
-                <div className="bg-white/5 rounded p-2 border border-white/5">
+                <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-between">
                     <div className="text-zinc-500 font-bold uppercase">Position</div>
-                    <div className="text-white font-mono">{percentInRange}% of Range</div>
+                    <div className="text-white font-mono">{Number(percentInRange).toFixed(1)}% of Range</div>
                 </div>
             </div>
 
+            {/* DXY Correlation Section (Value V2) */}
+            {valueZone.debug && (valueZone.debug as any).dxyState !== "NEUTRAL" && (
+                <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+                    <span className="text-zinc-500 font-medium">Correlation</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-white/60 font-mono text-[10px]">
+                            {(valueZone.debug as any).dxyText}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold border ${(valueZone.debug as any).dxyState === "SUPPORT"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            }`}>
+                            {(valueZone.debug as any).dxyState === "SUPPORT" ? "TAILWIND" : "HEADWIND"}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Levels */}
-            <div className="flex justify-between px-1 text-[9px] text-zinc-600 font-mono">
+            <div className="flex justify-between px-1 pt-1 text-[9px] text-zinc-600 font-mono">
                 <span>PDL: {Number(pdl)?.toFixed(2)}</span>
                 <span>EQ: {Number(eq)?.toFixed(2)}</span>
                 <span>PDH: {Number(pdh)?.toFixed(2)}</span>
