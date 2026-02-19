@@ -218,7 +218,7 @@ function buildGuidance(
     if (macro === "BULL" && valueZone === "DISCOUNT")
         return "Bullish context + DISCOUNT → long setups have better location.";
     if (macro === "BULL" && valueZone === "EQUILIBRIUM")
-        return "Bullish context at EQ → wait for displacement before committing.";
+        return "Bullish macro but mid-range: prefer pullback to DISCOUNT or wait for PSP trigger.";
     if (macro === "BULL")
         return "Bullish context → bias longs, confirm with PSP/Liquidity.";
 
@@ -227,14 +227,18 @@ function buildGuidance(
     if (macro === "BEAR" && valueZone === "PREMIUM")
         return "Bearish context + PREMIUM → short setups have better location.";
     if (macro === "BEAR" && valueZone === "EQUILIBRIUM")
-        return "Bearish context at EQ → wait for displacement before committing.";
+        return "Bearish macro but mid-range: prefer rally to PREMIUM or wait for PSP trigger.";
     if (macro === "BEAR")
         return "Bearish context → bias shorts, confirm with PSP/Liquidity.";
 
+    if (macro === "MIXED" && valueZone === "EQUILIBRIUM")
+        return "Neutral mid-range: wait for alignment / PSP trigger.";
     if (macro === "MIXED")
         return "Mixed day/week context → reduce size, wait for alignment.";
 
     // NEAR
+    if (valueZone === "EQUILIBRIUM")
+        return "Neutral mid-range: wait for alignment / PSP trigger.";
     return "Near open / unclear → treat as neutral context. No directional bias.";
 }
 
