@@ -190,17 +190,40 @@ export default function Home() {
               {/* 1. CHART AREA (Col-span-3) */}
               <div className="lg:col-span-3 space-y-4">
                 {/* Price Header inside Chart Area for visibility */}
-                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                  <div>
-                    <div className="text-zinc-500 text-xs uppercase tracking-wider">Current Price</div>
+                <div className="relative bg-zinc-900/80 border border-zinc-800 p-4 rounded-xl flex justify-between items-center overflow-hidden backdrop-blur-md">
+                  {/* Background Gradient Effect */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+                        {data.symbol || symbol}  {/* Fallback to state symbol if data empty */}
+                      </span>
+                      <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide">Live</span>
+                      </div>
+                    </div>
+
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-white">{data.regularMarketPrice?.toFixed(2)}</span>
-                      <span className="text-sm text-zinc-400">{data.currency}</span>
+                      <span className="text-4xl md:text-5xl font-black text-white tracking-tight tabular-nums">
+                        {data.regularMarketPrice?.toFixed(2) ?? '---'}
+                      </span>
+                      <span className="text-sm font-medium text-zinc-500">{data.currency || 'USD'}</span>
                     </div>
                   </div>
-                  <div className="text-right text-xs text-zinc-500">
-                    <div>Daily Open: {data.trueDayOpen?.toFixed(2)}</div>
-                    <div>Prev Close: {data.previousClose?.toFixed(2)}</div>
+
+                  <div className="relative z-10 flex flex-col gap-1 text-right">
+                    <div className="flex md:flex-row flex-col gap-2">
+                      <div className="flex flex-col items-end px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold">Open</span>
+                        <span className="text-sm font-mono font-medium text-blue-200">{data.trueDayOpen?.toFixed(2) ?? '-'}</span>
+                      </div>
+                      <div className="flex flex-col items-end px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold">Prev Close</span>
+                        <span className="text-sm font-mono font-medium text-zinc-400">{data.previousClose?.toFixed(2) ?? '-'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
