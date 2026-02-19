@@ -2,6 +2,8 @@ import type { IndicatorSignal } from "@/app/lib/types";
 import { Quote } from "@/app/lib/analysis";
 import { applyReliability, type DataSource } from "@/app/lib/reliability";
 
+export type StructureStrength = "WEAK" | "MODERATE" | "STRONG";
+
 // ADX Calculation (Wilder's Smoothing)
 function calculateADX(quotes: Quote[], period = 14): number | null {
     if (quotes.length < period * 2) return null;
@@ -80,6 +82,51 @@ function calculateEMA(values: number[], period: number): number[] {
     return result;
 }
 
+// OBV Calculation & Slope
+function calculateOBV(quotes: Quote[]): number[] {
+    if (quotes.length < 2) return [];
+    let obv = 0;
+    const result: number[] = [0];
+
+    for (let i = 1; i < quotes.length; i++) {
+        const curr = quotes[i];
+        const prev = quotes[i - 1];
+        if (curr.close > prev.close) {
+            obv += curr.volume;
+        } else if (curr.close < prev.close) {
+            obv -= curr.volume;
+        }
+        result.push(obv);
+    }
+    return result;
+}
+
+// Linear Regression Slope (for last N periods)
+function calculateSlope(values: number[], period: number): number {
+    if (values.length < period) return 0;
+    const slice = values.slice(-period);
+    const n = slice.length;
+
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += slice[i];
+        sumXY += i * slice[i];
+        sumXX += i * i;
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    return slope;
+}
+
+// EMA spread-based alignment score (replaces flat +25)
+function emaAlignmentScore(spreadPct: number): number {
+    if (spreadPct < 0.02) return 10;  // barely misaligned
+    if (spreadPct < 0.05) return 20;
+    if (spreadPct < 0.10) return 28;
+    return 35;                          // strongly aligned
+}
+
 interface StructureParams {
     quotes: Quote[];
     dataStatus: "OK" | "DELAYED" | "BLOCKED" | "CLOSED";
@@ -119,41 +166,59 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
 
     const lastEMA20 = ema20Arr[ema20Arr.length - 1];
     const lastEMA50 = ema50Arr[ema50Arr.length - 1];
+    const lastClose = closes[closes.length - 1];
 
     // Direction tolerance (avoid noise when EMAs are basically equal)
     const emaDiff = lastEMA20 - lastEMA50;
-    const tol = Math.max(0.5, Math.abs(closes[closes.length - 1]) * 0.00002); // ~0.002% or 0.5 pts fallback
+    const tol = Math.max(0.5, Math.abs(lastClose) * 0.00002);
+    const emaSpreadPct = (Math.abs(emaDiff) / lastClose) * 100;
 
     const structureDirection: "LONG" | "SHORT" | "NEUTRAL" =
         Math.abs(emaDiff) <= tol ? "NEUTRAL" : emaDiff > 0 ? "LONG" : "SHORT";
 
-    // --- REGIME ---
+    // ── OBV (VOLUME) LOGIC ────────────────────────────────────────
+    const obvArr = calculateOBV(quotes);
+    // Calculate normalized slope (relative to range) to make it scale-independent
+    const obvSlopeRaw = calculateSlope(obvArr, 20);
+    // Simple heuristic: Is OBV trending up or down over last 20 bars?
+    const obvDirection = Math.abs(obvSlopeRaw) < 100 ? "NEUTRAL" : obvSlopeRaw > 0 ? "LONG" : "SHORT";
+
+    // Check for Divergence
+    let volumeState: "CONFIRMATION" | "DIVERGENCE" | "NEUTRAL" = "NEUTRAL";
+    if (structureDirection !== "NEUTRAL" && obvDirection !== "NEUTRAL") {
+        if (structureDirection === obvDirection) volumeState = "CONFIRMATION";
+        else volumeState = "DIVERGENCE";
+    }
+
+    // ── REGIME ────────────────────────────────────────────────────
     let regime: "TRENDING" | "TRANSITION" | "RANGING";
     if (adx !== null && adx >= 25) regime = "TRENDING";
     else if (adx !== null && adx >= 20) regime = "TRANSITION";
     else regime = "RANGING";
 
-    // --- SCORING (0-100) ---
+    // ── SCORING ──────────────────────────────────────────────────
     let score = 0;
-    const breakdown = { trend: 0, ema: 0, bias: 0 };
+    const breakdown = { trend: 0, ema: 0, bias: 0, volume: 0 };
 
-    // 1) Trend strength (ADX)
+    // 1) Trend strength (ADX) — tiered
     if (adx !== null) {
-        if (adx >= 30) breakdown.trend = 45;
-        else if (adx >= 25) breakdown.trend = 40;
-        else if (adx >= 20) breakdown.trend = 25;
-        else breakdown.trend = 15;
+        if (adx >= 35) breakdown.trend = 40; // Adjusted down to make room for volume
+        else if (adx >= 30) breakdown.trend = 35;
+        else if (adx >= 25) breakdown.trend = 28;
+        else if (adx >= 20) breakdown.trend = 15;
+        else breakdown.trend = 8;
         score += breakdown.trend;
     } else {
-        // If ADX is missing, be conservative
-        breakdown.trend = 10;
+        breakdown.trend = 8;
         score += breakdown.trend;
     }
 
-    // 2) EMA alignment quality (only if not NEUTRAL)
+    // 2) EMA alignment quality — spread magnitude matters
     if (structureDirection !== "NEUTRAL") {
-        breakdown.ema = 25;
+        breakdown.ema = emaAlignmentScore(emaSpreadPct);
         score += breakdown.ema;
+    } else {
+        score += 5;
     }
 
     // 3) Bias alignment bonus
@@ -163,9 +228,34 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
         score += breakdown.bias;
     }
 
-    // --- RELIABILITY ---
-    const rawScore = Math.min(score, 100);
-    const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000); // fallback: assume 20min old
+    // 4) Volume Confirmation (New in V3)
+    if (volumeState === "CONFIRMATION") {
+        breakdown.volume = 15;
+        score += 15;
+    } else if (volumeState === "DIVERGENCE") {
+        breakdown.volume = -15; // Penalty for divergence (fake move)
+        score -= 15;
+    }
+
+    // ── STRUCTURE STRENGTH ────────────────────────────────────────
+    let structureStrength: StructureStrength;
+    if (
+        (score >= 75) ||
+        (adx !== null && adx >= 30 && emaSpreadPct >= 0.05 && volumeState === "CONFIRMATION")
+    ) {
+        structureStrength = "STRONG";
+    } else if (
+        (score >= 45) ||
+        (regime === "TRENDING" && volumeState !== "DIVERGENCE")
+    ) {
+        structureStrength = "MODERATE";
+    } else {
+        structureStrength = "WEAK";
+    }
+
+    // ── RELIABILITY ───────────────────────────────────────────────
+    const rawScore = Math.max(0, Math.min(score, 100)); // Clamp 0-100
+    const lastBarMs = params.lastBarTimeMs ?? (Date.now() - 20 * 60_000);
     const src = params.source ?? "YAHOO";
     const mktStatus = params.marketStatus ?? "OPEN";
 
@@ -178,18 +268,23 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
 
     const finalScore = reliability.finalScore;
 
-    // --- STATUS (GLOBAL LAW: derived from finalScore only) ---
+    // ── STATUS ────────────────────────────────────────────────────
     let status: "WARN" | "OK" | "STRONG" | "OFF" | "ERROR" = "WARN";
     if (finalScore >= 75) status = "STRONG";
     else if (finalScore >= 60) status = "OK";
     else status = "WARN";
 
-    const playbook =
-        regime === "TRENDING"
-            ? "Trend mode → trade pullbacks with structure."
-            : regime === "RANGING"
-                ? "Range mode → fade extremes / mean reversion."
-                : "Transition → wait for breakout confirmation.";
+    // Dynamic Playbook Logic
+    let playbook = "";
+    if (regime === "TRENDING") {
+        if (volumeState === "CONFIRMATION") playbook = "Strong Trend + Vol → Aggressive Pullbacks OK.";
+        else if (volumeState === "DIVERGENCE") playbook = "Trend w/ Vol Div → Be cautious, likely fake.";
+        else playbook = "Trend mode → trade pullbacks with structure.";
+    } else if (regime === "RANGING") {
+        playbook = "Range mode → fade extremes / mean reversion.";
+    } else {
+        playbook = "Transition → wait for breakout confirmation.";
+    }
 
     const hint = `${regime} | ${structureDirection} | ADX ${adx?.toFixed(1) ?? "—"}`;
 
@@ -202,16 +297,23 @@ export function getStructureSignal(params: StructureParams): IndicatorSignal {
             factors: [
                 `EMA20: ${lastEMA20.toFixed(2)}`,
                 `EMA50: ${lastEMA50.toFixed(2)}`,
-                `EMA diff: ${emaDiff.toFixed(2)} (tol ${tol.toFixed(2)})`,
+                `EMA spread: ${emaDiff.toFixed(2)} pts (${emaSpreadPct.toFixed(3)}%)`,
                 `ADX: ${adx?.toFixed(1) ?? "N/A"}`,
                 `Regime: ${regime}`,
+                `OBV Slope: ${obvSlopeRaw.toFixed(1)} (${volumeState})`,
+                `StructureStrength: ${structureStrength}`,
             ],
             regime,
             adx: adx !== null ? Math.round(adx * 10) / 10 : null,
             ema20: Math.round(lastEMA20 * 10) / 10,
             ema50: Math.round(lastEMA50 * 10) / 10,
+            emaSpreadPts: +emaDiff.toFixed(2),
+            emaSpreadPct: +emaSpreadPct.toFixed(3),
+            structureStrength,
             bias: biasDir,
             playbook,
+            obvSlope: +obvSlopeRaw.toFixed(1),
+            volumeState,
             breakdown,
         } as any,
         meta: {

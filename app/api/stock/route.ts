@@ -337,57 +337,7 @@ export async function GET(request: Request) {
         const bias = calculateCompositeBias(lastPrice, vwap, trueDayOpen, pdh, pdl, emas.ema20, emas.ema50, emas.ema200, smtLegacy, fvgs, liquidity);
         const risk = calculateRiskLevels(lastPrice, bias.score, structure, fvgs, liquidity, pdh, pdl);
 
-        // --- MULTI-TIMEFRAME TRADE SCENARIOS ---
-        const trendBias = (() => {
-            if (quotes60m.length > 50) {
-                const emas60 = calculateEMAsWithSlope(quotes60m);
-                if (emas60.ema200 && lastPrice > emas60.ema200) return 'BULLISH';
-                if (emas60.ema200 && lastPrice < emas60.ema200) return 'BEARISH';
-            }
-            return 'NEUTRAL';
-        })();
 
-        let scenarios: any[] = [];
-        let mainRegime = undefined;
-
-        if (quotes1m.length > 0) {
-            const s1m = detectMarketStructure(quotes1m);
-            const f1m = detectFVG(quotes1m);
-            const l1m = detectLiquidity(s1m.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
-            const psps1m = detectPSP(quotes1m, s1m, f1m, l1m, keyLevels).map(p => ({ ...p, tf: 'M1-M5' as any }));
-            const regime1m = detectMarketRegime(quotes1m, s1m);
-            if (interval === '1m') mainRegime = regime1m;
-            if (!mainRegime) mainRegime = regime1m;
-            const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined);
-            scenarios = [...scenarios, ...scenarios1m];
-        }
-
-        if (quotes15m.length > 0) {
-            const s = detectMarketStructure(quotes15m);
-            const f = detectFVG(quotes15m);
-            const l = detectLiquidity(s.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
-            const pspsM15 = detectPSP(quotes15m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'M15' as any }));
-            const regime15m = detectMarketRegime(quotes15m, s);
-            if (interval === '15m') mainRegime = regime15m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m);
-            scenarios = [...scenarios, ...scen];
-        }
-
-        if (quotes60m.length > 0) {
-            const s = detectMarketStructure(quotes60m);
-            const f = detectFVG(quotes60m);
-            const l = detectLiquidity(s.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
-            const pspsH1 = detectPSP(quotes60m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'H1' as any }));
-            const regime60m = detectMarketRegime(quotes60m, s);
-            if (interval === '60m' || interval === '1h') mainRegime = regime60m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m);
-            scenarios = [...scenarios, ...scen];
-        }
-
-        scenarios.sort((a, b) => b.score - a.score);
 
         const safeMeta: Record<string, any> = {};
 
@@ -599,6 +549,63 @@ export async function GET(request: Request) {
                 })
             };
         })();
+
+        // --- MULTI-TIMEFRAME TRADE SCENARIOS ---
+        // Trend Bias now derived from Structure Signal V2 (Regime + Direction)
+        const trendBias = (() => {
+            const dir = structureSignal?.direction;
+            const regime = (structureSignal?.debug as any)?.regime;
+
+            if (regime === 'TRENDING') {
+                if (dir === 'LONG') return 'STRONG BULLISH';
+                if (dir === 'SHORT') return 'STRONG BEARISH';
+            }
+            if (dir === 'LONG') return 'BULLISH';
+            if (dir === 'SHORT') return 'BEARISH';
+            return 'NEUTRAL';
+        })();
+
+        let scenarios: any[] = [];
+        let mainRegime = undefined;
+
+        if (quotes1m.length > 0) {
+            const s1m = detectMarketStructure(quotes1m);
+            const f1m = detectFVG(quotes1m);
+            const l1m = detectLiquidity(s1m.swings);
+            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+            const psps1m = detectPSP(quotes1m, s1m, f1m, l1m, keyLevels).map(p => ({ ...p, tf: 'M1-M5' as any }));
+            const regime1m = detectMarketRegime(quotes1m, s1m);
+            if (interval === '1m') mainRegime = regime1m;
+            if (!mainRegime) mainRegime = regime1m;
+            const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined);
+            scenarios = [...scenarios, ...scenarios1m];
+        }
+
+        if (quotes15m.length > 0) {
+            const s = detectMarketStructure(quotes15m);
+            const f = detectFVG(quotes15m);
+            const l = detectLiquidity(s.swings);
+            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+            const pspsM15 = detectPSP(quotes15m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'M15' as any }));
+            const regime15m = detectMarketRegime(quotes15m, s);
+            if (interval === '15m') mainRegime = regime15m;
+            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m);
+            scenarios = [...scenarios, ...scen];
+        }
+
+        if (quotes60m.length > 0) {
+            const s = detectMarketStructure(quotes60m);
+            const f = detectFVG(quotes60m);
+            const l = detectLiquidity(s.swings);
+            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+            const pspsH1 = detectPSP(quotes60m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'H1' as any }));
+            const regime60m = detectMarketRegime(quotes60m, s);
+            if (interval === '60m' || interval === '1h') mainRegime = regime60m;
+            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m);
+            scenarios = [...scenarios, ...scen];
+        }
+
+        scenarios.sort((a, b) => b.score - a.score);
 
         const confluenceSignal = getConfluenceV1({
             session,

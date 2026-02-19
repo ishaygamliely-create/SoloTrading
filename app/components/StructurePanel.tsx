@@ -29,12 +29,16 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
 
     const debug = (structure.debug || {}) as any;
     const regime = debug?.regime as "TRENDING" | "TRANSITION" | "RANGING" | undefined;
+    const strength = debug?.structureStrength as "WEAK" | "MODERATE" | "STRONG" | undefined;
     const adx = debug?.adx as number | undefined;
     const ema20 = debug?.ema20 as number | undefined;
     const ema50 = debug?.ema50 as number | undefined;
+    const emaSpreadPct = debug?.emaSpreadPct as number | undefined;
     const bias = debug?.bias as "LONG" | "SHORT" | "NEUTRAL" | undefined;
     const playbook = debug?.playbook as string | undefined;
-    const breakdown = debug?.breakdown as { trend?: number; ema?: number; bias?: number } | undefined;
+    const breakdown = debug?.breakdown as { trend?: number; ema?: number; bias?: number; volume?: number } | undefined;
+    const volumeState = debug?.volumeState as "CONFIRMATION" | "DIVERGENCE" | "NEUTRAL" | undefined;
+    const obvSlope = debug?.obvSlope as number | undefined;
 
     // ===== OFF CARD (neutral, no confidence glow) =====
     if (structure.status === "OFF") {
@@ -60,9 +64,6 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
 
     // ===== Reliability meta =====
     const rawMeta = structure.meta;
-    const rawScore = rawMeta?.rawScore;
-    const capApplied = rawMeta?.capApplied;
-    const metaSource = rawMeta?.source;
 
     // ===== Direction label refinement in TRANSITION =====
     const directionLabel =
@@ -70,27 +71,32 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
             ? `${direction} (Developing)`
             : direction;
 
-    // ===== EMA spread =====
-    const spread =
-        typeof ema20 === "number" && typeof ema50 === "number"
-            ? ema20 - ema50
-            : null;
-
-    const spreadText =
-        spread === null
-            ? "—"
-            : `${spread >= 0 ? "+" : ""}${spread.toFixed(1)}`;
-
     return (
         <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
             {/* HEADER */}
             <div className="flex items-start justify-between min-w-0">
                 <div className="min-w-0">
-                    <div className="text-blue-400 font-semibold tracking-wide text-sm">
+                    <div className="text-blue-400 font-semibold tracking-wide text-sm flex items-center gap-2">
                         STRUCTURE
+                        {strength && (
+                            <span className={`text-[10px] px-1.5 rounded border ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                                    strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                                        "text-zinc-400 border-zinc-700 bg-zinc-800"
+                                }`}>
+                                {strength}
+                            </span>
+                        )}
+                        {/* New Volume Badge */}
+                        {volumeState && volumeState !== "NEUTRAL" && (
+                            <span className={`text-[10px] px-1.5 rounded border ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                                    "text-rose-400 border-rose-500/30 bg-rose-500/10"
+                                }`}>
+                                {volumeState === "CONFIRMATION" ? "VOL CONFIRMED" : "VOL DIVERGENCE"}
+                            </span>
+                        )}
                     </div>
-                    <div className="text-xs text-white/50 mt-0.5">
-                        Regime: {regime || "—"}
+                    <div className="text-xs text-white/50 mt-0.5 font-mono">
+                        {regime || "—"}
                     </div>
                 </div>
 
@@ -102,7 +108,6 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                                 score,
                                 status: computedStatus,
                             })}
-                            title="Direction is derived from EMA20 vs EMA50"
                         >
                             {directionLabel}
                         </span>
@@ -113,72 +118,85 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                     </div>
 
                     <div className={`text-lg font-bold ${scoreStyle.text}`}>{score}%</div>
-                    {rawMeta && (rawMeta.capApplied || rawMeta.dataAgeMs > 15 * 60_000) && (
-                        <div className="text-[9px] text-white/40 mt-0.5 font-mono">
-                            {rawMeta.source}{rawMeta.capApplied ? ` · Raw ${rawMeta.rawScore}% → ${rawMeta.finalScore}%` : ` · Age ${Math.round(rawMeta.dataAgeMs / 60000)}m`}
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* PLAYBOOK */}
             <div className="text-sm text-white/80 leading-tight">
-                PLAYBOOK:{" "}
+                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">Playbook</div>
                 <span className="text-white/90 font-semibold">
-                    {playbook ||
-                        (regime === "TRENDING"
-                            ? "Trend mode → trade pullbacks with structure."
-                            : regime === "RANGING"
-                                ? "Range mode → fade extremes / mean reversion."
-                                : "Transition → wait for breakout confirmation.")}
+                    {playbook || "—"}
                 </span>
             </div>
 
-            {/* CONTEXT */}
-            <div className="text-xs text-white/60 border-t border-white/10 pt-2 font-mono">
-                Bias:{" "}
-                <span
-                    className={
-                        bias === "LONG"
-                            ? "text-emerald-400"
-                            : bias === "SHORT"
-                                ? "text-red-400"
-                                : "text-zinc-400"
-                    }
-                >
-                    {bias || "—"}
-                </span>
-                <span className="mx-1">|</span>
-                EMA20 <span className="text-white/80">{typeof ema20 === "number" ? ema20.toFixed(1) : "—"}</span>
-                <span className="mx-1">|</span>
-                EMA50 <span className="text-white/80">{typeof ema50 === "number" ? ema50.toFixed(1) : "—"}</span>
-                <span className="mx-1">|</span>
-                Spread <span className="text-white/80">{spreadText}</span>
-                <span className="mx-1">|</span>
-                ADX <span className="text-white/80">{typeof adx === "number" ? adx.toFixed(1) : "—"}</span>
+            {/* CONTEXT ROW */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/60 border-t border-white/10 pt-2 font-mono">
+                <div className="flex gap-1.5">
+                    <span>Bias:</span>
+                    <span className={bias === "LONG" ? "text-emerald-400" : bias === "SHORT" ? "text-red-400" : "text-zinc-400"}>
+                        {bias || "—"}
+                    </span>
+                </div>
+                <div className="flex gap-1.5">
+                    <span>Spread:</span>
+                    <span className={typeof emaSpreadPct === 'number' && emaSpreadPct > 0.05 ? "text-white/90" : "text-white/50"}>
+                        {typeof emaSpreadPct === "number" ? `${emaSpreadPct.toFixed(3)}%` : "—"}
+                    </span>
+                </div>
+                <div className="flex gap-1.5">
+                    <span>ADX:</span>
+                    <span className={typeof adx === 'number' && adx > 25 ? "text-amber-400" : "text-white/50"}>
+                        {typeof adx === "number" ? adx.toFixed(1) : "—"}
+                    </span>
+                </div>
+                {obvSlope !== undefined && Math.abs(obvSlope) > 0 && (
+                    <div className="flex gap-1.5">
+                        <span>OBV:</span>
+                        <span className={volumeState === "CONFIRMATION" ? "text-emerald-400" : volumeState === "DIVERGENCE" ? "text-rose-400" : "text-white/50"}>
+                            {obvSlope > 0 ? "+" : ""}{obvSlope.toFixed(0)}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* SCORE BREAKDOWN */}
             {breakdown && (
-                <div className="text-xs text-white/50 border-t border-white/10 pt-2 space-y-0.5">
-                    <div className="font-semibold text-white/60">Score Breakdown</div>
-                    <div>+{breakdown.trend ?? 0} Trend Strength</div>
-                    <div>+{breakdown.ema ?? 0} EMA Alignment</div>
-                    <div>+{breakdown.bias ?? 0} Bias Alignment</div>
+                <div className="text-[10px] text-white/40 border-t border-white/5 pt-1.5 space-y-0.5">
+                    <div className="flex justify-between">
+                        <span>Trend Strength (ADX)</span>
+                        <span className="text-white/60">{breakdown.trend ? `+${breakdown.trend}` : "0"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>EMA Alignment</span>
+                        <span className="text-white/60">{breakdown.ema ? `+${breakdown.ema}` : "0"}</span>
+                    </div>
+                    {breakdown.volume !== undefined && breakdown.volume !== 0 && (
+                        <div className="flex justify-between">
+                            <span>Volume Confirmation</span>
+                            <span className={breakdown.volume > 0 ? "text-emerald-400/80" : "text-rose-400/80"}>
+                                {breakdown.volume > 0 ? "+" : ""}{breakdown.volume}
+                            </span>
+                        </div>
+                    )}
+                    {breakdown.bias ? (
+                        <div className="flex justify-between">
+                            <span>Bias Bonus</span>
+                            <span className="text-emerald-400/80">+{breakdown.bias}</span>
+                        </div>
+                    ) : null}
                 </div>
             )}
 
             {/* HELP */}
-            <div className="border-t border-white/10 pt-2">
+            <div className="border-t border-white/10 pt-1">
                 <PanelHelp
-                    title="STRUCTURE"
+                    title="STRUCTURE V3"
                     bullets={[
-                        "Checks: Market regime using ADX + EMA alignment.",
-                        "Direction comes from EMA20 vs EMA50. Strength comes from ADX.",
-                        "ADX < 20 = Chop/Range (mean reversion).",
-                        "ADX 20–25 = Transition (wait for confirmation).",
-                        "ADX > 25 = Trend (trade pullbacks).",
-                        "Color/Status reflect confidence strength, not direction.",
+                        "Regime: TRENDING (ADX>25), TRANSITION (20-25), RANGING (<20).",
+                        "Volume V3: OBV Slope confirms price. Divergence = Fake.",
+                        "Strength: ADX + EMA Spread + Volume Confirmation.",
+                        "Scenarios Usage: TRENDING structure enables aggressive Trend Following scenarios.",
+                        "EMA Spread: >0.05% indicates strong separation."
                     ]}
                 />
             </div>
