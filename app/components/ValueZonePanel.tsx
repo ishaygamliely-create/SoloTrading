@@ -74,8 +74,13 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
                     <div className="text-white font-mono">{label ?? 'UNKNOWN'}</div>
                 </div>
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-between">
-                    <div className="text-zinc-500 font-bold uppercase">Position</div>
-                    <div className="text-white font-mono">{Number(percentInRange).toFixed(1)}% of Range</div>
+                    <div className="flex justify-between items-center">
+                        <div className="text-zinc-500 font-bold uppercase">Price</div>
+                        <div className="text-zinc-500 font-mono">{Number(percentInRange).toFixed(0)}%</div>
+                    </div>
+                    <div className="text-white font-mono text-lg font-bold tracking-tight">
+                        {data.price?.toFixed(2)}
+                    </div>
                 </div>
             </div>
 
@@ -88,8 +93,8 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
                             {(valueZone.debug as any).dxyText}
                         </span>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold border ${(valueZone.debug as any).dxyState === "SUPPORT"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                             }`}>
                             {(valueZone.debug as any).dxyState === "SUPPORT" ? "TAILWIND" : "HEADWIND"}
                         </span>
@@ -106,11 +111,14 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
 
             {/* 4. Help Toggle */}
             <div className="pt-2 border-t border-white/5">
-                <PanelHelp title="VALUE" bullets={[
+                <PanelHelp title="VALUE v2" bullets={[
                     "Compares Price to Previous Day Range.",
-                    "Premium (>EQ): Favor Shorts.",
-                    "Discount (<EQ): Favor Longs.",
-                    "Score reflects separation from Equilibrium."
+                    "PDH = Prev Day High | PDL = Prev Day Low.",
+                    "EQ (Equilibrium) = Midpoint (50%).",
+                    "Premium (>EQ): Expensive, favor Shorts.",
+                    "Discount (<EQ): Cheap, favor Longs.",
+                    "DXY Correlation: DXY acts as a magnet/repellent.",
+                    "Strong DXY Headwind reduces confidence."
                 ]} />
             </div>
         </div>
