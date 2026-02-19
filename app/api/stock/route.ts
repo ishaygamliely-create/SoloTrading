@@ -145,32 +145,34 @@ export async function GET(request: Request) {
             if (today) { trueDayOpen = today.open; dayOpenFoundFrom = "1d"; }
         }
 
-        // --- TRUE WEEK OPEN: Monday 00:00 NY bar from 1m (fallback 5m, then daily) ---
-        // Scan backwards to find the first bar on Monday in NY time
+        // --- TRUE WEEK OPEN: earliest Monday bar in NY time ---
+        // Scan backwards through intraday to find ALL Monday bars, keep the earliest open
         const intradayForWeek = quotes1m.length > 0 ? quotes1m : quotes5m;
+        let foundMondayOpen: number | null = null;
         for (let i = intradayForWeek.length - 1; i >= 0; i--) {
-            const p = getNyParts(intradayForWeek[i].time);
-            if (p.weekday === 'Mon') {
-                // Take the earliest Monday bar we find (keep scanning back)
-                trueWeekOpen = intradayForWeek[i].open;
-                // Continue to find an even earlier Monday bar
-                if (i === 0 || getNyParts(intradayForWeek[i - 1].time).weekday !== 'Mon') break;
-            } else if (trueWeekOpen !== null) {
-                // We've passed Monday going backwards — stop
-                break;
-            }
             // Don't scan more than 7 days back
             if (Date.now() / 1000 - intradayForWeek[i].time > 7 * 24 * 3600) break;
+            const p = getNyParts(intradayForWeek[i].time);
+            if (p.weekday === 'Mon') {
+                // Keep going back — the earliest Monday bar open = week open
+                foundMondayOpen = intradayForWeek[i].open;
+            } else if (foundMondayOpen !== null) {
+                // We were on Monday, now moved to Sunday (going backwards) → stop
+                break;
+            }
         }
-        // Fallback: daily candle scan for Monday
+        if (foundMondayOpen !== null) {
+            trueWeekOpen = foundMondayOpen;
+        }
+        // Fallback: daily candle scan for Monday (Yahoo daily usually has full history)
         if (trueWeekOpen === null && quotesDaily.length > 0) {
             for (let i = quotesDaily.length - 1; i >= 0; i--) {
+                if (Date.now() / 1000 - quotesDaily[i].time > 7 * 24 * 3600) break;
                 const p = getNyParts(quotesDaily[i].time);
                 if (p.weekday === 'Mon') {
                     trueWeekOpen = quotesDaily[i].open;
                     break;
                 }
-                if (Date.now() / 1000 - quotesDaily[i].time > 7 * 24 * 3600) break;
             }
         }
 

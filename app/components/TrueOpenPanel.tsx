@@ -51,33 +51,51 @@ interface AnchorCardProps {
 function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unavailableReason, note }: AnchorCardProps) {
     const isUnavailable = openPrice == null;
     return (
-        <div className="rounded-lg border border-white/8 bg-black/20 p-3 space-y-1.5">
-            <div className="text-[10px] text-white/40 uppercase tracking-wide">{label}</div>
+        <div className="rounded-lg border border-white/8 bg-black/20 p-3 space-y-2">
+            {/* Label */}
+            <div className="text-[10px] text-white/40 uppercase tracking-widest font-medium">{label}</div>
 
             {isUnavailable ? (
-                <div className="text-xs text-white/40 italic">
-                    N/A
+                <div className="space-y-0.5">
+                    <div className="text-xs text-white/40">N/A</div>
                     {unavailableReason && (
-                        <span className="text-white/25 ml-1">({unavailableReason} · Day only)</span>
+                        <div className="text-[10px] text-white/25 leading-tight">
+                            {unavailableReason} · Day only
+                        </div>
                     )}
                 </div>
             ) : (
-                <>
-                    {/* Side + displacement */}
-                    <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-bold ${sideColor(side)}`}>{side ?? "—"}</span>
-                        <span className="text-[11px] text-white/40 font-mono">{ptsFmt(pts)}</span>
-                        {strength && <span className="text-[10px] text-white/30">· {strength}</span>}
+                <div className="space-y-2">
+                    {/* Row 1: Side (big) */}
+                    <div className={`text-base font-bold tracking-wide ${sideColor(side)}`}>
+                        {side ?? "—"}
                     </div>
-                    {/* Prices — distinct labeled columns for auditability */}
-                    <div className="grid grid-cols-2 gap-x-2 text-[11px] font-mono">
-                        <span className="text-white/35">Open</span>
-                        <span className="text-white/35">Now</span>
-                        <span className="text-white/80 font-semibold">{fmt(openPrice)}</span>
-                        <span className="text-white/80 font-semibold">{fmt(currentPrice)}</span>
+
+                    {/* Row 2: displacement pts + strength */}
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                        <span className="text-white/65">{ptsFmt(pts)}</span>
+                        {strength && (
+                            <>
+                                <span className="text-white/20">·</span>
+                                <span className="text-white/40">{strength}</span>
+                            </>
+                        )}
                     </div>
+
+                    {/* Row 3: Open / Now price labels */}
+                    <div className="border-t border-white/8 pt-1.5">
+                        <div className="grid grid-cols-2 gap-x-3 text-[10px] text-white/35 mb-0.5">
+                            <span>Open</span>
+                            <span>Now</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 text-[12px] font-mono font-semibold text-white/85">
+                            <span>{fmt(openPrice)}</span>
+                            <span>{fmt(currentPrice)}</span>
+                        </div>
+                    </div>
+
                     {note && <div className="text-[10px] text-amber-400/70 italic">{note}</div>}
-                </>
+                </div>
             )}
         </div>
     );
