@@ -463,7 +463,11 @@ export async function GET(request: Request) {
             marketStatus: mktStatus,
         });
 
-        const pspResult = detectPSPNew(quotes15m);
+        // Initialize PSP early for liquidity and confluence
+        let pspResult: any = { state: 'NONE', direction: 'NEUTRAL', score: 0, checklist: {}, debug: { factors: [] } };
+        if (quotes15m.length > 50) {
+            pspResult = detectPSPNew(quotes15m);
+        }
 
         // True Open Engine V3 — clarity scoring, day-only mode when week missing
         // Compute ATR14 from 15m candles for the trueOpen engine
