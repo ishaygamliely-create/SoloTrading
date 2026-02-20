@@ -65,9 +65,9 @@ export function shouldShowSmt(params: {
     // Otherwise, show only if meaningful
     if (smtStatus === "OFF" || smtStatus === "ERROR") return false;
 
-    // "Strong SMT only" on delayed Yahoo feed
-    // Using 70 as threshold per user request
-    return smtScore >= 70;
+    // "Strong SMT only" on delayed Yahoo feed - PAUSED
+    // Using 0 as threshold to ensure user sees forming divergences
+    return smtScore > 0;
 }
 
 export function shouldShowRisk(params: {

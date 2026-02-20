@@ -294,11 +294,15 @@ export default function Home() {
                 </div>
                 <ActiveTradePanel data={data} loading={loading} />
 
-                {/* 1) CORE: always visible */}
+                {/* 1) CORE & PRIMARY ANALYTICS: always visible */}
                 <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
-                <VxrPanel data={data} loading={loading} />
                 <LiquidityPanel data={data} loading={loading} />
+                <VxrPanel data={data} loading={loading} />
+
+                {/* SMT moved out of collapsible for visibility */}
+                {showSmt && <SMTPanel data={data} loading={loading} />}
+
                 <TrueOpenPanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />
                 <StructurePanel data={data} loading={loading} />
@@ -325,9 +329,6 @@ export default function Home() {
                 >
                   <div className="space-y-3">
                     <SessionPanel session={data.session} />
-
-                    {/* SMT only if strong OR user opens Advanced/Debug */}
-                    {showSmt && <SMTPanel data={data} loading={loading} />}
 
                     <LevelsPanel data={data} loading={loading} />
 
