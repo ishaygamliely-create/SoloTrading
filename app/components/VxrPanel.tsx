@@ -8,7 +8,7 @@ interface VxrPanelProps {
 }
 
 export function VxrPanel({ data, loading }: VxrPanelProps) {
-    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-64"></div>;
+    if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[300px]"></div>;
 
     const vxr = data?.analysis?.vxr;
     if (!vxr || !vxr.lastProfile) return null;
@@ -19,18 +19,17 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
     // --- 1. Current Profile Prep ---
     const sortedBuckets = useMemo(() => [...buckets].sort((a, b) => b.price - a.price), [buckets]);
     const hvnIdx = sortedBuckets.findIndex((b: any) => b.price === hvn);
-    const displayBuckets = sortedBuckets.slice(Math.max(0, hvnIdx - 8), Math.min(sortedBuckets.length, hvnIdx + 9));
-    const maxBarVol = Math.max(...displayBuckets.map((b: any) => b.volume));
+    // Limit display to 12 buckets to prevent vertical overflow/overlap
+    const displayBuckets = sortedBuckets.slice(Math.max(0, hvnIdx - 5), Math.min(sortedBuckets.length, hvnIdx + 6));
+    const maxBarVol = Math.max(...displayBuckets.map((b: any) => b.volume), 1);
 
     // --- 2. Heatmap Grid Prep (Last 40 bars) ---
-    // We need to define a price range that covers most of the recent profiles
     const allPrices = profiles.flatMap((p: any) => p.buckets.map((b: any) => b.price));
     const minP = Math.min(...allPrices);
     const maxP = Math.max(...allPrices);
-    const range = maxP - minP;
+    const range = Math.max(0.1, maxP - minP);
 
-    // Create logic for rendering a 40x20 grid roughly
-    const gridLevels = 15; // Vertical resolution
+    const gridLevels = 15;
     const step = range / gridLevels;
     const priceLevels = Array.from({ length: gridLevels }, (_, i) => maxP - (i * step));
 
@@ -44,7 +43,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
     };
 
     return (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col h-full relative overflow-hidden group">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col h-full relative overflow-hidden group min-h-[340px]">
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -65,25 +64,24 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 </div>
             </div>
 
-            <div className="flex gap-4 flex-1 min-h-0 relative z-10">
-                {/* A. Heatmap History (Left 2/3) */}
-                <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex gap-4 mb-4 relative z-10 h-32">
+                {/* A. Heatmap History (Left 60%) */}
+                <div className="flex-[1.5] flex flex-col min-w-0 h-full">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
-                        <Layers size={8} /> 40-Bar Time Context
+                        <Layers size={8} /> 40-Bar Context
                     </div>
-                    <div className="flex-1 flex gap-px bg-white/5 p-1 rounded-lg border border-white/5 overflow-hidden">
+                    <div className="flex-1 flex gap-px bg-black/20 p-1 rounded border border-white/5 overflow-hidden h-full">
                         {profiles.map((p: any, profileIdx: number) => {
                             const pMaxVol = Math.max(...p.buckets.map((b: any) => b.volume), 1);
                             return (
                                 <div key={profileIdx} className="flex-1 flex flex-col gap-px h-full">
                                     {priceLevels.map((lvl, lvlIdx) => {
-                                        // Find volume in this profile near this level
                                         const bucket = p.buckets.find((b: any) => Math.abs(b.price - lvl) < step / 2);
                                         const vol = bucket ? bucket.volume : 0;
                                         return (
                                             <div
                                                 key={lvlIdx}
-                                                className={`flex-1 w-full rounded-[1px] transition-colors duration-500 ${getHeatColor(vol, pMaxVol)}`}
+                                                className={`flex-1 w-full rounded-[0.5px] transition-colors duration-500 ${getHeatColor(vol, pMaxVol)}`}
                                             />
                                         );
                                     })}
@@ -93,20 +91,20 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                     </div>
                 </div>
 
-                {/* B. Current Profile (Right 1/3) */}
-                <div className="w-[120px] flex flex-col">
+                {/* B. Current Profile (Right 40%) */}
+                <div className="flex-1 flex flex-col h-full min-w-0">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
                         <Target size={8} /> Internal Flow
                     </div>
-                    <div className="flex-1 bg-black/40 rounded-lg p-2 border border-white/5 flex flex-col gap-0.5">
+                    <div className="flex-1 bg-black/40 rounded p-1.5 border border-white/5 flex flex-col gap-0.5 overflow-hidden h-full">
                         {displayBuckets.map((b: any, i: number) => {
                             const isHvn = Math.abs(b.price - hvn) < 0.01;
                             const isVa = b.price <= vah && b.price >= val;
                             const widthPct = (b.volume / maxBarVol) * 100;
 
                             return (
-                                <div key={i} className="flex items-center gap-1.5 group/line">
-                                    <span className={`text-[7px] font-mono w-8 tabular-nums ${isHvn ? 'text-yellow-400 font-bold' : isVa ? 'text-white/60' : 'text-white/20'}`}>
+                                <div key={i} className="flex items-center gap-1 group/line">
+                                    <span className={`text-[7px] font-mono w-7 tabular-nums ${isHvn ? 'text-yellow-400 font-bold' : isVa ? 'text-white/60' : 'text-white/20'}`}>
                                         {b.price.toFixed(1)}
                                     </span>
                                     <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden relative">
@@ -126,45 +124,45 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
             </div>
 
             {/* Bottom Data HUD */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">HVN Magnet</span>
+            <div className="grid grid-cols-2 gap-2 relative z-10">
+                <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">HVN Magnet</span>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black text-yellow-400 tracking-tighter">{hvn.toFixed(2)}</span>
+                        <span className="text-xl font-black text-yellow-400 tracking-tighter leading-none">{hvn.toFixed(2)}</span>
                         <span className="text-[8px] text-zinc-600 font-mono">pts</span>
                     </div>
                     <div className="mt-1 h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full bg-yellow-400/50 w-full animate-pulse" />
                     </div>
                 </div>
-                <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Participation Zone</span>
-                    <div className="flex flex-col">
+                <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Participation Zone</span>
+                    <div className="flex flex-col gap-0.5">
                         <div className="flex justify-between items-center text-[10px] font-mono font-bold text-zinc-300">
-                            <span className="text-zinc-500 text-[8px]">VAH</span>
-                            <span>{vah.toFixed(2)}</span>
+                            <span className="text-zinc-500 text-[8px] leading-none">VAH</span>
+                            <span className="leading-none">{vah.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] font-mono font-bold text-zinc-300">
-                            <span className="text-zinc-500 text-[8px]">VAL</span>
-                            <span>{val.toFixed(2)}</span>
+                            <span className="text-zinc-500 text-[8px] leading-none">VAL</span>
+                            <span className="leading-none">{val.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-1.5 opacity-40">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     <span className="text-[8px] text-zinc-500 font-mono">1:15 Precision Mapping</span>
                 </div>
                 <PanelHelp
-                    title="Volume X-Ray (VXR)"
+                    title="How to read Volume X-Ray (VXR)"
                     bullets={[
-                        "Heatmap: Visual concentration of M1 volume within M15 bars.",
-                        "HVN (Magnet): Institutional High Volume Node. Strong S/R.",
-                        "VA: Value Area (70% of distribution). Efficient Zone.",
-                        "Heatmap intensity (Yellow) marks where large orders were filled.",
-                        "Low intensity (Dark Blue) marks volume voids to be filled fast."
+                        "Yellow Nodes (HVN): These are magnets where institutions traded the most. Use them as targets or support/resistance.",
+                        "Heatmap intensity: Brighter areas mean more action. Dark areas (Voids) mean the price will move fast through them.",
+                        "Value Area (VA): The zone between VAH/VAL is where 70% of participation happened. Trading inside is 'Fair Value'.",
+                        "Strategy: If price breaks out of the VA toward an HVN magnet, it's a high-probability institutional flow trade.",
+                        "Confirmation: Look for VXR alignment with PSP setups for the highest conviction entries."
                     ]}
                 />
             </div>
