@@ -3,11 +3,12 @@ import { HelpCircle, X } from "lucide-react";
 
 type Props = {
     title: string;
+    label?: string; // Optional custom label for the button
     bullets?: string[];
     children?: React.ReactNode;
 };
 
-export function PanelHelp({ title, bullets, children }: Props) {
+export function PanelHelp({ title, label, bullets, children }: Props) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -15,10 +16,10 @@ export function PanelHelp({ title, bullets, children }: Props) {
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
             >
                 <HelpCircle size={12} />
-                <span>What {title} checks</span>
+                <span>{label || `What ${title} checks`}</span>
             </button>
 
             {open && (

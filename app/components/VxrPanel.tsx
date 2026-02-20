@@ -150,19 +150,20 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between relative z-10">
+            <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-1.5 opacity-40">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     <span className="text-[8px] text-zinc-500 font-mono">1:15 Precision Mapping</span>
                 </div>
                 <PanelHelp
-                    title="How to read Volume X-Ray (VXR)"
+                    title="Volume X-Ray (VXR)"
+                    label="How to read VXR"
                     bullets={[
-                        "Yellow Nodes (HVN): These are magnets where institutions traded the most. Use them as targets or support/resistance.",
-                        "Heatmap intensity: Brighter areas mean more action. Dark areas (Voids) mean the price will move fast through them.",
-                        "Value Area (VA): The zone between VAH/VAL is where 70% of participation happened. Trading inside is 'Fair Value'.",
-                        "Strategy: If price breaks out of the VA toward an HVN magnet, it's a high-probability institutional flow trade.",
-                        "Confirmation: Look for VXR alignment with PSP setups for the highest conviction entries."
+                        "Yellow Nodes (HVN): Institutional magnets. Use as targets or S/R.",
+                        "Heatmap intensity: Brighter colors = Maximum concentration of orders.",
+                        "Voids (Dark Areas): Low participation. Price moves fast here.",
+                        "Value Area (VA): The zone containing 70% of volume (Fair Value).",
+                        "Strategy: If price breaks out of the VA toward an HVN magnet, it's a high-probability flow."
                     ]}
                 />
             </div>
