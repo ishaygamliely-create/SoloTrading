@@ -506,17 +506,27 @@ export async function GET(request: Request) {
             ),
             marketStatus: mktStatus,
         };
-        const trueOpenSignal = getTrueOpenSignal({
+        // Helper to safely execute calculation blocks
+        const safeExecute = (name: string, fn: () => any, fallback: any = null) => {
+            try {
+                return fn();
+            } catch (e) {
+                console.error(`[API] Error calculating ${name}:`, e);
+                return fallback;
+            }
+        };
+
+        const trueOpenSignal = safeExecute("TrueOpen", () => getTrueOpenSignal({
             currentPrice: lastPrice,
             atr14: atr14ForTrueOpen,
             dayOpenPrice: trueDayOpen || null,
             weekOpenPrice: trueWeekOpen ?? null,
             feedMeta: trueOpenFeedMeta,
             valueZone: ((valueZoneSignal?.debug as any)?.label as "PREMIUM" | "DISCOUNT" | "EQUILIBRIUM" | null) ?? null,
-        });
+        }), { status: "ERROR", direction: "NEUTRAL", score: 0, debug: { factors: ["Calculation error"] } });
 
         // Enriched Bias V4 — recomputed with full cross-indicator context
-        const biasSignal = getBiasSignal({
+        const biasSignal = safeExecute("Bias", () => getBiasSignal({
             price: lastPrice,
             midnightOpen,
             dataStatus: lagStatus.status as any,
@@ -529,10 +539,10 @@ export async function GET(request: Request) {
             trueOpenAlignment: ((trueOpenSignal?.debug as any)?.alignment as string | null) ?? null,
             valueZone: ((valueZoneSignal?.debug as any)?.label as string | null) ?? null,
             structureDirection: (structureSignal?.direction as string | null) ?? null,
-        });
+        }), { status: "ERROR", direction: "NEUTRAL", score: 0, debug: { factors: ["Calculation error"] } });
 
         // Calculate Liquidity Range using normalized data
-        const liquidityRangeForConfluence = (() => {
+        const liquidityRangeForConfluence = safeExecute("LiquidityRange", () => {
             const currentRange = pdRanges ? (pdRanges.dailyHigh - pdRanges.dailyLow) : 0;
             const avgRange = (tre && tre.ratio > 0) ? (currentRange / tre.ratio) : 200;
             const adrPercent = avgRange > 0 ? (currentRange / avgRange) * 100 : 0;
@@ -550,15 +560,15 @@ export async function GET(request: Request) {
                     adrPercent,
                     expansionLikelihood,
                     hasMajorSweep: sweeps ? sweeps.length > 0 : false,
-                    pspState: pspResult.state,
-                    pspDirection: pspResult.direction
+                    pspState: pspResult?.state || 'NONE',
+                    pspDirection: pspResult?.direction || 'NEUTRAL'
                 })
             };
-        })();
+        }, { status: "ERROR", adrPercent: 0, expansionLikelihood: 0, hint: "Calculation error" });
 
         // --- MULTI-TIMEFRAME TRADE SCENARIOS ---
         // Trend Bias now derived from Structure Signal V2 (Regime + Direction)
-        const trendBias = (() => {
+        const trendBias = safeExecute("TrendBias", () => {
             const dir = structureSignal?.direction;
             const regime = (structureSignal?.debug as any)?.regime;
 
@@ -569,67 +579,90 @@ export async function GET(request: Request) {
             if (dir === 'LONG') return 'BULLISH';
             if (dir === 'SHORT') return 'BEARISH';
             return 'NEUTRAL';
-        })();
+        }, "NEUTRAL");
 
         let scenarios: any[] = [];
-        let mainRegime = undefined;
+        let mainRegime: any = undefined;
+
+        const pspToLegacy = (p: any, tf: string): any => ({
+            id: `psp-${p.meta?.detectedAtMs || Date.now()}`,
+            tf: tf.includes('15m') ? 'M15' : tf.includes('H1') || tf.includes('60m') ? 'H1' : 'M15',
+            score: Math.round((p.score || 0) / 20),
+            confluenceFactors: p.debug?.factors || [],
+            isValid: p.state === 'CONFIRMED',
+            zone: {
+                min: p.levels?.entryLow || p.levels?.displacementFrom || 0,
+                max: p.levels?.entryHigh || p.levels?.displacementTo || 0
+            },
+            price: p.levels?.swing || 0,
+            time: (p.meta?.detectedAtMs || Date.now()) / 1000,
+            type: p.direction === 'LONG' ? 'LOW' : 'HIGH',
+            index: 0
+        });
 
         // --- VOLUME X-RAY (VXR) ---
-        const vxrProfiles = calculateVxr(quotes15m, quotes1m, symbol.includes('NQ') || symbol.includes('ES') ? 0.5 : 0.25);
+        const vxrProfiles = safeExecute("VXR", () => calculateVxr(quotes15m, quotes1m, symbol.includes('NQ') || symbol.includes('ES') ? 0.5 : 0.25), []);
         const lastVxr = vxrProfiles.length > 0 ? vxrProfiles[vxrProfiles.length - 1] : null;
 
-        if (quotes1m.length > 0) {
-            const s1m = detectMarketStructure(quotes1m);
-            const f1m = detectFVG(quotes1m);
-            const l1m = detectLiquidity(s1m.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+        safeExecute("Scenarios-M1", () => {
+            if (quotes1m.length > 0) {
+                const s1m = detectMarketStructure(quotes1m);
+                const f1m = detectFVG(quotes1m);
+                const l1m = detectLiquidity(s1m.swings);
+                const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
 
-            const psps1m = detectPSP(quotes1m, s1m, f1m, l1m, keyLevels).map(p => ({ ...p, tf: 'M1-M5' as any }));
-            const regime1m = detectMarketRegime(quotes1m, s1m);
-            if (interval === '1m') mainRegime = regime1m;
-            if (!mainRegime) mainRegime = regime1m;
-            const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined, lastVxr || undefined);
-            scenarios = [...scenarios, ...scenarios1m];
-        }
+                const pspSingle = detectPSPNew(quotes1m);
+                const psps1m = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '1m')] : [];
+                const regime1m = detectMarketRegime(quotes1m, s1m);
+                if (interval === '1m') mainRegime = regime1m;
+                if (!mainRegime) mainRegime = regime1m;
+                const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined, lastVxr || undefined);
+                scenarios = [...scenarios, ...scenarios1m];
+            }
+        });
 
-        if (quotes15m.length > 0) {
-            const s = detectMarketStructure(quotes15m);
-            const f = detectFVG(quotes15m);
-            const l = detectLiquidity(s.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
-            const pspsM15 = detectPSP(quotes15m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'M15' as any }));
-            const regime15m = detectMarketRegime(quotes15m, s);
-            if (interval === '15m') mainRegime = regime15m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m, undefined, lastVxr || undefined);
-            scenarios = [...scenarios, ...scen];
-        }
+        safeExecute("Scenarios-M15", () => {
+            if (quotes15m.length > 0) {
+                const s = detectMarketStructure(quotes15m);
+                const f = detectFVG(quotes15m);
+                const l = detectLiquidity(s.swings);
+                const pspSingle = detectPSPNew(quotes15m);
+                const pspsM15 = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '15m')] : [];
+                const regime15m = detectMarketRegime(quotes15m, s);
+                if (interval === '15m') mainRegime = regime15m;
+                const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m, undefined, lastVxr || undefined);
+                scenarios = [...scenarios, ...scen];
+            }
+        });
 
-        if (quotes60m.length > 0) {
-            const s = detectMarketStructure(quotes60m);
-            const f = detectFVG(quotes60m);
-            const l = detectLiquidity(s.swings);
-            const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
-            const pspsH1 = detectPSP(quotes60m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'H1' as any }));
-            const regime60m = detectMarketRegime(quotes60m, s);
-            if (interval === '60m' || interval === '1h') mainRegime = regime60m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m, undefined, lastVxr || undefined);
-            scenarios = [...scenarios, ...scen];
-        }
+        safeExecute("Scenarios-H1", () => {
+            if (quotes60m.length > 0) {
+                const s = detectMarketStructure(quotes60m);
+                const f = detectFVG(quotes60m);
+                const l = detectLiquidity(s.swings);
+                const pspSingle = detectPSPNew(quotes60m);
+                const pspsH1 = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '60m')] : [];
+                const regime60m = detectMarketRegime(quotes60m, s);
+                if (interval === '60m' || interval === '1h') mainRegime = regime60m;
+                const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m, undefined, lastVxr || undefined);
+                scenarios = [...scenarios, ...scen];
+            }
+        });
 
         scenarios.sort((a, b) => b.score - a.score);
 
-        const confluenceSignal = getConfluenceV1({
+        const confluenceSignal = safeExecute("Confluence", () => getConfluenceV1({
             session,
             bias: biasSignal,
             valueZone: valueZoneSignal,
             structure: structureSignal,
             smt: smtSignal,
             psp: {
-                status: pspResult.state === "NONE" ? "OFF" : "OK",
-                direction: pspResult.direction,
-                score: pspResult.score,
-                hint: pspResult.debug.factors[0] || "No PSP setup",
-                debug: { factors: pspResult.debug.factors }
+                status: pspResult?.state === "NONE" ? "OFF" : "OK",
+                direction: pspResult?.direction || 'NEUTRAL',
+                score: pspResult?.score || 0,
+                hint: pspResult?.debug?.factors?.[0] || "No PSP setup",
+                debug: { factors: pspResult?.debug?.factors || [] }
             },
             liquidity: {
                 status: "OK",
@@ -646,7 +679,7 @@ export async function GET(request: Request) {
                 score: 0,
                 debug: { hvn: lastVxr.hvn, vah: lastVxr.vah, val: lastVxr.val, factors: [] }
             } : { status: 'OFF', direction: 'NEUTRAL', score: 0, debug: { factors: [] } }
-        });
+        }), { status: "ERROR", scorePct: 0, level: "NO_TRADE", suggestion: "NO_TRADE" });
 
         return NextResponse.json({
             ...safeMeta,
