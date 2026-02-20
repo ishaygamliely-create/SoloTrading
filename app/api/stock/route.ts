@@ -15,6 +15,7 @@ import { detectPSP as detectPSPNew } from '../../lib/psp';
 import { calcExpansionLikelihood, getRangeStatus, getRangeHint } from '../../lib/liquidityRange';
 import { getTrueOpenSignal } from '../../lib/trueOpen';
 import { calculateEMAs, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectTradeScenarios, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, Quote, ICTBlock, SweepEvent, TREState, TechnicalIndicators } from '../../lib/analysis';
+import { calculateVxr } from '../../lib/indicators/vxr';
 
 const yahooFinance = new YahooFinance();
 
@@ -569,16 +570,21 @@ export async function GET(request: Request) {
         let scenarios: any[] = [];
         let mainRegime = undefined;
 
+        // --- VOLUME X-RAY (VXR) ---
+        const vxrProfiles = calculateVxr(quotes15m, quotes1m, symbol.includes('NQ') || symbol.includes('ES') ? 0.5 : 0.25);
+        const lastVxr = vxrProfiles.length > 0 ? vxrProfiles[vxrProfiles.length - 1] : null;
+
         if (quotes1m.length > 0) {
             const s1m = detectMarketStructure(quotes1m);
             const f1m = detectFVG(quotes1m);
             const l1m = detectLiquidity(s1m.swings);
             const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+
             const psps1m = detectPSP(quotes1m, s1m, f1m, l1m, keyLevels).map(p => ({ ...p, tf: 'M1-M5' as any }));
             const regime1m = detectMarketRegime(quotes1m, s1m);
             if (interval === '1m') mainRegime = regime1m;
             if (!mainRegime) mainRegime = regime1m;
-            const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined);
+            const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined, lastVxr || undefined);
             scenarios = [...scenarios, ...scenarios1m];
         }
 
@@ -590,7 +596,7 @@ export async function GET(request: Request) {
             const pspsM15 = detectPSP(quotes15m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'M15' as any }));
             const regime15m = detectMarketRegime(quotes15m, s);
             if (interval === '15m') mainRegime = regime15m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m);
+            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m, undefined, lastVxr || undefined);
             scenarios = [...scenarios, ...scen];
         }
 
@@ -602,7 +608,7 @@ export async function GET(request: Request) {
             const pspsH1 = detectPSP(quotes60m, s, f, l, keyLevels).map(p => ({ ...p, tf: 'H1' as any }));
             const regime60m = detectMarketRegime(quotes60m, s);
             if (interval === '60m' || interval === '1h') mainRegime = regime60m;
-            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m);
+            const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m, undefined, lastVxr || undefined);
             scenarios = [...scenarios, ...scen];
         }
 
@@ -630,6 +636,12 @@ export async function GET(request: Request) {
             },
             feedIsDelayed: lagStatus.isWarning || lagStatus.isBlocked,
             trueOpen: trueOpenSignal,
+            vxr: lastVxr ? {
+                status: 'OK',
+                direction: 'NEUTRAL',
+                score: 0,
+                debug: { hvn: lastVxr.hvn, vah: lastVxr.vah, val: lastVxr.val, factors: [] }
+            } : { status: 'OFF', direction: 'NEUTRAL', score: 0, debug: { factors: [] } }
         });
 
         return NextResponse.json({
@@ -696,7 +708,11 @@ export async function GET(request: Request) {
                 tre,
                 dxyContext,
                 regime: mainRegime,
-                technical: technicals
+                technical: technicals,
+                vxr: {
+                    profiles: vxrProfiles.slice(-40), // Send last 40 M15 bars for the heatmap
+                    lastProfile: lastVxr
+                }
             },
             quotes: interval === '1m' ? mainQuotesForChart.map((q, i) => ({
                 ...q,

@@ -259,6 +259,7 @@ export function getBiasSignal(params: BiasParams): IndicatorSignal {
         score: Math.round(finalScore),
         hint,
         debug: {
+            price,
             factors,
             midnightOpen,
             buffer,

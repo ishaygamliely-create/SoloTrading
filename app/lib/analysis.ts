@@ -944,7 +944,8 @@ export function detectTradeScenarios(
     pdRanges?: PDRange,
     dxyContext?: DXYContext,
     regime?: MarketRegime, // CHANGED: Accept Result directly
-    technical?: TechnicalIndicators // NEW
+    technical?: TechnicalIndicators, // NEW
+    vxr?: { hvn: number; vah: number; val: number } // NEW: Volume X-Ray
 ): TradeScenario[] {
     const scenarios: TradeScenario[] = [];
     const isBullish = trend.includes('BULLISH');
@@ -1012,7 +1013,8 @@ export function detectTradeScenarios(
         structureType: string,
         biasAlign: string,
         regime?: MarketRegime,
-        technical?: TechnicalIndicators
+        technical?: TechnicalIndicators,
+        vxr?: { hvn: number; vah: number; val: number }
     ): { score: number, rating: 'A+' | 'A' | 'B' | 'C', factors: string[], scorecard: ConfidenceScorecard } => {
         let score = 0;
         const components: ScoreComponent[] = [];
@@ -1163,6 +1165,16 @@ export function detectTradeScenarios(
                 score -= 15;
                 factors.push('Oversold Warning');
                 components.push({ label: 'Oversold', points: -15, category: 'RISK', reason: 'Selling Bottom of Band' });
+            }
+        }
+
+        // 9.5 Volume X-Ray (VXR) Confluence (NEW)
+        if (vxr) {
+            const hvnDist = Math.abs(currentPrice - vxr.hvn);
+            if (hvnDist < 8) { // 8 points proximity for NQ/MNQ institutional magnet
+                score += 10;
+                factors.push('VXR HVN Alignment');
+                components.push({ label: 'VXR Magnet', points: 10, category: 'LIQUIDITY', reason: 'Near Institutional HVN' });
             }
         }
 
@@ -1327,7 +1339,7 @@ export function detectTradeScenarios(
 
             if (rr > 1.5) {
                 const correlation = isBullish ? 'ALIGNED' : (isBearish ? 'CONTRARIAN' : 'NEUTRAL');
-                const conf = calculateConfidence('LONG', rr, 'LIQUIDITY_SWEEP', state, false, isBullish ? 'UP_TREND' : 'CONSOLIDATION', correlation, regime, technical);
+                const conf = calculateConfidence('LONG', rr, 'LIQUIDITY_SWEEP', state, false, isBullish ? 'UP_TREND' : 'CONSOLIDATION', correlation, regime, technical, vxr);
 
                 scenarios.push({
                     type: 'LIQUIDITY_SWEEP',
@@ -1365,7 +1377,7 @@ export function detectTradeScenarios(
 
             if (rr > 1.5) {
                 const correlation = isBearish ? 'ALIGNED' : (isBullish ? 'CONTRARIAN' : 'NEUTRAL');
-                const conf = calculateConfidence('SHORT', rr, 'LIQUIDITY_SWEEP', state, false, isBearish ? 'DOWN_TREND' : 'CONSOLIDATION', correlation, regime, technical);
+                const conf = calculateConfidence('SHORT', rr, 'LIQUIDITY_SWEEP', state, false, isBearish ? 'DOWN_TREND' : 'CONSOLIDATION', correlation, regime, technical, vxr);
 
                 scenarios.push({
                     type: 'LIQUIDITY_SWEEP',

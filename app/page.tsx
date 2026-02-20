@@ -20,6 +20,7 @@ import { RiskPanel } from './components/RiskPanel';
 import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
 import { ConfidenceLegend } from './components/ConfidenceLegend';
+import { VxrPanel } from './components/VxrPanel';
 import CollapsibleSection from './components/CollapsibleSection';
 import DecisionPanel from './components/DecisionPanel';
 import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
@@ -296,6 +297,7 @@ export default function Home() {
                 {/* 1) CORE: always visible */}
                 <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
+                <VxrPanel data={data} loading={loading} />
                 <LiquidityPanel data={data} loading={loading} />
                 <TrueOpenPanel data={data} loading={loading} />
                 <BiasPanel data={data} loading={loading} />

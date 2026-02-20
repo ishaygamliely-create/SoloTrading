@@ -22,6 +22,7 @@ type Inputs = {
     liquidity: IndicatorSignal;
     feedIsDelayed?: boolean;
     trueOpen?: IndicatorSignal; // soft driver — optional
+    vxr?: IndicatorSignal;      // structural driver — optional
 };
 
 function contributes(sig: IndicatorSignal) {
@@ -29,8 +30,8 @@ function contributes(sig: IndicatorSignal) {
 }
 
 export function getConfluenceV1(i: Inputs): ConfluenceResult {
-    const weights = { psp: 3, bias: 2, structure: 2, valueZone: 2, liquidity: 1, smt: 1, session: 1 };
-    const maxScore = Object.values(weights).reduce((a, b) => a + b, 0); // 12
+    const weights = { psp: 3, bias: 2, structure: 2, valueZone: 2, liquidity: 1, smt: 1, session: 1, vxr: 1 };
+    const maxScore = Object.values(weights).reduce((a, b) => a + b, 0); // 13
     let raw = 0;
     const factors: string[] = [];
     let warn = false;
@@ -66,6 +67,16 @@ export function getConfluenceV1(i: Inputs): ConfluenceResult {
     add(contributes(i.liquidity), weights.liquidity, `Liquidity ${i.liquidity.direction}`);
     add(contributes(i.smt), weights.smt, `SMT ${i.smt.direction}`);
     add(contributes(i.session), weights.session, `Session ${i.session.direction}`);
+
+    // VXR Structural Alignment
+    if (i.vxr && i.vxr.status !== "OFF" && i.vxr.debug?.hvn) {
+        const hvn = i.vxr.debug.hvn;
+        const dist = Math.abs(i.bias.debug?.price - hvn) || 0;
+        if (dist < 8) { // 8 points alignment for confluence
+            raw += 1;
+            factors.push(`+1 VXR Magnet Alignment`);
+        }
+    }
 
     // soft warns
     if (i.session?.status === "WARN") { warn = true; factors.push("~ WARN Off-hours"); }
