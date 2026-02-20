@@ -150,22 +150,22 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 </div>
             </div>
 
-            <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-1.5 opacity-40">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-[8px] text-zinc-500 font-mono">1:15 Precision Mapping</span>
-                </div>
+            <div className="mt-auto pt-4 border-t border-white/5 flex flex-col items-center gap-3 relative z-10">
                 <PanelHelp
                     title="Volume X-Ray (VXR)"
-                    label="How to read VXR"
+                    label="איך להשתמש באינדיקטור VXR?"
                     bullets={[
-                        "Yellow Nodes (HVN): Institutional magnets. Use as targets or S/R.",
-                        "Heatmap intensity: Brighter colors = Maximum concentration of orders.",
-                        "Voids (Dark Areas): Low participation. Price moves fast here.",
-                        "Value Area (VA): The zone containing 70% of volume (Fair Value).",
-                        "Strategy: If price breaks out of the VA toward an HVN magnet, it's a high-probability flow."
+                        "הקווים הצהובים (HVN): אלו 'מגנטים' של כסף גדול. המחיר נוטה להימשך אליהם או להיבלם בהם.",
+                        "צבעים בוהקים: המקומות שבהם נעסק הכי הרבה ווליום. אלו אזורי של שיווי משקל מוסדי.",
+                        "חורים שחורים (Voids): אזורים עם מעט פעילות. אם המחיר נכנס לשם, הוא 'ייטוס' מהר לקצה השני.",
+                        "אזור הערך (VA): האזור המרכזי שבו קרה 70% מהמסחר. כל עוד אנחנו שם, השוק מאוזן.",
+                        "האסטרטגיה: חפש פריצה מתוך האזור המרכזי לעבר 'מגנט' צהוב רחוק - זו העסקה עם הסבירות הכי גבוהה."
                     ]}
                 />
+                <div className="flex items-center gap-1.5 opacity-30">
+                    <div className="w-1 h-1 rounded-full bg-blue-500" />
+                    <span className="text-[7px] text-zinc-500 font-mono uppercase tracking-tighter">1:15 Precision Structural Mapping</span>
+                </div>
             </div>
         </div>
     );
