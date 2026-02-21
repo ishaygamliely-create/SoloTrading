@@ -186,10 +186,19 @@ export default function Home() {
           )}
 
           {data && analysis && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
 
-              {/* 1. CHART AREA (Col-span-3) */}
-              <div className="lg:col-span-3 space-y-4">
+              {/* 1. LEFT COLUMN: INSTITUTIONAL CONTEXT (xl:col-span-3) */}
+              <div className="xl:col-span-3 flex flex-col gap-4">
+                <BiasPanel data={data} loading={loading} />
+                <StructurePanel data={data} loading={loading} />
+                <ValueZonePanel data={data} loading={loading} />
+                <TrueOpenPanel data={data} loading={loading} />
+                <LiquidityPanel data={data} loading={loading} />
+              </div>
+
+              {/* 2. CENTER COLUMN: CHART & EXECUTION (xl:col-span-6) */}
+              <div className="xl:col-span-6 lg:col-span-3 space-y-4">
                 {/* Price Header inside Chart Area for visibility */}
                 <div className="relative bg-zinc-900/80 border border-zinc-800 p-4 rounded-xl flex justify-between items-center overflow-hidden backdrop-blur-md">
                   {/* Background Gradient Effect */}
@@ -258,20 +267,23 @@ export default function Home() {
                   )}
                 </ErrorBoundary>
 
-                {/* Scenarios - Collapsible default Closed */}
+                {/* Scenarios - Always Visible in center */}
                 {hasScenarios && (
-                  <CollapsibleSection title="Trade Execution Scenarios" defaultOpen={false}>
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
+                      <Zap size={14} className="text-yellow-500" /> Actionable Scenarios
+                    </h3>
                     <ScenariosPanel
                       data={data}
                       loading={loading}
                       timeframe={analysis.interval || '1m'}
                     />
-                  </CollapsibleSection>
+                  </div>
                 )}
               </div>
 
-              {/* 2. ANALYTICS SIDEBAR (Col-span-1) - The STACK */}
-              <div id="analytics-section" className="col-span-1 lg:col-span-1 flex flex-col gap-4">
+              {/* 3. RIGHT COLUMN: EXECUTION & SIGNALS (xl:col-span-3) */}
+              <div id="analytics-section" className="xl:col-span-3 lg:col-span-1 flex flex-col gap-4">
 
                 {/* 0) Decision strip always on top */}
                 {confluence && (
@@ -294,19 +306,13 @@ export default function Home() {
                 </div>
                 <ActiveTradePanel data={data} loading={loading} />
 
-                {/* 1) CORE & PRIMARY ANALYTICS: always visible */}
+                {/* High Priority Execution */}
                 <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
-                <LiquidityPanel data={data} loading={loading} />
                 <VxrPanel data={data} loading={loading} />
 
-                {/* SMT moved out of collapsible for visibility */}
+                {/* SMT & Advanced Signals */}
                 {showSmt && <SMTPanel data={data} loading={loading} />}
-
-                <TrueOpenPanel data={data} loading={loading} />
-                <BiasPanel data={data} loading={loading} />
-                <StructurePanel data={data} loading={loading} />
-                <ValueZonePanel data={data} loading={loading} />
 
                 {/* 2) ADVANCED: collapsible */}
                 <CollapsibleSection
