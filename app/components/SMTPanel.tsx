@@ -37,14 +37,14 @@ export function SMTPanel({ data, loading }: Props) {
             {/* 1. Header: TITLE | Direction | Status | Score */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-fuchsia-400 tracking-wide">SMT</span>
+                    <span className="font-bold text-fuchsia-400 tracking-wide">מתאמים (SMT)</span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold uppercase ${directionClass}`}>
-                        {smt.direction}
+                        {smt.direction === 'LONG' ? 'קנייה' : smt.direction === 'SHORT' ? 'מכירה' : 'נייטרלי'}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                        {computedStatus}
+                        {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>
@@ -61,7 +61,7 @@ export function SMTPanel({ data, loading }: Props) {
             {isStrong && (
                 <div className="flex flex-col gap-2 p-2 rounded bg-white/5 border border-white/5">
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-sm">STRONG EVENT</span>
+                        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-sm">אירוע חזק (STRONG)</span>
                         {gate?.isActive && (
                             <span className="text-[10px] text-amber-500 font-mono">
                                 TTL: {gate.remainingMin}m
@@ -70,7 +70,7 @@ export function SMTPanel({ data, loading }: Props) {
                     </div>
                     {gate?.isActive && (
                         <div className="text-[10px] text-red-300 font-bold">
-                            ⛔ Blocks {gate.blocksDirection}S
+                            ⛔ חוסם עסקאות {gate.blocksDirection === 'LONG' ? 'קנייה' : 'מכירה'}
                         </div>
                     )}
                 </div>
@@ -91,11 +91,11 @@ export function SMTPanel({ data, loading }: Props) {
 
             {/* 5. Help Toggle */}
             <div className="pt-2 border-t border-white/5">
-                <PanelHelp title="SMT" bullets={[
-                    "Compares NQ with ES/YM/RTY.",
-                    "Divergence = Possible Reversal.",
-                    "Strong Event: Multi-market divergence.",
-                    "Gate: Blocks trades against trend."
+                <PanelHelp title="מתאמים (SMT)" bullets={[
+                    "משווה את נאסד\"ק (NQ) מול מדדים אחרים (ES/YM/RTY).",
+                    "סטיות (Divergence): מעידות על היפוך מחיר או חולשה של אחת המגמות.",
+                    "אירוע חזק: סטייה רב-שוקית משמעותית.",
+                    "שער (Gate): חוסם ביצוע עסקאות נגד הכיוון של הסקטור כדי למנוע מלכודות.",
                 ]} />
             </div>
         </div>

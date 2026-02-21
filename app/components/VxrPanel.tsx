@@ -54,13 +54,13 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                         <Activity size={14} className="text-blue-400" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">VXR HEATMAP</span>
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">Structural Participation</span>
+                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">מפת חום ווליום (VXR)</span>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">פעילות מוסדית ומבנה</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
                     <Zap size={10} className="text-blue-400 animate-pulse" />
-                    <span className="text-[9px] font-black text-blue-300">LIVE SCAN</span>
+                    <span className="text-[9px] font-black text-blue-300">סריקה חיה</span>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 {/* A. Heatmap History (Left 60%) */}
                 <div className="flex-[1.5] flex flex-col min-w-0 h-full">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
-                        <Layers size={8} /> 40-Bar Context
+                        <Layers size={8} /> הקשר היסטורי (40 נרות)
                     </div>
                     <div className="flex-1 flex gap-px bg-black/20 p-1 rounded border border-white/5 overflow-hidden h-full">
                         {profiles.map((p: any, profileIdx: number) => {
@@ -94,7 +94,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 {/* B. Current Profile (Right 40%) */}
                 <div className="flex-1 flex flex-col h-full min-w-0">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
-                        <Target size={8} /> Internal Flow
+                        <Target size={8} /> זרימה פנימית
                     </div>
                     <div className="flex-1 bg-black/40 rounded p-1.5 border border-white/5 flex flex-col gap-0.5 overflow-hidden h-full">
                         {displayBuckets.map((b: any, i: number) => {
@@ -126,7 +126,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
             {/* Bottom Data HUD */}
             <div className="grid grid-cols-2 gap-2 relative z-10">
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">HVN Magnet</span>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">מגנט (HVN)</span>
                     <div className="flex items-baseline gap-1">
                         <span className="text-xl font-black text-yellow-400 tracking-tighter leading-none">{hvn.toFixed(2)}</span>
                         <span className="text-[8px] text-zinc-600 font-mono">pts</span>
@@ -136,7 +136,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                     </div>
                 </div>
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Participation Zone</span>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">אזור פעילות (Value Area)</span>
                     <div className="flex flex-col gap-0.5">
                         <div className="flex justify-between items-center text-[10px] font-mono font-bold text-zinc-300">
                             <span className="text-zinc-500 text-[8px] leading-none">VAH</span>
@@ -153,13 +153,12 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
             <div className="mt-auto pt-4 border-t border-white/5 flex flex-col items-center gap-3 relative z-10">
                 <PanelHelp
                     title="Volume X-Ray (VXR)"
-                    label="איך להשתמש באינדיקטור VXR?"
                     bullets={[
                         "הקווים הצהובים (HVN): אלו 'מגנטים' של כסף גדול. המחיר נוטה להימשך אליהם או להיבלם בהם.",
-                        "צבעים בוהקים: המקומות שבהם נעסק הכי הרבה ווליום. אלו אזורי של שיווי משקל מוסדי.",
+                        "צבעים בוהקים: המקומות שבהם נעשה הכי הרבה ווליום. אלו אזורי שיווי משקל מוסדי.",
                         "חורים שחורים (Voids): אזורים עם מעט פעילות. אם המחיר נכנס לשם, הוא 'ייטוס' מהר לקצה השני.",
                         "אזור הערך (VA): האזור המרכזי שבו קרה 70% מהמסחר. כל עוד אנחנו שם, השוק מאוזן.",
-                        "האסטרטגיה: חפש פריצה מתוך האזור המרכזי לעבר 'מגנט' צהוב רחוק - זו העסקה עם הסבירות הכי גבוהה."
+                        "האסטרטגיה: חפש פריצה מתוך האזור המרכזי לעבר 'מגנט' צהוב רחוק - זו העסקה עם הסבירות הכי גבוהה.",
                     ]}
                 />
                 <div className="flex items-center gap-1.5 opacity-30">

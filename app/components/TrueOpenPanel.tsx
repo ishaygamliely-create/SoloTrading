@@ -23,10 +23,10 @@ function alignmentChip(alignment?: string): string {
 }
 
 function alignmentLabel(alignment?: string): string {
-    if (alignment === "ALIGNED_BULL") return "ALIGNED ▲";
-    if (alignment === "ALIGNED_BEAR") return "ALIGNED ▼";
-    if (alignment === "MIXED") return "MIXED";
-    return "NEAR";
+    if (alignment === "ALIGNED_BULL") return "מתואם ▲";
+    if (alignment === "ALIGNED_BEAR") return "מתואם ▼";
+    if (alignment === "MIXED") return "מעורב";
+    return "קרוב";
 }
 
 function sideColor(side?: string): string {
@@ -68,7 +68,7 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                 <div className="space-y-2">
                     {/* Row 1: Side (big) */}
                     <div className={`text-base font-bold tracking-wide ${sideColor(side)}`}>
-                        {side ?? "—"}
+                        {side === "ABOVE" ? "מעל" : side === "BELOW" ? "מתחת" : side ?? "—"}
                     </div>
 
                     {/* Row 2: displacement pts + strength */}
@@ -77,7 +77,9 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                         {strength && (
                             <>
                                 <span className="text-white/20">·</span>
-                                <span className="text-white/40">{strength}</span>
+                                <span className="text-white/40">
+                                    {strength === "STRONG" ? "חזק" : strength === "MODERATE" ? "בינוני" : strength === "WEAK" ? "חלש" : strength}
+                                </span>
                             </>
                         )}
                     </div>
@@ -85,8 +87,8 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                     {/* Row 3: Open / Now price labels */}
                     <div className="border-t border-white/8 pt-1.5">
                         <div className="grid grid-cols-2 gap-x-3 text-[10px] text-white/35 mb-0.5">
-                            <span>Open</span>
-                            <span>Now</span>
+                            <span>פתיחה</span>
+                            <span>עכשיו</span>
                         </div>
                         <div className="grid grid-cols-2 gap-x-3 text-[12px] font-mono font-semibold text-white/85">
                             <span>{fmt(openPrice)}</span>
@@ -139,10 +141,10 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             <div className="flex items-start justify-between gap-2">
                 <div>
                     <div className="text-orange-300 font-semibold tracking-wide text-sm">
-                        TRUE OPEN CONTEXT
+                        הקשר פתיחת אמת (TRUE OPEN)
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                        Macro context engine · not an entry trigger
+                        מנוע הקשר מאקרו · לא טריגר לכניסה
                     </div>
                 </div>
 
@@ -152,12 +154,12 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
                             {alignmentLabel(alignment)}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadge}`}>
-                            {computedStatus}
+                            {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
                         </span>
                     </div>
                     <div className={`text-xl font-bold ${scoreStyle.text}`}>
                         {score}%{" "}
-                        <span className="text-[10px] text-white/30 font-normal">clarity</span>
+                        <span className="text-[10px] text-white/30 font-normal">בהירות</span>
                     </div>
                 </div>
             </div>
@@ -179,7 +181,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             {/* ── GUIDANCE ───────────────────────────────────────── */}
             {dbg.guidance && (
                 <div className="rounded-lg bg-white/5 border border-white/8 px-3 py-2.5">
-                    <div className="text-[10px] text-white/40 uppercase tracking-wide mb-1">Guidance</div>
+                    <div className="text-[10px] text-white/40 uppercase tracking-wide mb-1">הנחיה (Guidance)</div>
                     <div className="text-xs text-white/85 leading-snug">{dbg.guidance}</div>
                 </div>
             )}
@@ -187,7 +189,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             {/* ── ANCHOR GRID ────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-2">
                 <AnchorCard
-                    label="Day Open"
+                    label="פתיחת יום"
                     openPrice={dbg.dayOpenPrice}
                     currentPrice={dbg.currentPrice}
                     side={dbg.day?.side}
@@ -195,7 +197,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
                     strength={dbg.day?.strength}
                 />
                 <AnchorCard
-                    label="Week Open"
+                    label="פתיחת שבוע"
                     openPrice={dbg.weekOpenPrice}
                     currentPrice={dbg.currentPrice}
                     side={dbg.week?.side}
@@ -209,14 +211,14 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             {/* ── HELP ───────────────────────────────────────────── */}
             <div className="pt-0.5 border-t border-white/8">
                 <PanelHelp
-                    title="True Open Context"
+                    title="הקשר פתיחת אמת (True Open)"
                     bullets={[
-                        "Score = CLARITY of macro context, NOT directional strength.",
-                        "High clarity = strong displacement from open (relative to ATR14).",
-                        "ALIGNED = day + week on same side. MIXED = disagreement.",
-                        "If WEEK is missing → Day-only mode (not MIXED).",
-                        "Guidance combines macro alignment with ValueZone (Premium/Discount/EQ).",
-                        "Context only: use PSP/Liquidity for entry timing.",
+                        "ציון (Score) = רמת הבהירות של הקשר המאקרו, לא עוצמת הכיוון.",
+                        "בהירות גבוהה = מרחק משמעותי מהפתיחה (ביחס ל-ATR14).",
+                        "מתואם (ALIGNED) = היום והשבוע באותו צד. מעורב (MIXED) = חוסר הסכמה.",
+                        "אם פתיחת השבוע חסרה → מצב יום בלבד (לא נחשב כמעורב).",
+                        "ההנחיה משלבת את תיאום המאקרו עם אזור הערך (Premium/Discount).",
+                        "הקשר בלבד: השתמש ב-PSP/Liquidity לצורך תזמון כניסה.",
                     ]}
                 />
             </div>

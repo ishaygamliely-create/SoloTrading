@@ -35,14 +35,18 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
     return (
         <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-2 ${conf.border}`}>
             <IndicatorHeader
-                title="CONFLUENCE"
+                title="התכנסות (CONFLUENCE)"
                 signal={signal}
-                rightBadgeText={data.level !== "NO_TRADE" ? data.level : undefined}
+                rightBadgeText={
+                    data.level === "STRONG" ? "חזקה" :
+                        data.level === "GOOD" ? "טובה" :
+                            data.level === "WEAK" ? "חלשה" : undefined
+                }
             />
 
             <div className="flex flex-col gap-1">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold">
-                    Drivers
+                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold font-sans">
+                    גורמים משפיעים (Drivers)
                 </div>
                 <div className="text-xs text-white/80 leading-snug">
                     {drivers.length > 0 ? (
@@ -50,17 +54,18 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                             {drivers.map((d, i) => <li key={i}>{d}</li>)}
                         </ul>
                     ) : (
-                        <span className="italic text-white/40">No major drivers detected.</span>
+                        <span className="italic text-white/40">לא זוהו גורמים משמעותיים.</span>
                     )}
                 </div>
             </div>
 
             <div className="mt-1 pt-2 border-t border-white/5">
-                <PanelHelp title="CONFLUENCE" bullets={[
-                    "Engine Readout: Aggregates all subsystems.",
-                    "Score = Global Confidence (0-100%).",
-                    "Level = Strength Tier (WEAK/GOOD/STRONG).",
-                    "Drivers = Top contributing factors."
+                <PanelHelp title="התכנסות (CONFLUENCE)" bullets={[
+                    "השקלול הסופי: מאחד את כל מערכות הניתוח לכדי המלצה אחת.",
+                    "ציון (Score): רמת הביטחון הכללית בעסקה (0-100%).",
+                    "רמה (Level): סיווג עוצמת ההתכנסות (חלשה / טובה / חזקה).",
+                    "גורמים (Drivers): הגורמים העיקריים שמרכיבים את הציון הנוכחי.",
+                    "ההמלצה מיועדת לעזור בקבלת החלטה, אך אינה מבטיחה הצלחה.",
                 ]} />
             </div>
         </div>

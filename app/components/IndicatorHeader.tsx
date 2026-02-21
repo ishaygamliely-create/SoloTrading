@@ -31,14 +31,31 @@ function clsx(...a: Array<string | false | null | undefined>) {
 function statusBadge(status: IndicatorStatus) {
     switch (status) {
         case "OK":
-            return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
+            return {
+                cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
+                label: "תקין"
+            };
+        case "STRONG":
+            return {
+                cls: "bg-emerald-600/20 text-emerald-200 border-emerald-500/30",
+                label: "חזק"
+            };
         case "WARN":
-            return "bg-yellow-500/15 text-yellow-300 border-yellow-500/20";
+            return {
+                cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/20",
+                label: "אזהרה"
+            };
         case "ERROR":
-            return "bg-red-500/15 text-red-300 border-red-500/20";
+            return {
+                cls: "bg-red-500/15 text-red-300 border-red-500/20",
+                label: "שגיאה"
+            };
         case "OFF":
         default:
-            return "bg-white/5 text-white/50 border-white/10";
+            return {
+                cls: "bg-white/5 text-white/50 border-white/10",
+                label: "כבוי"
+            };
     }
 }
 
@@ -74,12 +91,12 @@ export default function IndicatorHeader(props: {
                         direction: s.direction,
                         score: s.score,
                         status: s.status
-                    })}>
-                        {s.direction}
+                    }) + " text-[10px] uppercase font-bold px-2 py-0.5"}>
+                        {s.direction === "LONG" ? "קנייה" : s.direction === "SHORT" ? "מכירה" : "נייטרלי"}
                     </span>
 
-                    <span className={clsx("rounded-full border px-2 py-0.5 text-xs font-semibold", statusBadge(s.status))}>
-                        {s.status}
+                    <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusBadge(s.status).cls)}>
+                        {statusBadge(s.status).label}
                     </span>
 
                     <span className="min-w-[28px] text-right text-xs font-bold text-white/80">

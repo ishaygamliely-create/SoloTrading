@@ -23,6 +23,7 @@ import { ConfidenceLegend } from './components/ConfidenceLegend';
 import { VxrPanel } from './components/VxrPanel';
 import CollapsibleSection from './components/CollapsibleSection';
 import DecisionPanel from './components/DecisionPanel';
+import { LandingPage } from './components/LandingPage';
 import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
 
 const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart), {
@@ -141,11 +142,15 @@ export default function Home() {
                 <Menu size={24} />
               </button>
 
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                  Advanced Market Engine
-                </h1>
-                <p className="text-zinc-400 text-xs md:text-sm">Real-time Institutional Analytics</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                  <Zap size={20} className="text-white fill-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white">
+                    SOLO<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">TRADING</span>
+                  </h1>
+                </div>
               </div>
             </div>
 
@@ -167,14 +172,10 @@ export default function Home() {
               <button
                 onClick={() => fetchData()}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4 md:px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap text-sm md:text-base"
+                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span className="hidden md:inline">Loading</span>
-                  </>
-                ) : 'Analyze'}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                SYNC
               </button>
             </div>
           </div>
@@ -182,6 +183,17 @@ export default function Home() {
           {error && (
             <div className="bg-red-900/20 border border-red-900/50 text-red-200 p-4 rounded-xl flex items-center gap-3">
               <span className="text-xl">⚠️</span> {error}
+            </div>
+          )}
+
+          {!data && !loading && (
+            <LandingPage onSearch={(s) => { setSymbol(s); setTimeout(() => fetchData(), 50); }} loading={loading} />
+          )}
+
+          {loading && !data && (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+              <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+              <p className="text-zinc-500 font-medium animate-pulse">Initializing Institutional Data Feed...</p>
             </div>
           )}
 
@@ -334,7 +346,7 @@ export default function Home() {
                   }
                 >
                   <div className="space-y-3">
-                    <SessionPanel session={data.session} />
+                    <SessionPanel session={analysis.session} />
 
                     <LevelsPanel data={data} loading={loading} />
 

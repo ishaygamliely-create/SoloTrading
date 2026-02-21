@@ -127,11 +127,15 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {/* ── HEADER ─────────────────────────────────────────── */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-amber-500 tracking-wide text-sm">BIAS</span>
+                    <span className="font-bold text-amber-500 tracking-wide text-sm">מגמת שוק (BIAS)</span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={directionBadge(direction)}>{direction}</span>
+                    <span className={directionBadge(direction)}>{direction === 'LONG' ? 'קנייה (LONG)' : direction === 'SHORT' ? 'מכירה (SHORT)' : 'נייטרלי'}</span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadge}`}>{computedStatus}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadge}`}>
+                        {computedStatus === 'STRONG' ? 'חזקה' :
+                            computedStatus === 'OK' ? 'תקינה' :
+                                computedStatus === 'WARN' ? 'חלשה' : computedStatus}
+                    </span>
                 </div>
                 <div className={`text-lg font-bold tabular-nums ${colors.text}`}>
                     {score}%
@@ -156,7 +160,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {isNearBuffer && (
                 <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80 border border-amber-500/20 bg-amber-500/5 rounded px-2 py-1">
                     <span>⚠</span>
-                    <span>{biasZone === "NEAR_UP" ? "Approaching upper buffer — watch for bullish break" : "Approaching lower buffer — watch for bearish break"}</span>
+                    <span>{biasZone === "NEAR_UP" ? "מתקרב לגבול העליון - להמתין לפריצה שורית" : "מתקרב לגבול התחתון - להמתין לפריצה דובית"}</span>
                 </div>
             )}
 
@@ -169,7 +173,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {direction !== "NEUTRAL" && typeof distancePts === 'number' && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] font-mono text-white/45">
                     <span>
-                        {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} pts from open
+                        {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} נק' מהפתיחה
                     </span>
                     {atrVal > 0 && (
                         <span className="text-white/30">
@@ -177,7 +181,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                         </span>
                     )}
                     {flipConfirmed && (
-                        <span className="text-emerald-400/60">✓ flip confirmed</span>
+                        <span className="text-emerald-400/60">✓ שינוי כיוון אושר</span>
                     )}
                 </div>
             )}
@@ -201,13 +205,13 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
 
             {/* ── HELP ────────────────────────────────────────────── */}
             <div className="pt-0.5 border-t border-white/5">
-                <PanelHelp title="Bias Precision V4" bullets={[
-                    "Bias is a directional FILTER, not an entry trigger.",
-                    "Score = distance from open (ATR-ratio) + cross-indicator confluence.",
-                    "Confluence: TrueOpen aligned = +5, ValueZone supports = +3, Structure = +4.",
-                    "Conflicts reduce score: structure/TO disagreement = -5 to -8.",
-                    "Near-buffer alert when NEUTRAL but approaching edge.",
-                    "Flip confirmed = 2 closed 15m candles beyond buffer (+10).",
+                <PanelHelp title="דיוק מגמה (Bias Precision)" bullets={[
+                    "המגמה (Bias) היא מסנן כיווני בלבד, לא טריגר לכניסה.",
+                    "ציון (Score) = מרחק מהפתיחה (יחס ATR) + התכנסות אינדיקטורים נוספים.",
+                    "התכנסות: TrueOpen מתואם = +5, אזור ערך תומך = +3, מבנה שוק = +4.",
+                    "קונפליקטים מורידים את הציון: חוסר הסכמה בין המבנה ל-TO = -5 עד -8.",
+                    "התראת גבול: מופיעה כשהשוק נייטרלי אך מתקרב לקצה אזור הדשדוש.",
+                    "אישור שינוי כיוון: נדרשות 2 סגירות של נרות 15 דק' מעבר לגבול (+10).",
                 ]} />
             </div>
         </div>

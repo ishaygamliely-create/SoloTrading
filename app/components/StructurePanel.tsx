@@ -49,7 +49,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                         STRUCTURE
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/60">
-                        OFF
+                        כבוי
                     </span>
                 </div>
                 <div className="text-xs text-white/60">{structure.hint || "Not available."}</div>
@@ -79,10 +79,10 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="text-blue-400 font-bold tracking-wide text-sm">
-                            STRUCTURE
+                            מבנה שוק (STRUCTURE)
                         </div>
                         <div className="text-xs text-white/50 font-mono">
-                            {regime || "—"}
+                            {regime === "TRENDING" ? "מגמתי" : regime === "RANGING" ? "דשדוש" : regime === "TRANSITION" ? "מעבר" : regime || "—"}
                         </div>
                     </div>
                     <div className={`text-2xl font-bold ${scoreStyle.text}`}>{score}%</div>
@@ -93,16 +93,16 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                     {/* Strength Badge */}
                     {strength && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                                strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                                    "text-zinc-400 border-zinc-700 bg-zinc-800"
+                            strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                                "text-zinc-400 border-zinc-700 bg-zinc-800"
                             }`}>
-                            {strength}
+                            {strength === "STRONG" ? "חזק" : strength === "MODERATE" ? "בינוני" : strength === "WEAK" ? "חלש" : strength}
                         </span>
                     )}
                     {/* Volume Badge */}
                     {volumeState && volumeState !== "NEUTRAL" && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                                "text-rose-400 border-rose-500/30 bg-rose-500/10"
+                            "text-rose-400 border-rose-500/30 bg-rose-500/10"
                             }`}>
                             {volumeState === "CONFIRMATION" ? "VOL 20" : "DIV 20"}
                         </span>
@@ -123,7 +123,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                         </span>
 
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
-                            {computedStatus}
+                            {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
                         </span>
                     </div>
                 </div>
@@ -131,7 +131,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
 
             {/* PLAYBOOK */}
             <div className="text-sm text-white/80 leading-tight border-t border-white/5 pt-2">
-                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">Playbook</div>
+                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">אסטרטגיה (Playbook)</div>
                 <span className="text-white/90 font-medium">
                     {playbook || "—"}
                 </span>
@@ -198,13 +198,13 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
             {/* HELP */}
             <div className="border-t border-white/10 pt-1">
                 <PanelHelp
-                    title="STRUCTURE V3"
+                    title="מבנה שוק (STRUCTURE V3)"
                     bullets={[
-                        "Regime: TRENDING (ADX>25), TRANSITION (20-25), RANGING (<20).",
-                        "Volume V3: OBV Slope confirms price. Divergence = Fake.",
-                        "Strength: ADX + EMA Spread + Volume Confirmation.",
-                        "Scenarios Usage: TRENDING structure enables aggressive Trend Following scenarios.",
-                        "EMA Spread: >0.05% indicates strong separation."
+                        "מצב שוק: מגמתי (ADX>25), מעבר (20-25), דשדוש (<20).",
+                        "ווליום V3: שיפוע OBV מאשר מחיר. סטייה = מלכודת.",
+                        "חוזק: שילוב של ADX + פריסת ממוצעים + אישור ווליום.",
+                        "תרחישים: שוק מגמתי מאפשר עסקאות המשך אגרסיביות.",
+                        "פריסת ממוצעים: מעל 0.05% מעיד על הפרדה חזקה ומומנטום.",
                     ]}
                 />
             </div>
