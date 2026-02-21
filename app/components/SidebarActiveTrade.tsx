@@ -85,7 +85,7 @@ export function SidebarActiveTrade({ data }: { data?: any }) {
                                 {/* Context Labels */}
                                 <div className="flex flex-wrap items-center gap-2 mb-4">
                                     <span className="font-mono text-[9px] bg-zinc-800/80 text-zinc-400 px-2 py-0.5 rounded border border-white/5 font-bold uppercase">
-                                        {trade.timeframe} (Scalp)
+                                        {trade.timeframe}
                                     </span>
                                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest truncate max-w-[120px]">
                                         {trade.setupName?.replace(/_/g, ' ')}
