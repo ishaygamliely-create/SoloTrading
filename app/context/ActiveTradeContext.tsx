@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 
 // --- TYPES ---
 
-export type TradeState = 'SELECTED' | 'OPEN' | 'MANAGING' | 'CLOSED';
+export type TradeState = 'SELECTED' | 'OPEN' | 'MANAGING' | 'CLOSED' | 'CONFIRMING';
 export type GuidanceStatus = 'HOLD' | 'CAUTION' | 'EXIT' | 'ENTRY_ZONE';
 
 export interface GuidanceMessage {
