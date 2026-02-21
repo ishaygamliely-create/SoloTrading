@@ -1,11 +1,10 @@
-import React from 'react';
-import { PanelProps } from './DashboardPanels';
 import { getLiquiditySignal } from '@/app/lib/liquidityRange';
 import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
-import { PanelHelp } from './PanelHelp';
-import { Droplets, ArrowUp, ArrowDown, Target, Waves, Gauge } from 'lucide-react';
+import { Droplets, ArrowUp, ArrowDown, Target, Waves, Gauge, Info, X } from 'lucide-react';
+import { useState } from 'react';
 
 export function LiquidityPanel({ data, loading }: PanelProps) {
+    const [showHelp, setShowHelp] = useState(false);
     if (loading) return <div className="animate-pulse bg-zinc-900/50 border border-white/5 rounded-xl h-[160px]"></div>;
 
     const liquidity = getLiquiditySignal(data);
@@ -50,12 +49,15 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
             {/* 1. Header */}
             <div className="flex items-center justify-between mb-3 relative z-10">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
-                        <Droplets size={14} className="text-cyan-400" />
-                    </div>
+                    <button
+                        onClick={() => setShowHelp(true)}
+                        className="p-1 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors"
+                    >
+                        <Info size={12} />
+                    </button>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest leading-none">LIQUIDITY</span>
-                        <span className="text-[9px] text-zinc-500 font-mono text-right">Energy & Targets</span>
+                        <span className="text-[10px] text-zinc-500 font-mono">Energy & Targets</span>
                     </div>
                 </div>
 
@@ -151,26 +153,57 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
             </div>
 
             {/* 4. Actionable Status Line */}
-            <div className="mt-auto pt-2 border-t border-white/5 flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-2">
-                    {sweep && (
-                        <span className="flex items-center gap-1 text-[9px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">
-                            <Waves size={8} /> LIQUIDITY SWEEP
-                        </span>
-                    )}
-                    {psp === 'CONFIRMED' && (
-                        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            <Target size={8} /> PSP ALGO ACTIVE
-                        </span>
-                    )}
+            {/* Overlay Hebrew Help Section */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Info size={16} className="text-cyan-400" />
+                            <span className="font-bold text-white text-sm">מדריך החלטה (Liquidity)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-bold text-xs mb-1">כיצד לקרוא נזילות?</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                נזילות היא הדלק של השוק. המנוע מנתח דחיסה (Compression) לעומת התרחבות (Expansion).
+                            </p>
+                        </section>
+
+                        <div className="space-y-2">
+                            <div className="bg-cyan-500/10 border border-cyan-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-cyan-400 block mb-0.5">מד הדלק (Fuel Gauge)</span>
+                                <span className="text-[9px] text-zinc-300">כאשר המד גבוה (ירוק), השוק נמצא בדחיסה. זהו המצב האידיאלי לפריצה ותנועה חזקה (Expansion).</span>
+                            </div>
+                            <div className="bg-pink-500/10 border border-pink-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-pink-400 block mb-0.5">בריכות נזילות (Pools)</span>
+                                <span className="text-[9px] text-zinc-300">אלו היעדים. המחיר נוטה 'לנקות' את האזורים האלו לפני היפוך או המשכיות.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-bold text-xs mb-1">עצה למסחר</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                שילוב של 'דלק גבוה' עם זיהוי 'Liquidity Sweep' הוא אחד הסימנים החזקים ביותר להיפוך או פריצת מומנטום.
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-[11px] transition-colors mt-2"
+                        >
+                            הבנתי, סגור מדריך
+                        </button>
+                    </div>
                 </div>
-                <PanelHelp title="נזילות (LIQUIDITY)" bullets={[
-                    "דלק (Fuel): אחוז ADR נמוך = אנרגיה פוטנציאלית גבוהה (צפי לתנועה חזקה).",
-                    "ליסקה (Liska): יעדים פוטנציאליים לניקוי נזילות או היפוך מחיר.",
-                    "מצבים: דחיסה -> התרחבות -> מיצוי (Exhausted).",
-                    "בריכות נזילות: אזורים בהם הצטברו פקודות עצירה של מוסדות.",
-                ]} />
-            </div>
+            )}
         </div>
     );
 }

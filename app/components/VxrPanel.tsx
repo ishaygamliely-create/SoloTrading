@@ -1,6 +1,5 @@
-import React, { useMemo } from 'react';
-import { PanelHelp } from './PanelHelp';
-import { Zap, Activity, Target, Layers } from 'lucide-react';
+import { Zap, Activity, Target, Layers, Info, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface VxrPanelProps {
     data: any;
@@ -8,6 +7,7 @@ interface VxrPanelProps {
 }
 
 export function VxrPanel({ data, loading }: VxrPanelProps) {
+    const [showHelp, setShowHelp] = useState(false);
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[300px]"></div>;
 
     const vxr = data?.analysis?.vxr;
@@ -50,9 +50,12 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
             {/* Header */}
             <div className="flex items-center justify-between mb-4 relative z-10">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                        <Activity size={14} className="text-blue-400" />
-                    </div>
+                    <button
+                        onClick={() => setShowHelp(true)}
+                        className="p-1 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors"
+                    >
+                        <Info size={12} />
+                    </button>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">VOLUME X-RAY (VXR)</span>
                         <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">Institutional Activity & Structure</span>
@@ -150,22 +153,57 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 </div>
             </div>
 
-            <div className="mt-auto pt-4 border-t border-white/5 flex flex-col items-center gap-3 relative z-10">
-                <PanelHelp
-                    title="Volume X-Ray (VXR)"
-                    bullets={[
-                        "הקווים הצהובים (HVN): אלו 'מגנטים' של כסף גדול. המחיר נוטה להימשך אליהם או להיבלם בהם.",
-                        "צבעים בוהקים: המקומות שבהם נעשה הכי הרבה ווליום. אלו אזורי שיווי משקל מוסדי.",
-                        "חורים שחורים (Voids): אזורים עם מעט פעילות. אם המחיר נכנס לשם, הוא 'ייטוס' מהר לקצה השני.",
-                        "אזור הערך (VA): האזור המרכזי שבו קרה 70% מהמסחר. כל עוד אנחנו שם, השוק מאוזן.",
-                        "האסטרטגיה: חפש פריצה מתוך האזור המרכזי לעבר 'מגנט' צהוב רחוק - זו העסקה עם הסבירות הכי גבוהה.",
-                    ]}
-                />
-                <div className="flex items-center gap-1.5 opacity-30">
-                    <div className="w-1 h-1 rounded-full bg-blue-500" />
-                    <span className="text-[7px] text-zinc-500 font-mono uppercase tracking-tighter">1:15 Precision Structural Mapping</span>
+            {/* Overlay Hebrew Help Section */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Info size={16} className="text-blue-400" />
+                            <span className="font-bold text-white text-sm">מדריך החלטה (VXR)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-bold text-xs mb-1">איך לקרוא את מפת ה-VXR?</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                המערכת סורקת את זרימת הפקודות המוסדית (Order Flow) ומזהה אזורי הצטברות כסף.
+                            </p>
+                        </section>
+
+                        <div className="space-y-2">
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-yellow-400 block mb-0.5">קוים צהובים (HVN - Magnets)</span>
+                                <span className="text-[9px] text-zinc-300">אלו 'מגנטים'. המחיר נוטה להימשך אליהם או להיבלם בהם בעוצמה גבוהה. זהו היעד האידיאלי למימוש רווח.</span>
+                            </div>
+                            <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-blue-400 block mb-0.5">אזור הערך (Value Area)</span>
+                                <span className="text-[9px] text-zinc-300">האזור שבו קרה 70% מהמסחר. יציאה מחוץ לאזור זה מעידה על תנועה מוסדית חדשה.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-bold text-xs mb-1">האסטרטגיה</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                חפשו פריצות של 'חורים שחורים' ( voids) שבהם אין מסחר - המחיר נוטה 'לטוס' דרכם במהירות ליעד הבא.
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-[11px] transition-colors mt-2"
+                        >
+                            הבנתי, סגור מדריך
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
