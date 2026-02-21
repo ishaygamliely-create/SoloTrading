@@ -54,13 +54,13 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                         <Activity size={14} className="text-blue-400" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">מפת חום ווליום (VXR)</span>
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">פעילות מוסדית ומבנה</span>
+                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">VOLUME X-RAY (VXR)</span>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">Institutional Activity & Structure</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
                     <Zap size={10} className="text-blue-400 animate-pulse" />
-                    <span className="text-[9px] font-black text-blue-300">סריקה חיה</span>
+                    <span className="text-[9px] font-black text-blue-300 uppercase">LIVE SCAN</span>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 {/* A. Heatmap History (Left 60%) */}
                 <div className="flex-[1.5] flex flex-col min-w-0 h-full">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
-                        <Layers size={8} /> הקשר היסטורי (40 נרות)
+                        <Layers size={8} /> HISTORICAL CONTEXT (40 BARS)
                     </div>
                     <div className="flex-1 flex gap-px bg-black/20 p-1 rounded border border-white/5 overflow-hidden h-full">
                         {profiles.map((p: any, profileIdx: number) => {
@@ -94,7 +94,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                 {/* B. Current Profile (Right 40%) */}
                 <div className="flex-1 flex flex-col h-full min-w-0">
                     <div className="text-[8px] font-bold text-zinc-600 uppercase mb-2 flex items-center gap-1">
-                        <Target size={8} /> זרימה פנימית
+                        <Target size={8} /> INTERNAL FLOW
                     </div>
                     <div className="flex-1 bg-black/40 rounded p-1.5 border border-white/5 flex flex-col gap-0.5 overflow-hidden h-full">
                         {displayBuckets.map((b: any, i: number) => {
@@ -126,7 +126,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
             {/* Bottom Data HUD */}
             <div className="grid grid-cols-2 gap-2 relative z-10">
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">מגנט (HVN)</span>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">MAGNET (HVN)</span>
                     <div className="flex items-baseline gap-1">
                         <span className="text-xl font-black text-yellow-400 tracking-tighter leading-none">{hvn.toFixed(2)}</span>
                         <span className="text-[8px] text-zinc-600 font-mono">pts</span>
@@ -136,7 +136,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
                     </div>
                 </div>
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-center">
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">אזור פעילות (Value Area)</span>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">VALUE AREA</span>
                     <div className="flex flex-col gap-0.5">
                         <div className="flex justify-between items-center text-[10px] font-mono font-bold text-zinc-300">
                             <span className="text-zinc-500 text-[8px] leading-none">VAH</span>

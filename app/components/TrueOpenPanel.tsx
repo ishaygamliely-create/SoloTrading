@@ -23,10 +23,10 @@ function alignmentChip(alignment?: string): string {
 }
 
 function alignmentLabel(alignment?: string): string {
-    if (alignment === "ALIGNED_BULL") return "מתואם ▲";
-    if (alignment === "ALIGNED_BEAR") return "מתואם ▼";
-    if (alignment === "MIXED") return "מעורב";
-    return "קרוב";
+    if (alignment === "ALIGNED_BULL") return "ALIGNED ▲";
+    if (alignment === "ALIGNED_BEAR") return "ALIGNED ▼";
+    if (alignment === "MIXED") return "MIXED";
+    return "NEAR";
 }
 
 function sideColor(side?: string): string {
@@ -68,7 +68,7 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                 <div className="space-y-2">
                     {/* Row 1: Side (big) */}
                     <div className={`text-base font-bold tracking-wide ${sideColor(side)}`}>
-                        {side === "ABOVE" ? "מעל" : side === "BELOW" ? "מתחת" : side ?? "—"}
+                        {side ?? "—"}
                     </div>
 
                     {/* Row 2: displacement pts + strength */}
@@ -78,7 +78,7 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                             <>
                                 <span className="text-white/20">·</span>
                                 <span className="text-white/40">
-                                    {strength === "STRONG" ? "חזק" : strength === "MODERATE" ? "בינוני" : strength === "WEAK" ? "חלש" : strength}
+                                    {strength}
                                 </span>
                             </>
                         )}
@@ -87,8 +87,8 @@ function AnchorCard({ label, openPrice, currentPrice, side, pts, strength, unava
                     {/* Row 3: Open / Now price labels */}
                     <div className="border-t border-white/8 pt-1.5">
                         <div className="grid grid-cols-2 gap-x-3 text-[10px] text-white/35 mb-0.5">
-                            <span>פתיחה</span>
-                            <span>עכשיו</span>
+                            <span>OPEN</span>
+                            <span>NOW</span>
                         </div>
                         <div className="grid grid-cols-2 gap-x-3 text-[12px] font-mono font-semibold text-white/85">
                             <span>{fmt(openPrice)}</span>
@@ -141,10 +141,10 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             <div className="flex items-start justify-between gap-2">
                 <div>
                     <div className="text-orange-300 font-semibold tracking-wide text-sm">
-                        הקשר פתיחת אמת (TRUE OPEN)
+                        TRUE OPEN
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                        מנוע הקשר מאקרו · לא טריגר לכניסה
+                        Macro Context engine · Not an entry trigger
                     </div>
                 </div>
 
@@ -154,12 +154,12 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
                             {alignmentLabel(alignment)}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadge}`}>
-                            {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                            {computedStatus}
                         </span>
                     </div>
                     <div className={`text-xl font-bold ${scoreStyle.text}`}>
                         {score}%{" "}
-                        <span className="text-[10px] text-white/30 font-normal">בהירות</span>
+                        <span className="text-[10px] text-white/30 font-normal">CLARITY</span>
                     </div>
                 </div>
             </div>
@@ -181,7 +181,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             {/* ── GUIDANCE ───────────────────────────────────────── */}
             {dbg.guidance && (
                 <div className="rounded-lg bg-white/5 border border-white/8 px-3 py-2.5">
-                    <div className="text-[10px] text-white/40 uppercase tracking-wide mb-1">הנחיה (Guidance)</div>
+                    <div className="text-[10px] text-white/40 uppercase tracking-wide mb-1">GUIDANCE</div>
                     <div className="text-xs text-white/85 leading-snug">{dbg.guidance}</div>
                 </div>
             )}
@@ -189,7 +189,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
             {/* ── ANCHOR GRID ────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-2">
                 <AnchorCard
-                    label="פתיחת יום"
+                    label="DAY OPEN"
                     openPrice={dbg.dayOpenPrice}
                     currentPrice={dbg.currentPrice}
                     side={dbg.day?.side}
@@ -197,7 +197,7 @@ export function TrueOpenPanel({ data, loading }: { data: any; loading: boolean }
                     strength={dbg.day?.strength}
                 />
                 <AnchorCard
-                    label="פתיחת שבוע"
+                    label="WEEK OPEN"
                     openPrice={dbg.weekOpenPrice}
                     currentPrice={dbg.currentPrice}
                     side={dbg.week?.side}

@@ -30,10 +30,10 @@ export function PSPPanel({ data, loading }: PanelProps) {
 
     // --- Steps for Pipeline ---
     const steps = [
-        { key: 'sweep', label: 'ניקוי', done: psp.checklist.sweep },
-        { key: 'displacement', label: 'תזוזה', done: psp.checklist.displacement },
-        { key: 'pullback', label: 'תיקון', done: psp.checklist.pullback },
-        { key: 'continuation', label: 'המשכיות', done: psp.checklist.continuation },
+        { key: 'sweep', label: 'SWEEP', done: psp.checklist.sweep },
+        { key: 'displacement', label: 'DISPLACE', done: psp.checklist.displacement },
+        { key: 'pullback', label: 'RETEST', done: psp.checklist.pullback },
+        { key: 'continuation', label: 'RUN', done: psp.checklist.continuation },
     ];
 
     // Calculate progress for gradient bar
@@ -58,11 +58,11 @@ export function PSPPanel({ data, loading }: PanelProps) {
                         <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest leading-none">PSP 15m</span>
                         <div className="flex items-center gap-1">
                             <span className={`text-[9px] font-bold uppercase ${directionClass}`}>
-                                {psp.direction === 'LONG' ? 'קנייה' : psp.direction === 'SHORT' ? 'מכירה' : 'נייטרלי'}
+                                {psp.direction}
                             </span>
                             {psp.state !== 'NONE' && (
                                 <span className={`text-[8px] px-1 rounded uppercase ${psp.state === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                    {psp.state === 'CONFIRMED' ? 'מאושר' : 'מתגבש'}
+                                    {psp.state}
                                 </span>
                             )}
                         </div>
@@ -74,7 +74,7 @@ export function PSPPanel({ data, loading }: PanelProps) {
                         {Math.round(psp.score)}%
                     </span>
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase mt-0.5 ${statusBadgeClass}`}>
-                        {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                        {computedStatus}
                     </span>
                 </div>
             </div>
@@ -107,7 +107,7 @@ export function PSPPanel({ data, loading }: PanelProps) {
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div className="bg-emerald-950/20 border border-emerald-500/20 rounded p-2">
                             <div className="text-[9px] text-emerald-500/70 font-bold uppercase mb-0.5 flex items-center gap-1">
-                                <Target size={10} /> אזור כניסה
+                                <Target size={10} /> ENTRY ZONE
                             </div>
                             <div className="text-xs font-mono font-bold text-emerald-300">
                                 {psp.levels.entryLow.toFixed(2)} - {psp.levels.entryHigh.toFixed(2)}
@@ -115,7 +115,7 @@ export function PSPPanel({ data, loading }: PanelProps) {
                         </div>
                         <div className="bg-red-950/20 border border-red-500/20 rounded p-2">
                             <div className="text-[9px] text-red-500/70 font-bold uppercase mb-0.5 flex items-center gap-1">
-                                <AlertTriangle size={10} /> ביטול (SL)
+                                <AlertTriangle size={10} /> INVALIDATION
                             </div>
                             <div className="text-xs font-mono font-bold text-red-400">
                                 {psp.levels.invalidation.toFixed(2)}
@@ -124,8 +124,8 @@ export function PSPPanel({ data, loading }: PanelProps) {
                     </div>
                 ) : (
                     <div className="bg-white/5 rounded border border-white/5 p-3 flex items-center justify-center text-center h-[54px] mb-2">
-                        <span className="text-[10px] text-zinc-500 italic">
-                            {psp.hint === "Waiting for setup confirmation..." ? "ממתין לאישור המודל..." : psp.hint || "בתהליך גיבוש..."}
+                        <span className="text-[10px] text-zinc-500 italic uppercase">
+                            {psp.hint === "Waiting for setup confirmation..." ? "Waiting for confirmation..." : psp.hint || "Forming setup..."}
                         </span>
                     </div>
                 )}
@@ -145,8 +145,8 @@ export function PSPPanel({ data, loading }: PanelProps) {
             <div className="mt-auto pt-2 border-t border-white/5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-2 text-[9px] text-zinc-500 font-mono">
                     {psp.meta?.ageMinutes !== undefined && (
-                        <span className="flex items-center gap-1">
-                            <Clock size={8} /> לפני {psp.meta.ageMinutes} דק'
+                        <span className="flex items-center gap-1 uppercase">
+                            <Clock size={8} /> {psp.meta.ageMinutes}m ago
                         </span>
                     )}
                 </div>

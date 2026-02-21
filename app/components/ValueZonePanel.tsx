@@ -40,14 +40,14 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             {/* 1. Header: TITLE | Direction | Status | Score */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-indigo-400 tracking-wide">אזור ערך (VALUE)</span>
+                    <span className="font-bold text-indigo-400 tracking-wide">VALUE</span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold uppercase ${directionClass}`}>
-                        {valueZone.direction === 'LONG' ? 'קנייה (LONG)' : valueZone.direction === 'SHORT' ? 'מכירה (SHORT)' : 'נייטרלי'}
+                        {valueZone.direction}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                        {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>
@@ -70,16 +70,14 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             {/* 3. Data Visualization */}
             <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-between">
-                    <div className="text-zinc-500 font-bold uppercase">אזור</div>
-                    <div className="text-white font-mono">
-                        {label === 'PREMIUM' ? 'מחיר יקר (Premium)' :
-                            label === 'DISCOUNT' ? 'מחיר זול (Discount)' :
-                                label === 'EQUILIBRIUM' ? 'שיווי משקל (EQ)' : label ?? 'UNKNOWN'}
+                    <div className="text-zinc-500 font-bold uppercase">ZONE</div>
+                    <div className="text-white font-mono uppercase">
+                        {label ?? 'UNKNOWN'}
                     </div>
                 </div>
                 <div className="bg-white/5 rounded p-2 border border-white/5 flex flex-col justify-between">
                     <div className="flex justify-between items-center">
-                        <div className="text-zinc-500 font-bold uppercase">מחיר</div>
+                        <div className="text-zinc-500 font-bold uppercase">PRICE</div>
                         <div className="text-zinc-500 font-mono">{Number(percentInRange).toFixed(0)}%</div>
                     </div>
                     <div className="text-white font-mono text-lg font-bold tracking-tight">
@@ -91,7 +89,7 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
             {/* DXY Correlation Section (Value V2) */}
             {valueZone.debug && (valueZone.debug as any).dxyState !== "NEUTRAL" && (
                 <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
-                    <span className="text-zinc-500 font-medium">מתאם (DXY)</span>
+                    <span className="text-zinc-500 font-medium">DXY CORRELATION</span>
                     <div className="flex items-center gap-2">
                         <span className="text-white/60 font-mono text-[10px]">
                             {(valueZone.debug as any).dxyText}
@@ -100,7 +98,7 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                             }`}>
-                            {(valueZone.debug as any).dxyState === "SUPPORT" ? "רוח גבית" : "רוח פנים"}
+                            {(valueZone.debug as any).dxyState === "SUPPORT" ? "TAILWIND" : "HEADWIND"}
                         </span>
                     </div>
                 </div>

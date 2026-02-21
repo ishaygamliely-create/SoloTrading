@@ -25,8 +25,8 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                 <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mb-3">
                     <Shield className="text-zinc-600" size={20} />
                 </div>
-                <h3 className="text-zinc-500 font-bold text-sm mb-1">לא זוהו מודלים</h3>
-                <p className="text-zinc-700 text-xs">סורק מבנה שוק...</p>
+                <h3 className="text-zinc-500 font-bold text-sm mb-1 uppercase">No Models Detected</h3>
+                <p className="text-zinc-700 text-xs uppercase">Scanning market structure...</p>
             </div>
         );
     }
@@ -71,14 +71,14 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                             {isPrimary && (
                                 <div className="bg-yellow-500/20 border-b border-l border-yellow-500/30 px-2 py-0.5 rounded-bl-lg">
                                     <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest flex items-center gap-1">
-                                        <Target size={10} /> ראשי
+                                        <Target size={10} /> PRIMARY
                                     </span>
                                 </div>
                             )}
                             {hasVxrMagnet && (
                                 <div className="bg-cyan-500/20 border-b border-l border-cyan-500/30 px-2 py-0.5 rounded-bl-lg">
                                     <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1">
-                                        <Layers size={10} /> מגנט
+                                        <Layers size={10} /> MAGNET
                                     </span>
                                 </div>
                             )}
@@ -90,7 +90,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
                                         {isLong ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                        {isLong ? 'קנייה' : 'מכירה'}
+                                        {scenario.direction}
                                     </span>
                                     <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-zinc-400 font-mono border border-white/5">
                                         {scenario.timeframe || timeframe}
@@ -104,7 +104,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
                                         : 'bg-zinc-800 text-zinc-500 border border-white/5'
                                         }`}>
-                                        {scenario.state === 'ACTIONABLE' ? 'אקטיבי' : 'ממתין'}
+                                        {scenario.state === 'ACTIONABLE' ? 'ACTIVE' : 'WAITING'}
                                     </span>
                                     <span className="text-zinc-700 text-[8px]">•</span>
                                     <span className="text-[10px] text-zinc-500 truncate max-w-[180px]">
@@ -119,7 +119,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                     {score}
                                 </div>
                                 <div className={`text-[9px] font-bold uppercase tracking-widest opacity-70 ${scoreColor}`}>
-                                    דירוג {scenario.confidence?.rating || 'C'}
+                                    RATING {scenario.confidence?.rating || 'C'}
                                 </div>
                             </div>
                         </div>
@@ -128,15 +128,15 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                         <div className="mb-3 px-2 py-1.5 bg-white/5 rounded border border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                                 <Layers size={10} className="text-zinc-500" />
-                                <span className="text-[10px] text-zinc-400 font-medium">נטיית מגמה (HTF)</span>
+                                <span className="text-[10px] text-zinc-400 font-medium uppercase">HTF Trend Bias</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className={`text-[10px] font-bold ${scenario.htfBias?.includes('BULL') ? 'text-emerald-400' : 'text-red-400'}`}>
                                     {scenario.htfBias || 'NEUTRAL'}
                                 </span>
                                 {scenario.biasAlignment === 'CONTRARIAN' && (
-                                    <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded border border-purple-500/20">
-                                        נגד המגמה
+                                    <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded border border-purple-500/20 uppercase">
+                                        Contrarian
                                     </span>
                                 )}
                             </div>
@@ -145,13 +145,13 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                         {/* Data Grid */}
                         <div className="grid grid-cols-2 gap-2 text-[10px] mb-3">
                             <div className="bg-black/20 p-2 rounded border border-white/5">
-                                <div className="text-zinc-500 font-bold uppercase mb-0.5">כניסה (Entry)</div>
+                                <div className="text-zinc-500 font-bold uppercase mb-0.5">ENTRY</div>
                                 <div className="font-mono text-zinc-300">
                                     {scenario.entryZone.min.toFixed(2)}
                                 </div>
                             </div>
                             <div className="bg-black/20 p-2 rounded border border-white/5">
-                                <div className="text-zinc-500 font-bold uppercase mb-0.5">סטופ (Stop)</div>
+                                <div className="text-zinc-500 font-bold uppercase mb-0.5">STOP (SL)</div>
                                 <div className="font-mono text-red-400/80">
                                     {scenario.stopLoss.toFixed(2)}
                                 </div>
@@ -202,7 +202,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                     }`}
                             >
                                 {saved ? <CheckCircle2 size={10} /> : <Play size={10} fill="currentColor" />}
-                                {saved ? 'פעיל' : 'ביצוע'}
+                                {saved ? 'ACTIVE' : 'EXECUTE'}
                             </button>
                         </div>
                     </div>

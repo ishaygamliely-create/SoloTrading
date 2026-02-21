@@ -127,14 +127,12 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {/* ── HEADER ─────────────────────────────────────────── */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-amber-500 tracking-wide text-sm">מגמת שוק (BIAS)</span>
+                    <span className="font-bold text-amber-500 tracking-wide text-sm">BIAS</span>
                     <div className="h-3 w-px bg-white/10" />
-                    <span className={directionBadge(direction)}>{direction === 'LONG' ? 'קנייה (LONG)' : direction === 'SHORT' ? 'מכירה (SHORT)' : 'נייטרלי'}</span>
+                    <span className={directionBadge(direction)}>{direction ?? "NEUTRAL"}</span>
                     <div className="h-3 w-px bg-white/10" />
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusBadge}`}>
-                        {computedStatus === 'STRONG' ? 'חזקה' :
-                            computedStatus === 'OK' ? 'תקינה' :
-                                computedStatus === 'WARN' ? 'חלשה' : computedStatus}
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-lg font-bold tabular-nums ${colors.text}`}>
@@ -160,7 +158,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {isNearBuffer && (
                 <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80 border border-amber-500/20 bg-amber-500/5 rounded px-2 py-1">
                     <span>⚠</span>
-                    <span>{biasZone === "NEAR_UP" ? "מתקרב לגבול העליון - להמתין לפריצה שורית" : "מתקרב לגבול התחתון - להמתין לפריצה דובית"}</span>
+                    <span>{biasZone === "NEAR_UP" ? "Approaching Upper Boundary - Wait for Breakout" : "Approaching Lower Boundary - Wait for Breakdown"}</span>
                 </div>
             )}
 
@@ -173,7 +171,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
             {direction !== "NEUTRAL" && typeof distancePts === 'number' && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] font-mono text-white/45">
                     <span>
-                        {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} נק' מהפתיחה
+                        {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} pts from open
                     </span>
                     {atrVal > 0 && (
                         <span className="text-white/30">
@@ -181,7 +179,7 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                         </span>
                     )}
                     {flipConfirmed && (
-                        <span className="text-emerald-400/60">✓ שינוי כיוון אושר</span>
+                        <span className="text-emerald-400/60">✓ FLIP CONFIRMED</span>
                     )}
                 </div>
             )}

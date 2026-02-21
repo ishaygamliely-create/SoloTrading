@@ -33,28 +33,28 @@ function statusBadge(status: IndicatorStatus) {
         case "OK":
             return {
                 cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
-                label: "תקין"
+                label: "OK"
             };
         case "STRONG":
             return {
                 cls: "bg-emerald-600/20 text-emerald-200 border-emerald-500/30",
-                label: "חזק"
+                label: "STRONG"
             };
         case "WARN":
             return {
                 cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/20",
-                label: "אזהרה"
+                label: "WARN"
             };
         case "ERROR":
             return {
                 cls: "bg-red-500/15 text-red-300 border-red-500/20",
-                label: "שגיאה"
+                label: "ERROR"
             };
         case "OFF":
         default:
             return {
                 cls: "bg-white/5 text-white/50 border-white/10",
-                label: "כבוי"
+                label: "OFF"
             };
     }
 }
@@ -92,7 +92,7 @@ export default function IndicatorHeader(props: {
                         score: s.score,
                         status: s.status
                     }) + " text-[10px] uppercase font-bold px-2 py-0.5"}>
-                        {s.direction === "LONG" ? "קנייה" : s.direction === "SHORT" ? "מכירה" : "נייטרלי"}
+                        {s.direction}
                     </span>
 
                     <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusBadge(s.status).cls)}>

@@ -37,14 +37,14 @@ export function SMTPanel({ data, loading }: Props) {
             {/* 1. Header: TITLE | Direction | Status | Score */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-fuchsia-400 tracking-wide">מתאמים (SMT)</span>
+                    <span className="font-bold text-fuchsia-400 tracking-wide">SMT</span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold uppercase ${directionClass}`}>
-                        {smt.direction === 'LONG' ? 'קנייה' : smt.direction === 'SHORT' ? 'מכירה' : 'נייטרלי'}
+                        {smt.direction}
                     </span>
                     <div className="h-4 w-px bg-white/10" />
                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                        {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                        {computedStatus}
                     </span>
                 </div>
                 <div className={`text-xl font-bold ${scoreStyle.text}`}>
@@ -61,7 +61,7 @@ export function SMTPanel({ data, loading }: Props) {
             {isStrong && (
                 <div className="flex flex-col gap-2 p-2 rounded bg-white/5 border border-white/5">
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-sm">אירוע חזק (STRONG)</span>
+                        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-sm">STRONG EVENT</span>
                         {gate?.isActive && (
                             <span className="text-[10px] text-amber-500 font-mono">
                                 TTL: {gate.remainingMin}m
@@ -69,8 +69,8 @@ export function SMTPanel({ data, loading }: Props) {
                         )}
                     </div>
                     {gate?.isActive && (
-                        <div className="text-[10px] text-red-300 font-bold">
-                            ⛔ חוסם עסקאות {gate.blocksDirection === 'LONG' ? 'קנייה' : 'מכירה'}
+                        <div className="text-[10px] text-red-300 font-bold uppercase">
+                            ⛔ BLOCKING {gate.blocksDirection} TRADES
                         </div>
                     )}
                 </div>

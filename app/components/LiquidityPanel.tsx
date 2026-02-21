@@ -54,8 +54,8 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                         <Droplets size={14} className="text-cyan-400" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest leading-none">נזילות (Liquidity)</span>
-                        <span className="text-[9px] text-zinc-500 font-mono">אנרגיה ויעדים</span>
+                        <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest leading-none">LIQUIDITY</span>
+                        <span className="text-[9px] text-zinc-500 font-mono text-right">Energy & Targets</span>
                     </div>
                 </div>
 
@@ -64,7 +64,7 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                         {Math.round(liquidity.score)}%
                     </span>
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase mt-0.5 ${statusBadgeClass}`}>
-                        {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                        {computedStatus}
                     </span>
                 </div>
             </div>
@@ -73,7 +73,7 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
             <div className="mb-4 relative z-10">
                 <div className="flex justify-between items-end mb-1">
                     <span className="text-[10px] text-zinc-400 font-bold uppercase flex items-center gap-1.5">
-                        <Gauge size={10} /> דחיסה (Fuel)
+                        <Gauge size={10} /> FUEL (COMPRESSION)
                     </span>
                     <span className="text-[10px] font-mono text-zinc-300">
                         {adrVal.toFixed(0)}% ADR
@@ -84,8 +84,8 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                     <div className={`h-full transition-all duration-500 ${fuelColor}`} style={{ width: `${fuelLevel}%` }} />
                 </div>
                 <div className="flex justify-between mt-1">
-                    <span className="text-[8px] text-zinc-600">התרחבות</span>
-                    <span className="text-[8px] text-zinc-600">דחיסה</span>
+                    <span className="text-[8px] text-zinc-600">EXPANSION</span>
+                    <span className="text-[8px] text-zinc-600">COMPRESSION</span>
                 </div>
             </div>
 
@@ -95,15 +95,15 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                 <div className="bg-red-950/10 border border-red-500/10 rounded-lg p-2">
                     <div className="flex items-center gap-1.5 mb-2 text-red-500/70">
                         <ArrowUp size={10} />
-                        <span className="text-[9px] font-black uppercase">נזילות למעלה (Liska)</span>
+                        <span className="text-[9px] font-black uppercase">LIQUIDITY ABOVE</span>
                     </div>
 
                     {poolsAbove.length > 0 ? (
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-[9px] text-zinc-500">בריכה</span>
+                            <span className="text-[9px] text-zinc-500 uppercase">POOL</span>
                             <span className="text-[10px] font-mono font-bold text-red-300">{poolsAbove[0].price.toFixed(2)}</span>
                         </div>
-                    ) : <div className="text-[9px] text-zinc-600 italic">אין בריכות קרובות</div>}
+                    ) : <div className="text-[9px] text-zinc-600 italic">No nearby pools</div>}
 
                     {fvgsAbove.length > 0 ? (
                         <div className="flex justify-between items-center mb-1">
@@ -124,15 +124,15 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                 <div className="bg-emerald-950/10 border border-emerald-500/10 rounded-lg p-2">
                     <div className="flex items-center gap-1.5 mb-2 text-emerald-500/70">
                         <ArrowDown size={10} />
-                        <span className="text-[9px] font-black uppercase">נזילות למטה (Liska)</span>
+                        <span className="text-[9px] font-black uppercase">LIQUIDITY BELOW</span>
                     </div>
 
                     {poolsBelow.length > 0 ? (
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-[9px] text-zinc-500">בריכה</span>
+                            <span className="text-[9px] text-zinc-500 uppercase">POOL</span>
                             <span className="text-[10px] font-mono font-bold text-emerald-300">{poolsBelow[0].price.toFixed(2)}</span>
                         </div>
-                    ) : <div className="text-[9px] text-zinc-600 italic">אין בריכות קרובות</div>}
+                    ) : <div className="text-[9px] text-zinc-600 italic">No nearby pools</div>}
 
                     {fvgsBelow.length > 0 ? (
                         <div className="flex justify-between items-center mb-1">
@@ -155,12 +155,12 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
                 <div className="flex items-center gap-2">
                     {sweep && (
                         <span className="flex items-center gap-1 text-[9px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">
-                            <Waves size={8} /> ניקוי נזילות
+                            <Waves size={8} /> LIQUIDITY SWEEP
                         </span>
                     )}
                     {psp === 'CONFIRMED' && (
                         <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            <Target size={8} /> אלגוריתם PSP פעיל
+                            <Target size={8} /> PSP ALGO ACTIVE
                         </span>
                     )}
                 </div>

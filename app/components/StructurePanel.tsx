@@ -49,7 +49,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                         STRUCTURE
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/60">
-                        כבוי
+                        OFF
                     </span>
                 </div>
                 <div className="text-xs text-white/60">{structure.hint || "Not available."}</div>
@@ -79,10 +79,10 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="text-blue-400 font-bold tracking-wide text-sm">
-                            מבנה שוק (STRUCTURE)
+                            STRUCTURE
                         </div>
                         <div className="text-xs text-white/50 font-mono">
-                            {regime === "TRENDING" ? "מגמתי" : regime === "RANGING" ? "דשדוש" : regime === "TRANSITION" ? "מעבר" : regime || "—"}
+                            {regime || "—"}
                         </div>
                     </div>
                     <div className={`text-2xl font-bold ${scoreStyle.text}`}>{score}%</div>
@@ -96,7 +96,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                             strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                                 "text-zinc-400 border-zinc-700 bg-zinc-800"
                             }`}>
-                            {strength === "STRONG" ? "חזק" : strength === "MODERATE" ? "בינוני" : strength === "WEAK" ? "חלש" : strength}
+                            {strength}
                         </span>
                     )}
                     {/* Volume Badge */}
@@ -123,7 +123,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
                         </span>
 
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
-                            {computedStatus === 'STRONG' ? 'חזק' : computedStatus === 'OK' ? 'תקין' : computedStatus === 'WARN' ? 'אזהרה' : computedStatus}
+                            {computedStatus}
                         </span>
                     </div>
                 </div>
@@ -131,7 +131,7 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
 
             {/* PLAYBOOK */}
             <div className="text-sm text-white/80 leading-tight border-t border-white/5 pt-2">
-                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">אסטרטגיה (Playbook)</div>
+                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">PLAYBOOK</div>
                 <span className="text-white/90 font-medium">
                     {playbook || "—"}
                 </span>
