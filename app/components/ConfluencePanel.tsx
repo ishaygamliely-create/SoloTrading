@@ -1,7 +1,8 @@
 import { getConfidenceColorClass } from "@/app/lib/uiSignalStyles";
 import IndicatorHeader, { IndicatorSignal } from "./IndicatorHeader";
-import { Hexagon, Zap, ShieldAlert, Cpu } from "lucide-react";
+import { Hexagon, Zap, ShieldAlert, Cpu, Info, X } from "lucide-react";
 import { PanelHelp } from "./PanelHelp";
+import { useState } from "react";
 
 type ConfluenceLevel = "NO_TRADE" | "WEAK" | "GOOD" | "STRONG";
 type ConfluenceSuggestion = "LONG" | "SHORT" | "NO_TRADE";
@@ -16,6 +17,7 @@ export type ConfluenceResult = {
 };
 
 export default function ConfluencePanel({ data }: { data?: ConfluenceResult | null }) {
+    const [showHelp, setShowHelp] = useState(false);
     if (!data) return null;
 
     const score = Math.max(0, Math.min(100, Math.round(data.scorePct ?? 0)));
@@ -31,12 +33,12 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
     };
 
     const drivers = (data.factors ?? []).slice(0, 4);
-    const radius = 36;
+    const radius = 48; // Enlarged from 36
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (score / 100) * circumference;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col h-full relative overflow-hidden group min-h-[300px] ${conf.border}`}>
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col h-full relative overflow-hidden group min-h-[360px] ${conf.border}`}>
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -51,25 +53,33 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                         <span className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">Confluence Matrix</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
-                    <Hexagon size={10} className="text-pink-400" />
-                    <span className="text-[9px] font-black text-pink-300 uppercase tracking-tighter">
-                        {data.level === "STRONG" ? "CONVERGENT" : data.level === "GOOD" ? "STABLE" : "DIVERGENT"}
-                    </span>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowHelp(true)}
+                        className="p-1 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors"
+                    >
+                        <Info size={12} />
+                    </button>
+                    <div className="flex items-center gap-1 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
+                        <Hexagon size={10} className="text-pink-400" />
+                        <span className="text-[9px] font-black text-pink-300 uppercase tracking-tighter">
+                            {data.level === "STRONG" ? "CONVERGENT" : data.level === "GOOD" ? "STABLE" : "DIVERGENT"}
+                        </span>
+                    </div>
                 </div>
             </div>
 
             {/* Core Visualization: Radial Score */}
             <div className="flex items-center justify-center py-6 relative z-10">
-                <div className="relative w-32 h-32 flex items-center justify-center">
-                    <svg className="w-full h-full -rotate-90">
+                <div className="relative w-40 h-40 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
                         <circle
                             cx="64"
                             cy="64"
                             r={radius}
                             fill="transparent"
                             stroke="currentColor"
-                            strokeWidth="8"
+                            strokeWidth="10"
                             className="text-white/5"
                         />
                         <circle
@@ -78,7 +88,7 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                             r={radius}
                             fill="transparent"
                             stroke="currentColor"
-                            strokeWidth="8"
+                            strokeWidth="10"
                             strokeDasharray={circumference}
                             strokeDashoffset={offset}
                             strokeLinecap="round"
@@ -86,10 +96,10 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                         />
                     </svg>
                     <div className="absolute flex flex-col items-center">
-                        <span className={`text-3xl font-black tabular-nums transition-colors duration-500 ${conf.text}`}>
+                        <span className={`text-4xl font-black tabular-nums transition-colors duration-500 ${conf.text}`}>
                             {score}%
                         </span>
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mt-[-2px]">Confidence</span>
+                        <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mt-[-2px]">Confidence</span>
                     </div>
                 </div>
             </div>
@@ -129,16 +139,61 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                 </div>
             )}
 
-            {/* Help / Meta */}
-            <div className="mt-auto pt-3 border-t border-white/5 relative z-10">
-                <PanelHelp title="התכנסות (Confluence)" bullets={[
-                    "השקלול הסופי: מאחד את כל מערכות הניתוח לכדי המלצה אחת.",
-                    "ציון (Score): רמת הביטחון הכללית בעסקה (0-100%).",
-                    "דירוג: Strong (התכנסות מלאה), Stable (סביר), Divergent (ניגודיות).",
-                    "גורמים: השפעה יחסית של Bias, מבנה, ואזורי ערך על ההחלטה.",
-                    "חסימה (Blocked): מונע עסקאות נגד נטיות HTF אגרסיביות.",
-                ]} />
-            </div>
+            {/* Overlay Hebrew Help Section */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Info size={16} className="text-pink-400" />
+                            <span className="font-bold text-white text-sm">מדריך החלטה (Confluence)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-bold text-xs mb-1">איך לקבל החלטה?</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                לוח ה-Confluence משקלל את כל האינדיקטורים לכדי מסקנה אחת. הסתכל על הציון המרכזי (Confidence):
+                            </p>
+                        </section>
+
+                        <div className="grid grid-cols-1 gap-2">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-emerald-400 block mb-0.5">מעל 70% (Strong)</span>
+                                <span className="text-[9px] text-zinc-300">התכנסות חזקה. רוב האינדיקטורים מסכימים על כיוון אחד. זמן אידיאלי לחיפוש כניסה.</span>
+                            </div>
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-amber-400 block mb-0.5">50% - 70% (Stable)</span>
+                                <span className="text-[9px] text-zinc-300">קיימת נטייה מסוימת אך ישנם כוחות מנוגדים. יש להמתין לאישור נוסף במבנה השוק.</span>
+                            </div>
+                            <div className="bg-red-500/10 border border-red-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-red-400 block mb-0.5">מתחת ל-50% (Divergent)</span>
+                                <span className="text-[9px] text-zinc-300">ניגודיות גבוהה. מומלץ להישאר בחוץ (Stand Aside) עד להתבהרות התמונה.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-bold text-xs mb-1">המושג Global Verdict</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                זוהי השורה התחתונה של המנוע. אם מופיע <span className="text-red-400">Blocked</span>, המנוע מזהה סיכון ניגודי גבוה (Contrarian) וחוסם את האפשרות לעסקה גם אם הציון גבוה.
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-pink-600 hover:bg-pink-500 text-white rounded font-bold text-[11px] transition-colors mt-2"
+                        >
+                            הבנתי, סגור מדריך
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
