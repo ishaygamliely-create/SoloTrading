@@ -104,7 +104,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                                 {isLong ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                                 {scenario.direction}
                                             </span>
-                                            <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-zinc-500 font-bold border border-white/5 truncate max-w-[100px] block">
+                                            <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-zinc-500 font-bold border border-white/5 shrink-0">
                                                 {scenario.timeframe || timeframe}
                                             </span>
                                         </div>
@@ -269,10 +269,17 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                             </section>
 
                             <section>
-                                <h4 className="text-emerald-400 font-bold text-sm mb-2 uppercase tracking-wide">3. ניהול העסקה (Execution)</h4>
+                                <h4 className="text-purple-400 font-bold text-sm mb-2 uppercase tracking-wide">3. עסקאות נגד המגמה (Contrarian)</h4>
                                 <p className="text-zinc-400 text-xs leading-relaxed">
-                                    כפתור ה-<b>EXECUTE</b> לא מבצע פעולה בבורסה, אלא נועל את העסקה למעקב בצד המסך (Side Panel).
-                                    הוא מאפשר למערכת לתת לך התראות ספציפיות על ניהול הרווחים והסיכונים בטרייד הזה.
+                                    כשהתג <span className="text-purple-400 font-bold">CONTRARIAN</span> מופיע, זה אומר שהטרייד הוא נגד המגמה הגדולה (HTF).
+                                    אלו עסקאות ברמת סיכון גבוהה יותר שדורשות אישור אגרסיבי במיוחד בגרף לפני כניסה.
+                                </p>
+                            </section>
+
+                            <section>
+                                <h4 className="text-emerald-400 font-bold text-sm mb-2 uppercase tracking-wide">4. ניהול העסקה (Execution)</h4>
+                                <p className="text-zinc-400 text-xs leading-relaxed">
+                                    כפתור ה-<b>EXECUTE</b> נועל את העסקה למעקב בלוח הבקרה. הוא מאפשר למערכת לתת לך התראות ניהול סיכונים ספציפיות לטרייד הנבחר.
                                 </p>
                             </section>
 
