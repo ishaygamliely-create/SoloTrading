@@ -106,7 +106,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
     };
 
     return (
-        <div className={`bg-[#0c0c0e] border rounded-[2rem] p-8 relative overflow-hidden transition-all duration-500 shadow-[0_0_40px_rgba(0,0,0,0.4)]
+        <div className={`bg-[#0c0c0e] border rounded-[2rem] p-5 md:p-8 relative overflow-hidden transition-all duration-500 shadow-[0_0_40px_rgba(0,0,0,0.4)]
             ${isLong ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
 
             {/* Accent Glow */}
@@ -114,56 +114,60 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                 ${isLong ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
             {/* --- HEADER --- */}
-            <div className="flex flex-col xl:flex-row justify-between items-start gap-4 xl:gap-8 mb-6 relative z-10">
-                <div className="flex items-start gap-3 min-w-0 w-full">
-                    <div className={`mt-1.5 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
-                    <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h2 className={`text-xl md:text-3xl font-black uppercase tracking-tighter leading-tight ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {activeTrade.direction} {activeTrade.contractType || 'MNQ'}
+            <div className="flex flex-col gap-6 mb-8 relative z-10">
+                <div className="flex items-start gap-4">
+                    <div className={`mt-2 w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
+                    <div className="flex-1">
+                        <div className="flex flex-col gap-2 mb-3">
+                            <h2 className={`text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {activeTrade.direction}<br />
+                                {activeTrade.contractType || 'MNQ'}
                             </h2>
-                            <div className="bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg shrink-0">
-                                <span className="text-[8px] md:text-[10px] font-black text-white tracking-widest uppercase">{activeTrade.state}</span>
+                            <div className="inline-flex">
+                                <span className="bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black text-white tracking-widest uppercase">
+                                    {activeTrade.state}
+                                </span>
                             </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold">
+
+                        <div className="flex flex-wrap items-center gap-3">
                             {activeTrade.state === 'MANAGING' && (
                                 <div className={`flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg border border-white/10 ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
                                     <Activity size={12} />
-                                    <span className="font-mono tracking-tight whitespace-nowrap">
+                                    <span className="font-mono text-sm tracking-tight">
                                         {isProfitable ? '+' : ''}{currentPnL.toFixed(2)} USD
                                     </span>
                                 </div>
                             )}
                             <div className="flex items-center gap-1.5 text-zinc-600">
                                 <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                <span className="uppercase tracking-widest text-[8px] font-black opacity-60">Engagement Protocol</span>
+                                <span className="uppercase tracking-widest text-[8px] font-black opacity-80 leading-none">Protocol Engagement</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-2 w-full xl:w-auto shrink-0">
+                <div className="w-full">
                     {activeTrade.state === 'SELECTED' && (
                         <button
                             onClick={handleMarkEntered}
-                            className="bg-white hover:bg-zinc-200 text-black px-4 py-2.5 rounded-xl text-[10px] md:text-[12px] font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 flex-1 xl:flex-none min-w-[120px]"
+                            className="bg-white hover:bg-zinc-200 text-black px-6 py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/10 w-full"
                         >
-                            <Play size={14} fill="currentColor" /> ENTER TRADE
+                            <Play size={16} fill="currentColor" /> ENTER TRADE
                         </button>
                     )}
                     {activeTrade.state === 'CONFIRMING' && (
                         <button
                             disabled
-                            className="bg-blue-600/50 text-white px-4 py-2.5 rounded-xl text-[10px] md:text-[12px] font-black flex items-center justify-center gap-2 flex-1 xl:flex-none min-w-[120px] cursor-wait border border-blue-500/30"
+                            className="bg-blue-600/50 text-white px-6 py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2.5 w-full cursor-wait border border-blue-500/30"
                         >
-                            <Loader2 size={14} className="animate-spin" /> CONFIRMING...
+                            <Loader2 size={16} className="animate-spin" /> CONFIRMING...
                         </button>
                     )}
                     {(activeTrade.state === 'OPEN' || activeTrade.state === 'MANAGING' || activeTrade.state === 'CONFIRMING') && (
                         <button
                             onClick={closeTrade}
-                            className="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-xl text-[10px] md:text-[12px] font-black transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-red-500/20 flex-1 xl:flex-none min-w-[120px]"
+                            className="bg-red-500 hover:bg-red-400 text-white px-6 py-3.5 rounded-2xl text-xs font-black transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-red-500/10 w-full"
                         >
                             CLOSE POSITION
                         </button>
