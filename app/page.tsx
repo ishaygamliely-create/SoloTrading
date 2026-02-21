@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Search, TrendingUp, AlertCircle, Loader2, Menu, X, Activity, Zap, BookOpen } from 'lucide-react';
+import { Search, TrendingUp, AlertCircle, Loader2, Menu, X, Activity, Zap, BookOpen, Rocket } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { PSPPanel } from './components/PSPPanel';
@@ -21,6 +21,7 @@ import { ActiveTradePanel } from './components/ActiveTradePanel';
 import { SidebarActiveTrade } from './components/SidebarActiveTrade';
 import { ConfidenceLegend } from './components/ConfidenceLegend';
 import { VxrPanel } from './components/VxrPanel';
+import { AdvancedIndicatorsPanel } from './components/AdvancedIndicatorsPanel';
 import CollapsibleSection from './components/CollapsibleSection';
 import DecisionPanel from './components/DecisionPanel';
 import { LandingPage } from './components/LandingPage';
@@ -155,7 +156,6 @@ export default function Home() {
             </div>
 
             <div className="flex gap-2 w-full md:w-auto">
-              {/* Optional: Debug Toggle for testing */}
               <button
                 onClick={() => setDebugOpen(!debugOpen)}
                 className={`px-3 py-2 text-xs rounded border ${debugOpen ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-transparent border-transparent text-zinc-600'}`}
@@ -211,15 +211,13 @@ export default function Home() {
 
               {/* 2. CENTER COLUMN: CHART & EXECUTION (xl:col-span-6) */}
               <div className="xl:col-span-6 lg:col-span-3 space-y-4">
-                {/* Price Header inside Chart Area for visibility */}
                 <div className="relative bg-zinc-900/80 border border-zinc-800 p-4 rounded-xl flex justify-between items-center overflow-hidden backdrop-blur-md">
-                  {/* Background Gradient Effect */}
                   <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
-                        {data.symbol || symbol}  {/* Fallback to state symbol if data empty */}
+                        {data.symbol || symbol}
                       </span>
                       <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -261,7 +259,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Market Context Compact inside Chart Column (Bottom) */}
                 <ErrorBoundary name="MarketContext">
                   {analysis.marketContext && (
                     <MarketContextCompact
@@ -279,7 +276,6 @@ export default function Home() {
                   )}
                 </ErrorBoundary>
 
-                {/* Scenarios - Always Visible in center */}
                 {hasScenarios && (
                   <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <h3 className="text-xs font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
@@ -297,7 +293,12 @@ export default function Home() {
               {/* 3. RIGHT COLUMN: EXECUTION & SIGNALS (xl:col-span-3) */}
               <div id="analytics-section" className="xl:col-span-3 lg:col-span-1 flex flex-col gap-4">
 
-                {/* 0) Decision strip always on top */}
+                {/* Advanced Indicators Trigger Box */}
+                <AdvancedIndicatorsPanel
+                  isOpen={advancedOpen}
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                />
+
                 {confluence && (
                   <DecisionPanel
                     data={{
@@ -312,48 +313,70 @@ export default function Home() {
                   />
                 )}
 
-                {/* Active Trade Management (Desktop) */}
                 <div className="hidden md:block">
                   <SidebarActiveTrade data={data} />
                 </div>
                 <ActiveTradePanel data={data} loading={loading} />
 
-                {/* High Priority Execution */}
                 <ConfluencePanel data={confluence} />
                 <PSPPanel data={data} loading={loading} />
                 <VxrPanel data={data} loading={loading} />
 
-                {/* SMT & Advanced Signals */}
                 {showSmt && <SMTPanel data={data} loading={loading} />}
 
-                {/* 2) ADVANCED: collapsible */}
-                <CollapsibleSection
-                  title="Advanced Indicators"
-                  defaultOpen={false}
-                  right={
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAdvancedOpen((v) => !v);
-                        }}
-                        className={`text-xs px-2 py-1 rounded-full ${advancedOpen ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70'}`}
-                      >
-                        {advancedOpen ? "ON" : "OFF"}
-                      </button>
+                {/* Advanced Suite Overlay */}
+                {advancedOpen && (
+                  <div className="fixed inset-0 z-[100] bg-zinc-950/98 backdrop-blur-xl animate-in fade-in duration-300 p-6 md:p-12 overflow-y-auto">
+                    <div className="max-w-4xl mx-auto flex flex-col h-full">
+                      <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-600 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                            <Rocket size={24} className="text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-black text-white tracking-tight uppercase">Advanced Execution Suite</h2>
+                            <p className="text-zinc-500 text-sm font-bold uppercase tracking-wider">Institutional Analysis & Risk Protocol</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setAdvancedOpen(false)}
+                          className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-zinc-400 transition-all hover:scale-110 active:scale-90"
+                        >
+                          <X size={24} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+                        <div className="h-full">
+                          <SessionPanel session={analysis.session} />
+                        </div>
+                        <div className="h-full">
+                          <LevelsPanel data={data} loading={loading} />
+                        </div>
+                        <div className="md:col-span-2 h-full">
+                          {showRisk ? (
+                            <RiskPanel data={data} loading={loading} />
+                          ) : (
+                            <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-12 text-center flex flex-col items-center justify-center">
+                              <AlertCircle size={48} className="text-zinc-700 mb-4" />
+                              <h3 className="text-zinc-500 font-bold uppercase">Risk Engine Standby</h3>
+                              <p className="text-zinc-600 text-xs uppercase mt-1">Pending actionable trade setup</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-auto">
+                        <button
+                          onClick={() => setAdvancedOpen(false)}
+                          className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] mb-8"
+                        >
+                          סגור מערכת מתקדמת
+                        </button>
+                      </div>
                     </div>
-                  }
-                >
-                  <div className="space-y-3">
-                    <SessionPanel session={analysis.session} />
-
-                    <LevelsPanel data={data} loading={loading} />
-
-                    {/* Risk only when trade is actionable */}
-                    {showRisk && <RiskPanel data={data} loading={loading} />}
                   </div>
-                </CollapsibleSection>
+                )}
 
                 <div className="mt-4">
                   <ConfidenceLegend />
