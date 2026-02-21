@@ -73,6 +73,10 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                     const mins = Math.floor(timeLeft / 60);
                     const secs = timeLeft % 60;
 
+                    const stateLabel = scenario.state === 'ACTIONABLE' ? 'ACTIVE' :
+                        scenario.state === 'PENDING' ? 'WAITING' :
+                            scenario.state === 'INVALID' ? 'STOPPED' : 'WAITING';
+
                     return (
                         <div
                             key={i}
@@ -126,14 +130,16 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                 {/* Model Name & Status */}
                                 <div className="mb-4">
                                     <h4 className="text-white font-black text-sm uppercase tracking-tight leading-none mb-1.5">
-                                        {scenario.type.replace(/_/g, ' ')}
+                                        {(scenario.type || 'Institutional Model').replace(/_/g, ' ')}
                                     </h4>
                                     <div className="flex items-center gap-2">
                                         <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest border
                                             ${scenario.state === 'ACTIONABLE'
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                : 'bg-zinc-800 text-zinc-500 border-zinc-700/50'}`}>
-                                            {scenario.state === 'ACTIONABLE' ? 'ACTIVE' : 'WAITING'}
+                                                : scenario.state === 'INVALID'
+                                                    ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                    : 'bg-zinc-800 text-zinc-500 border-zinc-700/50'}`}>
+                                            {stateLabel}
                                         </span>
                                         <span className="text-zinc-600 text-[9px] font-medium truncate max-w-[140px]">
                                             {scenario.condition}
@@ -163,11 +169,11 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                 <div className="grid grid-cols-2 gap-2.5 mb-4">
                                     <div className="bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-xl">
                                         <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest block mb-1">Entry Zone</span>
-                                        <span className="text-xs font-mono font-bold text-emerald-100">{scenario.entryZone.min.toFixed(2)}</span>
+                                        <span className="text-xs font-mono font-bold text-emerald-100">{(scenario.entryZone?.min || 0).toFixed(2)}</span>
                                     </div>
                                     <div className="bg-red-500/5 border border-red-500/10 p-2.5 rounded-xl">
                                         <span className="text-[8px] font-black text-red-500/60 uppercase tracking-widest block mb-1">Stop (SL)</span>
-                                        <span className="text-xs font-mono font-bold text-red-100">{scenario.stopLoss.toFixed(2)}</span>
+                                        <span className="text-xs font-mono font-bold text-red-100">{(scenario.stopLoss || 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -212,7 +218,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                 <div className="text-left">
                                     <div className="flex items-center gap-2 mb-1">
                                         <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-none">
-                                            {detailScenario.type.replace(/_/g, ' ')}
+                                            {(detailScenario.type || 'Institutional Model').replace(/_/g, ' ')}
                                         </h3>
                                         <span className="text-xs bg-white/5 px-2 py-1 rounded text-zinc-400 font-mono border border-white/5 uppercase">
                                             {detailScenario.timeframe || timeframe}
@@ -224,7 +230,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                         </span>
                                         <span className="text-zinc-700 text-xs">•</span>
                                         <span className={`text-xs font-black uppercase tracking-widest ${detailScenario.state === 'ACTIONABLE' ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                                            Status: {detailScenario.state}
+                                            Status: {detailScenario.state || 'PENDING'}
                                         </span>
                                     </div>
                                 </div>
@@ -246,7 +252,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Wait-for Confirmation (Full Condition)</span>
                                 </div>
                                 <p className="text-xl md:text-2xl font-bold text-white leading-tight tracking-tight text-left">
-                                    {detailScenario.condition}
+                                    {detailScenario.condition || 'No specific trigger condition identified.'}
                                 </p>
                             </div>
 
@@ -260,17 +266,17 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl flex justify-between items-center group transition-colors hover:bg-emerald-500/10">
                                             <span className="text-xs font-bold text-emerald-500/80 uppercase">Entry Threshold</span>
-                                            <span className="text-lg font-mono font-black text-emerald-400 group-hover:scale-105 transition-transform">{detailScenario.entryZone.min.toFixed(2)}</span>
+                                            <span className="text-lg font-mono font-black text-emerald-400 group-hover:scale-105 transition-transform">{(detailScenario.entryZone?.min || 0).toFixed(2)}</span>
                                         </div>
                                         <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex justify-between items-center group transition-colors hover:bg-red-500/10">
                                             <span className="text-xs font-bold text-red-500/80 uppercase">Invalidation (SL)</span>
-                                            <span className="text-lg font-mono font-black text-red-400 group-hover:scale-105 transition-transform">{detailScenario.stopLoss.toFixed(2)}</span>
+                                            <span className="text-lg font-mono font-black text-red-400 group-hover:scale-105 transition-transform">{(detailScenario.stopLoss || 0).toFixed(2)}</span>
                                         </div>
                                     </div>
 
                                     <div className="pt-2">
                                         <div className="flex flex-col gap-2">
-                                            {detailScenario.targets.map((t: any, idx: number) => (
+                                            {(detailScenario.targets || []).map((t: any, idx: number) => (
                                                 <div key={idx} className="flex justify-between items-center px-4 py-3 rounded-2xl bg-white/5 border border-white/5">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[10px] font-black text-emerald-400">
@@ -278,7 +284,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                                         </div>
                                                         <span className="text-[11px] font-black text-zinc-400 uppercase">Target Objective</span>
                                                     </div>
-                                                    <span className="text-base font-mono font-bold text-emerald-400">{t.price.toFixed(2)}</span>
+                                                    <span className="text-base font-mono font-bold text-emerald-400">{(t.price || 0).toFixed(2)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -301,7 +307,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Confidence</div>
-                                                <div className="text-2xl font-mono font-black text-white">{detailScenario.confidence?.score}%</div>
+                                                <div className="text-2xl font-mono font-black text-white">{detailScenario.confidence?.score || 0}%</div>
                                             </div>
                                         </div>
                                         <div className="space-y-3">

@@ -24,9 +24,11 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
     const maxBarVol = Math.max(...displayBuckets.map((b: any) => b.volume), 1);
 
     // --- 2. Heatmap Grid Prep (Last 40 bars) ---
-    const allPrices = profiles.flatMap((p: any) => p.buckets.map((b: any) => b.price));
-    const minP = Math.min(...allPrices);
-    const maxP = Math.max(...allPrices);
+    const allPrices = useMemo(() => profiles.flatMap((p: any) => p.buckets.map((b: any) => b.price)), [profiles]);
+    const hasData = allPrices.length > 0;
+
+    const maxP = hasData ? Math.max(...allPrices) : hvn + 10;
+    const minP = hasData ? Math.min(...allPrices) : hvn - 10;
     const range = Math.max(0.1, maxP - minP);
 
     const gridLevels = 15;
@@ -34,6 +36,7 @@ export function VxrPanel({ data, loading }: VxrPanelProps) {
     const priceLevels = Array.from({ length: gridLevels }, (_, i) => maxP - (i * step));
 
     const getHeatColor = (vol: number, maxVol: number) => {
+        if (!maxVol || maxVol <= 0) return 'bg-white/5';
         const ratio = vol / maxVol;
         if (ratio > 0.8) return 'bg-yellow-400';
         if (ratio > 0.5) return 'bg-cyan-400';

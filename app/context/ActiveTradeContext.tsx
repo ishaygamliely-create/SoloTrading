@@ -179,10 +179,21 @@ export function ActiveTradeProvider({ children }: { children: ReactNode }) {
 
     const markAsEntered = () => {
         if (!activeTrade) return;
-        updateTradeParams({
-            state: 'MANAGING', // Skip 'OPEN' for now, go straight to managing
-            enteredAt: Date.now()
-        });
+
+        // 1. Set to CONFIRMING for immediate UI feedback
+        setActiveTrade(prev => prev ? { ...prev, state: 'CONFIRMING' } : null);
+
+        // 2. Auto-transition to MANAGING after a short delay (simulating order confirmation)
+        setTimeout(() => {
+            setActiveTrade(prev => {
+                if (!prev || prev.id !== activeTrade.id) return prev;
+                return {
+                    ...prev,
+                    state: 'MANAGING',
+                    enteredAt: Date.now()
+                };
+            });
+        }, 2000);
     };
 
     const closeTrade = () => {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { PanelProps } from './DashboardPanels';
 import { useActiveTrade } from '../context/ActiveTradeContext';
-import { Target, Shield, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, Edit2, Play, Lock, Activity, ChevronRight, Fingerprint, RefreshCcw } from 'lucide-react';
+import { Target, Shield, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, Edit2, Play, Lock, Activity, ChevronRight, Fingerprint, RefreshCcw, Loader2, XCircle } from 'lucide-react';
 import { evaluateGuidance } from '../lib/guidance';
 
 const MNQ_POINT_VALUE = 2; // $2 per point
@@ -47,7 +47,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
 
     // Guidance Logging Effect
     useEffect(() => {
-        if (!activeTrade || !data || (activeTrade.state !== 'OPEN' && activeTrade.state !== 'MANAGING')) return;
+        if (!activeTrade || !data || (activeTrade.state !== 'OPEN' && activeTrade.state !== 'MANAGING' && activeTrade.state !== 'CONFIRMING')) return;
 
         const result = evaluateGuidance(activeTrade, data);
         const lastMsg = activeTrade.guidance[0];
@@ -147,6 +147,14 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                             className="bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 w-full md:w-auto"
                         >
                             <Play size={18} fill="currentColor" /> ENTER TRADE
+                        </button>
+                    )}
+                    {activeTrade.state === 'CONFIRMING' && (
+                        <button
+                            disabled
+                            className="bg-blue-600/50 text-white px-8 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-3 w-full md:w-auto cursor-wait border border-blue-500/30"
+                        >
+                            <Loader2 size={18} className="animate-spin" /> CONFIRMING...
                         </button>
                     )}
                     {(activeTrade.state === 'OPEN' || activeTrade.state === 'MANAGING' || activeTrade.state === 'CONFIRMING') && (
@@ -307,6 +315,13 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                     <div className="bg-white/[0.02] border border-dashed border-white/5 p-6 rounded-3xl text-center">
                         <span className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.2em] animate-pulse">
                             Awaiting Technical Confirmation for Deployment
+                        </span>
+                    </div>
+                ) : activeTrade.state === 'CONFIRMING' ? (
+                    <div className="bg-blue-500/5 border border-dashed border-blue-500/20 p-6 rounded-3xl text-center">
+                        <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] animate-pulse flex items-center justify-center gap-2">
+                            <Loader2 size={12} className="animate-spin" />
+                            Transmitting Order to CME... CONFIRMING EXECUTION
                         </span>
                     </div>
                 ) : (
