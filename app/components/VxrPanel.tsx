@@ -1,5 +1,5 @@
+import React, { useMemo, useState } from 'react';
 import { Zap, Activity, Target, Layers, Info, X } from 'lucide-react';
-import { useState } from 'react';
 
 interface VxrPanelProps {
     data: any;

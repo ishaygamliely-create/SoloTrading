@@ -1,7 +1,8 @@
+import React, { useState } from 'react';
+import { PanelProps } from './DashboardPanels';
 import { Check, AlertTriangle, Clock, Activity, Target, Info, X } from 'lucide-react';
 import { PSPResult } from '@/app/lib/psp';
 import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
-import { useState } from 'react';
 
 export function PSPPanel({ data, loading }: PanelProps) {
     const [showHelp, setShowHelp] = useState(false);
@@ -152,57 +153,59 @@ export function PSPPanel({ data, loading }: PanelProps) {
                         </span>
                     )}
                 </div>
-                {/* Overlay Hebrew Help Section */}
-                {showHelp && (
-                    <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
-                        <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                            <div className="flex items-center gap-2">
-                                <Info size={16} className="text-yellow-500" />
-                                <span className="font-bold text-white text-sm">מדריך החלטה (PSP)</span>
-                            </div>
-                            <button
-                                onClick={() => setShowHelp(false)}
-                                className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
-                            <section>
-                                <h4 className="text-white font-bold text-xs mb-1">מהו מודל ה-PSP?</h4>
-                                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                    המודל עוקב אחרי 4 שלבים קריטיים לכניסה: ניקוי נזילות, תזוזה אגרסיבית, תיקון לאזור הערך, והמשכיות הכוח.
-                                </p>
-                            </section>
-
-                            <div className="space-y-2">
-                                <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
-                                    <span className="text-[10px] font-bold text-emerald-400 block mb-0.5">מצב Confirmed (מאושר)</span>
-                                    <span className="text-[9px] text-zinc-300">כל תנאי המודל התקיימו. המנוע מציג אזורי כניסה (Entry) וסטופ (Invalidation). זוהי העסקה בהסתברות הגבוהה ביותר.</span>
-                                </div>
-                                <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded">
-                                    <span className="text-[10px] font-bold text-amber-400 block mb-0.5">מצב Forming (מתגבש)</span>
-                                    <span className="text-[9px] text-zinc-300">המודל בתחילת דרכו. ניתן לראות איזה שלבים כבר בוצעו. אין להיכנס לעסקה עד לקבלת אישור סופי.</span>
-                                </div>
-                            </div>
-
-                            <section className="pt-2">
-                                <h4 className="text-white font-bold text-xs mb-1">כיצד לפעול?</h4>
-                                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                    חפש התכנסות (Confluence) בין אזור הכניסה של ה-PSP לבין אזורי ה-VXR (צהוב). אם הציון הכללי מעל 70%, המודל נחשב לאמין מאוד.
-                                </p>
-                            </section>
-
-                            <button
-                                onClick={() => setShowHelp(false)}
-                                className="w-full py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded font-bold text-[11px] transition-colors mt-2"
-                            >
-                                הבנתי, סגור מדריך
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
-            );
+
+            {/* Overlay Hebrew Help Section */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Info size={16} className="text-yellow-500" />
+                            <span className="font-bold text-white text-sm">מדריך החלטה (PSP)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-bold text-xs mb-1">מהו מודל ה-PSP?</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                המודל עוקב אחרי 4 שלבים קריטיים לכניסה: ניקוי נזילות, תזוזה אגרסיבית, תיקון לאזור הערך, והמשכיות הכוח.
+                            </p>
+                        </section>
+
+                        <div className="space-y-2">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-emerald-400 block mb-0.5">מצב Confirmed (מאושר)</span>
+                                <span className="text-[9px] text-zinc-300">כל תנאי המודל התקיימו. המנוע מציג אזורי כניסה (Entry) וסטופ (Invalidation). זוהי העסקה בהסתברות הגבוהה ביותר.</span>
+                            </div>
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-amber-400 block mb-0.5">מצב Forming (מתגבש)</span>
+                                <span className="text-[9px] text-zinc-300">המודל בתחילת דרכו. ניתן לראות איזה שלבים כבר בוצעו. אין להיכנס לעסקה עד לקבלת אישור סופי.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-bold text-xs mb-1">כיצד לפעול?</h4>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                חפש התכנסות (Confluence) בין אזור הכניסה של ה-PSP לבין אזורי ה-VXR (צהוב). אם הציון הכללי מעל 70%, המודל נחשב לאמין מאוד.
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded font-bold text-[11px] transition-colors mt-2"
+                        >
+                            הבנתי, סגור מדריך
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }

@@ -1,7 +1,8 @@
+import React, { useState } from 'react';
+import { PanelProps } from './DashboardPanels';
 import { getLiquiditySignal } from '@/app/lib/liquidityRange';
 import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
 import { Droplets, ArrowUp, ArrowDown, Target, Waves, Gauge, Info, X } from 'lucide-react';
-import { useState } from 'react';
 
 export function LiquidityPanel({ data, loading }: PanelProps) {
     const [showHelp, setShowHelp] = useState(false);
