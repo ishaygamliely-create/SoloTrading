@@ -24,11 +24,8 @@ export function AdvancedIndicatorsPanel({ onClick, isOpen }: Props) {
                     <Rocket size={16} className={isOpen ? 'text-white' : 'text-blue-400'} />
                 </div>
                 <div className="flex flex-col text-left">
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1 ${isOpen ? 'text-blue-100' : 'text-blue-400'}`}>
+                    <span className={`text-xs font-black uppercase tracking-[0.1em] leading-none ${isOpen ? 'text-white' : 'text-zinc-300 group-hover:text-white transition-colors'}`}>
                         Advanced Suite
-                    </span>
-                    <span className={`text-sm font-bold ${isOpen ? 'text-white' : 'text-zinc-300'}`}>
-                        מחוונים מתקדמים
                     </span>
                 </div>
             </div>

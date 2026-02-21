@@ -371,7 +371,7 @@ export default function Home() {
                           onClick={() => setAdvancedOpen(false)}
                           className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] mb-8"
                         >
-                          סגור מערכת מתקדמת
+                          CLOSE ADVANCED SUITE
                         </button>
                       </div>
                     </div>
