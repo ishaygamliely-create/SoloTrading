@@ -114,21 +114,21 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                 ${isLong ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
             {/* --- HEADER --- */}
-            <div className="flex flex-col 2xl:flex-row justify-between items-start 2xl:items-center gap-8 mb-8 relative z-10">
-                <div className="flex items-start gap-4 min-w-0 w-full">
+            <div className="flex flex-col 2xl:flex-row justify-between items-start gap-8 mb-8 relative z-10">
+                <div className="flex items-start gap-4 min-w-0 w-full overflow-visible">
                     <div className={`mt-2.5 w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
                     <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                            <h2 className={`text-2xl md:text-4xl font-black uppercase tracking-tighter leading-none truncate ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <h2 className={`text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none whitespace-nowrap ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {activeTrade.direction} {activeTrade.contractType || 'MNQ'}
                             </h2>
-                            <div className="bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg shrink-0">
+                            <div className="bg-white/5 border border-white/10 px-3 py-1 rounded-lg shrink-0">
                                 <span className="text-[10px] font-black text-white tracking-[0.2em] uppercase">{activeTrade.state}</span>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
                             {activeTrade.state === 'MANAGING' && (
-                                <div className={`flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                                <div className={`flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/10 ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
                                     <Activity size={14} />
                                     <span className="font-mono text-base tracking-tight whitespace-nowrap">
                                         {isProfitable ? '+' : ''}{currentPnL.toFixed(2)} USD
@@ -136,34 +136,34 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                 </div>
                             )}
                             <div className="flex items-center gap-2 text-zinc-600">
-                                <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                <span className="uppercase tracking-[0.2em] text-[9px] font-black">Operational Engagement Protocol</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
+                                <span className="uppercase tracking-[0.2em] text-[10px] font-black opacity-60">Engagement Protocol</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 w-full 2xl:w-auto shrink-0">
+                <div className="flex flex-col sm:flex-row 2xl:flex-row gap-3 w-full 2xl:w-auto shrink-0 pt-2">
                     {activeTrade.state === 'SELECTED' && (
                         <button
                             onClick={handleMarkEntered}
-                            className="bg-white hover:bg-zinc-200 text-black px-6 py-3.5 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 flex-1 2xl:flex-none min-w-[160px]"
+                            className="bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-2xl text-[12px] font-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 w-full 2xl:w-auto min-w-[180px]"
                         >
-                            <Play size={16} fill="currentColor" /> ENTER TRADE
+                            <Play size={18} fill="currentColor" /> ENTER TRADE
                         </button>
                     )}
                     {activeTrade.state === 'CONFIRMING' && (
                         <button
                             disabled
-                            className="bg-blue-600/50 text-white px-6 py-3.5 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2.5 flex-1 2xl:flex-none min-w-[160px] cursor-wait border border-blue-500/30"
+                            className="bg-blue-600/50 text-white px-8 py-4 rounded-2xl text-[12px] font-black flex items-center justify-center gap-3 w-full 2xl:w-auto min-w-[180px] cursor-wait border border-blue-500/30"
                         >
-                            <Loader2 size={16} className="animate-spin" /> CONFIRMING...
+                            <Loader2 size={18} className="animate-spin" /> CONFIRMING...
                         </button>
                     )}
                     {(activeTrade.state === 'OPEN' || activeTrade.state === 'MANAGING' || activeTrade.state === 'CONFIRMING') && (
                         <button
                             onClick={closeTrade}
-                            className="bg-red-500 hover:bg-red-400 text-white px-6 py-3.5 rounded-2xl text-[11px] font-black transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-red-500/20 flex-1 2xl:flex-none min-w-[160px]"
+                            className="bg-red-500 hover:bg-red-400 text-white px-8 py-4 rounded-2xl text-[12px] font-black transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-red-500/20 w-full 2xl:w-auto min-w-[180px]"
                         >
                             CLOSE POSITION
                         </button>
@@ -178,7 +178,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                         <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
                             <Shield size={16} className="text-blue-400" />
                         </div>
-                        <span className="text-xs font-black text-white uppercase tracking-[0.2em] truncate">Risk Configuration</span>
+                        <span className="text-sm font-black text-white uppercase tracking-[0.2em] whitespace-nowrap">Risk Configuration</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                         <button
