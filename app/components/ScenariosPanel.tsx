@@ -85,33 +85,33 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
 
                             {/* Header Section: Badges & Rating */}
                             <div className="p-4 pb-0">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center gap-1.5">
+                                <div className="flex justify-between items-start gap-3 mb-4">
+                                    <div className="flex flex-col gap-2 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5">
                                             {isPrimary && (
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-400 uppercase tracking-widest shrink-0">
                                                     <Target size={8} /> PRIMARY
                                                 </div>
                                             )}
                                             {hasVxrMagnet && (
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[8px] font-black text-cyan-400 uppercase tracking-widest">
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[8px] font-black text-cyan-400 uppercase tracking-widest shrink-0">
                                                     <Layers size={8} /> MAGNET
                                                 </div>
                                             )}
                                         </div>
-                                        <div className={`flex items-center gap-1.5 transition-transform group-hover:translate-x-0.5`}>
-                                            <span className={`text-sm font-black uppercase tracking-tight flex items-center gap-1.5 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        <div className="flex items-center gap-2 transition-transform group-hover:translate-x-0.5">
+                                            <span className={`text-sm font-black uppercase tracking-tight flex items-center gap-1.5 shrink-0 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
                                                 {isLong ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                                 {scenario.direction}
                                             </span>
-                                            <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-zinc-500 font-bold border border-white/5">
+                                            <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-zinc-500 font-bold border border-white/5 truncate max-w-[100px] block">
                                                 {scenario.timeframe || timeframe}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Rating Display */}
-                                    <div className="flex flex-col items-end cursor-pointer group/rating" onClick={() => setExpandedId(isExpanded ? null : i)}>
+                                    <div className="flex flex-col items-end cursor-pointer group/rating shrink-0" onClick={() => setExpandedId(isExpanded ? null : i)}>
                                         <div className={`text-2xl font-black ${scoreColor} tracking-tighter leading-none`}>
                                             {score}
                                         </div>
@@ -140,17 +140,17 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                                 </div>
 
                                 {/* HTF Correlation */}
-                                <div className="mb-4 flex items-center justify-between p-2 rounded-xl bg-black/20 border border-white/5">
-                                    <div className="flex items-center gap-2">
+                                <div className="mb-4 flex items-center justify-between p-2 rounded-xl bg-black/20 border border-white/5 gap-2">
+                                    <div className="flex items-center gap-1.5 shrink-0">
                                         <Activity size={10} className="text-zinc-600" />
                                         <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">HTF Bias</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-[9px] font-black uppercase ${scenario.htfBias?.includes('BULL') ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    <div className="flex flex-wrap items-center justify-end gap-1.5 text-right overflow-hidden">
+                                        <span className={`text-[9px] font-black uppercase whitespace-nowrap ${scenario.htfBias?.includes('BULL') ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {scenario.htfBias || 'NEUTRAL'}
                                         </span>
                                         {scenario.biasAlignment === 'CONTRARIAN' && (
-                                            <span className="text-[8px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-black uppercase">
+                                            <span className="text-[8px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-black uppercase whitespace-nowrap">
                                                 CONTRARIAN
                                             </span>
                                         )}

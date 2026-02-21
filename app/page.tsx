@@ -278,9 +278,6 @@ export default function Home() {
 
                 {hasScenarios && (
                   <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase mb-4 flex items-center gap-2">
-                      <Zap size={14} className="text-yellow-500" /> Actionable Scenarios
-                    </h3>
                     <ScenariosPanel
                       data={data}
                       loading={loading}
