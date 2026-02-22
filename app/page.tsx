@@ -25,6 +25,7 @@ import { AdvancedIndicatorsPanel } from './components/AdvancedIndicatorsPanel';
 import CollapsibleSection from './components/CollapsibleSection';
 import DecisionPanel from './components/DecisionPanel';
 import { LandingPage } from './components/LandingPage';
+import { PersonaLauncher } from './components/PersonaLauncher';
 import { PersonaPanel } from './components/PersonaPanel';
 import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
 import { PersonaProfile } from './types/persona';
@@ -44,6 +45,7 @@ export default function Home() {
   // UI Toggles
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [personaOpen, setPersonaOpen] = useState(false);
   const [activePersona, setActivePersona] = useState<PersonaProfile | null>(null);
 
   const fetchData = async (e?: React.FormEvent) => {
@@ -297,10 +299,10 @@ export default function Home() {
                   <SidebarActiveTrade data={data} />
                 </div>
 
-                <PersonaPanel
-                  onApply={setActivePersona}
-                  activeProfile={activePersona}
-                  scenarios={analysis.scenarios || []}
+                <PersonaLauncher
+                  isOpen={personaOpen}
+                  onClick={() => setPersonaOpen(!personaOpen)}
+                  hasActivePersona={!!activePersona}
                 />
                 <ActiveTradePanel data={data} loading={loading} />
 
@@ -309,6 +311,14 @@ export default function Home() {
                 <VxrPanel data={data} loading={loading} />
 
                 {showSmt && <SMTPanel data={data} loading={loading} />}
+
+                <PersonaPanel
+                  isOpen={personaOpen}
+                  onClose={() => setPersonaOpen(false)}
+                  onApply={setActivePersona}
+                  activeProfile={activePersona}
+                  scenarios={analysis.scenarios || []}
+                />
 
                 {/* Advanced Suite Overlay */}
                 {advancedOpen && (
