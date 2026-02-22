@@ -116,22 +116,22 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
     const hasCrossContext = toAlignment || vzLabel || structDir;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[280px]`}>
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-3 flex flex-col relative overflow-hidden transition-all duration-500`}>
             {/* Background Glow - Matches VXR Style */}
             <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-20 ${direction === 'LONG' ? 'bg-emerald-500' : direction === 'SHORT' ? 'bg-red-500' : 'bg-blue-500'}`} />
 
             {/* Header - VXR HUD Style */}
-            <div className="flex items-center justify-between mb-5 relative z-10">
-                <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between mb-3 relative z-10">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowHelp(true)}
                         className="p-1.5 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors"
                     >
-                        <Info size={12} />
+                        <Info size={11} />
                     </button>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] leading-none">BIAS PRECISION</span>
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-1">Sentiment & Range Context</span>
+                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] leading-none">BIAS PRECISION</span>
+                        <span className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Sentiment & Range Context</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -145,16 +145,16 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                 </div>
             </div>
 
-            <div className="space-y-4 relative z-10 flex-1">
+            <div className="space-y-2.5 relative z-10 flex-1">
                 {/* Direction Row */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <span className={directionBadge(direction)}>{direction ?? "NEUTRAL"}</span>
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border tracking-widest uppercase ${statusBadge}`}>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border tracking-widest uppercase ${statusBadge}`}>
                         {computedStatus}
                     </span>
                     {(meta.capApplied || meta.dataAgeMs > 15 * 60_000) && (
-                        <div className="flex-1 text-right text-[8px] text-zinc-600 font-mono font-bold uppercase tracking-widest">
-                            {meta.sourceUsed} • Age {Math.round(meta.dataAgeMs / 60000)}m
+                        <div className="flex-1 text-right text-[7px] text-zinc-600 font-mono font-bold uppercase tracking-widest">
+                            {meta.sourceUsed} • {Math.round(meta.dataAgeMs / 60000)}m
                         </div>
                     )}
                 </div>
@@ -164,28 +164,28 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                     <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden transition-all duration-300">
                         <button
                             onClick={() => setExpandedHint(!expandedHint)}
-                            className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors group"
+                            className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-white/5 transition-colors group"
                         >
                             <div className="flex items-center gap-2">
-                                <Activity size={12} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Logic Analysis</span>
+                                <Activity size={10} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Logic Analysis</span>
                             </div>
-                            {expandedHint ? <ChevronUp size={14} className="text-zinc-600" /> : <ChevronDown size={14} className="text-zinc-600" />}
+                            {expandedHint ? <ChevronUp size={12} className="text-zinc-600" /> : <ChevronDown size={12} className="text-zinc-600" />}
                         </button>
                         {expandedHint && (
-                            <div className="px-4 py-3 text-[11px] text-zinc-300 leading-relaxed border-t border-white/5 animate-in slide-in-from-top-1 duration-200">
+                            <div className="px-3 py-2 text-[10px] text-zinc-300 leading-relaxed border-t border-white/5 animate-in slide-in-from-top-1 duration-200">
                                 {bias.hint}
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Level Bar */}
+                {/* Level Bar - Condensed padding */}
                 {typeof midnightOpen === 'number' && typeof upperBuffer === 'number' && typeof lowerBuffer === 'number' && (
-                    <div className="bg-white/[0.02] rounded-2xl p-4 border border-white/5">
+                    <div className="bg-white/[0.02] rounded-2xl p-2.5 border border-white/5">
                         <LevelBar price={price} mid={midnightOpen} upper={upperBuffer} lower={lowerBuffer} />
 
-                        <div className="grid grid-cols-2 gap-y-3 pt-3 border-t border-white/5">
+                        <div className="grid grid-cols-2 gap-y-2 pt-2 border-t border-white/5">
                             <div className="flex flex-col">
                                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Distance</span>
                                 <span className="text-[10px] font-mono font-black text-zinc-300">
@@ -210,9 +210,9 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
 
                 {/* Confluence Grid */}
                 {hasCrossContext && (
-                    <div className="space-y-2">
-                        <div className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Confluence Matrix</div>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Confluence Matrix</div>
+                        <div className="flex flex-wrap gap-1.5">
                             <ConfluencePill icon="◈" label="TrueOpen" aligned={toAligned} conflict={toConflict} />
                             <ConfluencePill icon="▣" label={vzLabel ?? "ValueZone"} aligned={vzAligned} conflict={vzConflict} />
                             <ConfluencePill icon="▷" label="Structure" aligned={stAligned} conflict={stConflict} />
