@@ -25,7 +25,9 @@ import { AdvancedIndicatorsPanel } from './components/AdvancedIndicatorsPanel';
 import CollapsibleSection from './components/CollapsibleSection';
 import DecisionPanel from './components/DecisionPanel';
 import { LandingPage } from './components/LandingPage';
+import { PersonaPanel } from './components/PersonaPanel';
 import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
+import { PersonaProfile } from './types/persona';
 
 const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart), {
   ssr: false,
@@ -42,6 +44,7 @@ export default function Home() {
   // UI Toggles
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [activePersona, setActivePersona] = useState<PersonaProfile | null>(null);
 
   const fetchData = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -261,6 +264,7 @@ export default function Home() {
                       data={data}
                       loading={loading}
                       timeframe={analysis.interval || '1m'}
+                      personaFilter={activePersona}
                     />
                   </div>
                 )}
@@ -292,6 +296,12 @@ export default function Home() {
                 <div className="hidden md:block">
                   <SidebarActiveTrade data={data} />
                 </div>
+
+                <PersonaPanel
+                  onApply={setActivePersona}
+                  activeProfile={activePersona}
+                  scenarios={analysis.scenarios || []}
+                />
                 <ActiveTradePanel data={data} loading={loading} />
 
                 <ConfluencePanel data={confluence} />

@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Target, Shield, Info, X, CheckCircle2, Clock, TrendingUp, TrendingDown, Play, Layers, Zap, AlertCircle, Activity, ChevronRight, BarChart3, Fingerprint } from 'lucide-react';
 import { useActiveTrade } from '../context/ActiveTradeContext';
 import { PanelProps } from './DashboardPanels';
+import { PersonaProfile } from '../types/persona';
+import { updateWeight } from '../lib/personaEngine';
 
-export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
+export function ScenariosPanel({ data, loading, timeframe, personaFilter }: PanelProps & { personaFilter?: PersonaProfile | null }) {
     const { saveTrade, isSaved } = useActiveTrade();
     const [showGuide, setShowGuide] = useState(false);
     const [detailScenario, setDetailScenario] = useState<any>(null);
@@ -28,7 +30,18 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
     }
 
     const scenarios = data.analysis.scenarios || [];
-    const activeScenarios = scenarios.filter((s: any) => !s.expires_at || s.expires_at > now);
+    let activeScenarios = scenarios.filter((s: any) => !s.expires_at || s.expires_at > now);
+
+    // Global Persona Filter logic
+    if (personaFilter) {
+        activeScenarios = activeScenarios.filter((s: any) => {
+            if (!s.meta) return true; // PRODUCTION SAFETY: Fallback to show untagged
+            const familyMatch = personaFilter.preferredFamilies.includes(s.meta.family);
+            const tfMatch = personaFilter.timeframes.some(tf => s.meta.tags.includes(`tf:${tf.toLowerCase()}`));
+            // Match if it fits the family OR is on a preferred timeframe
+            return familyMatch || tfMatch;
+        });
+    }
 
     if (activeScenarios.length === 0) {
         return (
@@ -207,9 +220,41 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
 
                             {/* Footer: Timer & Action */}
                             <div className="p-5 pt-4 border-t border-white/10 flex items-center justify-between bg-black/30 relative z-10">
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-zinc-400 font-mono text-[10px] font-black tracking-wider shadow-inner">
-                                    <Clock size={12} className="text-zinc-600" />
-                                    <span>{mins}m {secs.toString().padStart(2, '0')}s</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-zinc-400 font-mono text-[10px] font-black tracking-wider shadow-inner">
+                                        <Clock size={12} className="text-zinc-600" />
+                                        <span>{mins}m {secs.toString().padStart(2, '0')}s</span>
+                                    </div>
+
+                                    {/* Feedback Loop (Step 5) */}
+                                    {scenario.meta && (
+                                        <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-black/40 rounded-xl border border-white/5">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const learnTag = scenario.meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                        scenario.meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                    if (learnTag) updateWeight(learnTag, true);
+                                                }}
+                                                className="p-1 hover:bg-emerald-500/20 rounded-md text-emerald-500/50 hover:text-emerald-400 transition-all active:scale-90"
+                                                title="Target Reached"
+                                            >
+                                                <CheckCircle2 size={12} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const learnTag = scenario.meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                        scenario.meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                    if (learnTag) updateWeight(learnTag, false);
+                                                }}
+                                                className="p-1 hover:bg-red-500/20 rounded-md text-red-500/50 hover:text-red-400 transition-all active:scale-90"
+                                                title="Invalidated"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button

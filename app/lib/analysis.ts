@@ -1,4 +1,5 @@
 ﻿// Manual EMA Implementation to avoid dependency issues
+import { ScenarioMeta } from '../types/persona';
 class EMA {
     static calculate(input: { period: number, values: number[] }): number[] {
         const { period, values } = input;
@@ -869,6 +870,7 @@ export interface TradeScenario {
     ttl_seconds?: number;
     expires_at?: number; // Unix timestamp
     id?: string; // Stable ID
+    meta?: ScenarioMeta; // NEW: Persona & Technical Tagging
 }
 
 import { DXYContext } from './macro';
@@ -1461,7 +1463,80 @@ export function detectTradeScenarios(
         }
     }
 
-    return uniqueScenarios;
+    return uniqueScenarios.map(s => enrichScenario(s));
+}
+
+/**
+ * Deterministic mapping from base scenario types to persona-facing metadata.
+ */
+const scenarioMetaMap: Record<string, (s: TradeScenario) => Partial<ScenarioMeta>> = {
+    BOS_RETEST: (s) => ({
+        family: 'STRUCTURE',
+        regime: 'TREND',
+        horizon: s.timeframe === 'M1-M5 (Scalp)' ? 'SCALP' : 'INTRADAY',
+        risk: 'MEDIUM',
+        confirmation: 'BALANCED',
+        tags: ['setup:bos-retest', 'family:structure', 'regime:trend'],
+        whyKey: 'W_BOS_RETEST'
+    }),
+    LIQUIDITY_SWEEP: (s) => ({
+        family: 'LIQUIDITY',
+        regime: 'REVERSAL',
+        horizon: s.timeframe === 'M1-M5 (Scalp)' ? 'SCALP' : 'INTRADAY',
+        risk: 'TIGHT',
+        confirmation: 'BALANCED',
+        tags: ['setup:liquidity-sweep', 'family:liquidity', 'regime:reversal'],
+        whyKey: 'W_LIQUIDITY_SWEEP'
+    }),
+    PREMIUM_REJECTION: (s) => ({
+        family: 'VALUE',
+        regime: 'REVERSAL',
+        horizon: 'INTRADAY',
+        risk: 'MEDIUM',
+        confirmation: 'BALANCED',
+        tags: ['setup:premium-rejection', 'family:value', 'regime:reversal'],
+        whyKey: 'W_PREMIUM_REJECTION'
+    }),
+    DISCOUNT_BOUNCE: (s) => ({
+        family: 'VALUE',
+        regime: 'REVERSAL',
+        horizon: 'INTRADAY',
+        risk: 'MEDIUM',
+        confirmation: 'BALANCED',
+        tags: ['setup:discount-bounce', 'family:value', 'regime:reversal'],
+        whyKey: 'W_DISCOUNT_BOUNCE'
+    })
+};
+
+/**
+ * Enriches a TradeScenario with metadata, facets, and stable tags for the Persona Engine.
+ */
+export function enrichScenario(base: TradeScenario): TradeScenario {
+    const defaultMeta = scenarioMetaMap[base.type]?.(base) || {};
+
+    // Timeframe normalization
+    const tf = base.timeframe?.toLowerCase().includes('scalp') ? 'm1' :
+        base.timeframe?.toLowerCase().includes('m15') ? 'm15' :
+            base.timeframe?.toLowerCase().includes('h1') ? 'h1' : undefined;
+    const tfTag = tf ? `tf:${tf}` : undefined;
+
+    // Build context-aware tags
+    const ctxTags = [
+        base.biasAlignment === 'ALIGNED' ? 'context:aligned' :
+            base.biasAlignment === 'CONTRARIAN' ? 'context:contrarian' :
+                'context:neutral',
+        base.isPSP ? 'context:psp' : null,
+        base.isPrimary ? 'context:primary' : null,
+        tfTag,
+    ].filter(Boolean) as string[];
+
+    return {
+        ...base,
+        meta: {
+            ...defaultMeta,
+            tags: Array.from(new Set([...(defaultMeta.tags || []), ...ctxTags])),
+        } as ScenarioMeta
+    };
 }
 
 // --- ICT / SMC Core Context Functions ---
