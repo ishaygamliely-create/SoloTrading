@@ -20,7 +20,7 @@ export function extractProfile(text: string): PersonaExtractionResult {
     const lexicon = {
         styles: ['scalp', 'swing', 'day', 'position', 'investor', 'intra', 'sod', 'eod'],
         timeframes: ['m1', 'm3', 'm5', 'm15', 'h1', 'h4', 'daily', 'minute', 'hour', ' tf'],
-        concepts: ['liquidity', 'sweep', 'bos', 'fvg', 'gap', 'trend', 'reversal', 'value', 'structure', 'context', 'news', 'bias'],
+        concepts: ['liquidity', 'sweep', 'bos', 'fvg', 'gap', 'trend', 'reversal', 'value', 'structure', 'context', 'news', 'bias', 'smt', 'divergence', 'macro', 'reversion', 'vwap', 'bands', 'sod'],
         instruments: ['mnq', 'nq', 'es', 'mes', 'nasdaq', 'future', 'ticker', 'symbol']
     };
 
@@ -48,9 +48,9 @@ export function extractProfile(text: string): PersonaExtractionResult {
     const style: PersonaProfile['style'] = isScalper ? 'SCALPER' : (isSwing ? 'SWING_TRADER' : 'DAY_TRADER');
 
     const preferredFamilies: SetupFamily[] = [];
-    if (lower.includes('liquidity') || lower.includes('sweep')) preferredFamilies.push('LIQUIDITY');
+    if (lower.includes('liquidity') || lower.includes('sweep') || lower.includes('gap') || lower.includes('smt') || lower.includes('macro')) preferredFamilies.push('LIQUIDITY');
     if (lower.includes('structure') || lower.includes('bos') || lower.includes('trend')) preferredFamilies.push('STRUCTURE');
-    if (lower.includes('reversal') || lower.includes('fade')) preferredFamilies.push('VALUE');
+    if (lower.includes('reversal') || lower.includes('fade') || lower.includes('reversion') || lower.includes('vwap')) preferredFamilies.push('VALUE');
 
     const risk: RiskProfile = lower.includes('tight') ? 'TIGHT' : (lower.includes('wide') ? 'WIDE' : 'MEDIUM');
 

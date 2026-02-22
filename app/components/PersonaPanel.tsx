@@ -5,6 +5,7 @@ import { Target, Zap, Brain, ChevronRight, Check, X, Loader2, MessageSquare, Shi
 import { PersonaProfile, PersonaExtractionResult } from '../types/persona';
 import { extractProfile, rankScenarios, getStoredWeights } from '../lib/personaEngine';
 import { TradeScenario } from '../lib/analysis';
+import { useActiveTrade } from '../context/ActiveTradeContext';
 
 interface PersonaPanelProps {
     onApply: (profile: PersonaProfile | null) => void;
@@ -19,6 +20,19 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [extraction, setExtraction] = useState<PersonaExtractionResult | null>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
+    const { saveTrade, isSaved } = useActiveTrade();
+
+    const PRESET_STYLES = [
+        { label: 'M1 SCALP', value: 'I am an MNQ scalper focusing on M1-M5 structure. I look for liquidity sweeps and avoid news. Risk is tight.' },
+        { label: 'M15 INTRA', value: 'Day trader specializing in M15 structure breaks and trend alignment. Balanced risk.' },
+        { label: 'H1 SWING', value: 'Swing trader looking for high-value reversal zones on hourly timeframes. Wide risk tolerance.' },
+        { label: 'LIQ SEEKER', value: 'Technical trader focusing exclusively on liquidity pools and institutional mitigation. Conservative risk.' },
+        { label: 'TREND RIDER', value: 'Momentum trader following strong EMA slopes and trend-aligned structure. Aggressive targets.' },
+        { label: 'SMT MASTER', value: 'Focus on institutional divergence (SMT) between symbols like NQ and ES. Smart money alignment.' },
+        { label: 'MACRO SNIPER', value: 'Algorithm execution during time-based NY Macro windows. High-volatility liquidity injections.' },
+        { label: 'REVERSION', value: 'Mean reversion setups targeting VWAP and standard deviation bands. Value-based return to mean.' },
+        { label: 'GAP SEEKER', value: 'Opening gap protocols and True Day Open (SOD) alignment. Focus on morning market imbalance.' }
+    ];
 
     // ESC + Scroll Lock QA (Step 2 & 3)
     useEffect(() => {
@@ -53,11 +67,22 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
         if (!inputValue.trim()) return;
 
         setIsAnalyzing(true);
+        // Simulate "Processing" for HUD feel
+        await new Promise(r => setTimeout(r, 800));
+        const result = extractProfile(inputValue);
+        setExtraction(result);
+        setIsAnalyzing(false);
+    };
+
+    const handleQuickSelect = (val: string) => {
+        setInputValue(val);
+        setIsAnalyzing(true);
+        // Instant HUD feedback
         setTimeout(() => {
-            const result = extractProfile(inputValue);
+            const result = extractProfile(val);
             setExtraction(result);
             setIsAnalyzing(false);
-        }, 800);
+        }, 600);
     };
 
     const handleReset = () => {
@@ -110,16 +135,34 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                 <MessageSquare size={64} className="text-white" />
                             </div>
 
-                            <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em] mb-4">Style Description</h3>
-                            <p className="text-zinc-400 text-xs font-medium mb-6 leading-relaxed">
-                                Describe your trading methodology in natural language. The engine will extract your bias alignment, timeframe affinity, and risk parameters.
-                            </p>
+                            <h3 className="text-xs font-black text-blue-400 border-b border-blue-500/10 pb-2 uppercase tracking-[0.2em] mb-4">Quick Protocols</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-10">
+                                {PRESET_STYLES.map(s => (
+                                    <button
+                                        key={s.label}
+                                        onClick={() => handleQuickSelect(s.value)}
+                                        className="h-12 bg-zinc-950/40 border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 rounded-2xl text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 shadow-lg group-hover:shadow-blue-500/10 flex items-center justify-center text-center px-4"
+                                    >
+                                        {s.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="pt-6 border-t border-white/5">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Deep Learning</h3>
+                                    <span className="text-[9px] text-zinc-600 font-bold uppercase italic tracking-widest">Manual Override</span>
+                                </div>
+                                <p className="text-zinc-500 text-[10px] font-medium mb-4 leading-relaxed uppercase tracking-tight">
+                                    Describe your unique methodology for deep alignment.
+                                </p>
+                            </div>
 
                             <textarea
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="e.g. 'I am an MNQ scalper focusing on M1-M5 structure. I look for liquidity sweeps and avoid news volatility. Risk is tight.'"
-                                className="w-full h-48 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 transition-all font-medium leading-relaxed resize-none shadow-inner"
+                                placeholder="Describe custom methodology..."
+                                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-zinc-800 focus:outline-none focus:border-blue-500/50 transition-all font-medium leading-relaxed resize-none shadow-inner"
                             />
 
                             <button
@@ -215,8 +258,28 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                                                     <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[100px]">
                                                                         {(scenario.type || '').replace(/_/g, ' ')}
                                                                     </span>
-                                                                    <div className="w-8 h-8 rounded-full border border-blue-500/20 flex items-center justify-center bg-blue-500/5 group-hover:bg-blue-500/20 transition-colors">
-                                                                        <span className="text-[9px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                // Map to context scenario type
+                                                                                const contextScenario: any = {
+                                                                                    ...scenario,
+                                                                                    symbol: 'MNQ', // Default or from data
+                                                                                    direction: scenario.direction || (scenario.type?.includes('BULL') || scenario.type?.includes('LONG') ? 'LONG' : 'SHORT'),
+                                                                                    timeframe: extraction.profile.timeframes[0] || 'M15'
+                                                                                };
+                                                                                saveTrade(contextScenario);
+                                                                            }}
+                                                                            className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter transition-all ${isSaved(scenario.id || '')
+                                                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                                                                                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                                                                                }`}
+                                                                        >
+                                                                            {isSaved(scenario.id || '') ? 'ACTIVE' : 'ACTIVATE'}
+                                                                        </button>
+                                                                        <div className="w-8 h-8 rounded-full border border-blue-500/20 flex items-center justify-center bg-blue-500/5 group-hover:bg-blue-500/20 transition-colors">
+                                                                            <span className="text-[9px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="space-y-1.5">
