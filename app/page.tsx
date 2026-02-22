@@ -130,7 +130,7 @@ export default function Home() {
         </div>
       )}
 
-      <main className="flex-1 p-4 md:p-6 relative z-10 overflow-y-auto w-full">
+      <main className="flex-1 p-4 md:p-6 pb-64 relative z-10 overflow-y-auto w-full">
         <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
 
           {/* Header & Search */}
