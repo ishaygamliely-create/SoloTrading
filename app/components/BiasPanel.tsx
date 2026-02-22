@@ -47,10 +47,19 @@ function LevelBar({ price, mid, upper, lower }: { price: number; mid: number; up
                     style={{ left: `${pct}%` }}
                 />
             </div>
-            <div className="flex justify-between text-[8px] font-mono font-bold text-zinc-600 uppercase tracking-widest pt-1">
-                <span>{lower.toFixed(0)} SUP</span>
-                <span className="text-zinc-500">{mid.toFixed(0)} OPEN</span>
-                <span>{upper.toFixed(0)} RES</span>
+            <div className="flex justify-between text-[7px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] pt-1">
+                <div className="flex flex-col">
+                    <span className="text-zinc-500">{lower.toFixed(0)}</span>
+                    <span>SUP</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-zinc-400">{mid.toFixed(0)}</span>
+                    <span className="text-zinc-600">OPEN</span>
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="text-zinc-500">{upper.toFixed(0)}</span>
+                    <span>RES</span>
+                </div>
             </div>
         </div>
     );
@@ -176,15 +185,25 @@ export function BiasPanel({ data, loading }: BiasPanelProps) {
                     <div className="bg-white/[0.02] rounded-2xl p-4 border border-white/5">
                         <LevelBar price={price} mid={midnightOpen} upper={upperBuffer} lower={lowerBuffer} />
 
-                        <div className="flex items-center justify-between mt-3 text-[9px] font-bold font-mono">
-                            <span className="text-zinc-500 uppercase tracking-widest">Distance</span>
-                            <div className="flex items-center gap-3">
-                                <span className="text-zinc-300">
-                                    {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} PTS
+                        <div className="grid grid-cols-2 gap-y-3 pt-3 border-t border-white/5">
+                            <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Distance</span>
+                                <span className="text-[10px] font-mono font-black text-zinc-300">
+                                    {distancePts > 0 ? "+" : ""}{distancePts.toFixed(1)} <span className="text-[7px] opacity-40">PTS</span>
                                 </span>
-                                {atrVal > 0 && <span className="text-zinc-600">{(Math.abs(distancePts) / atrVal).toFixed(2)}× ATR</span>}
-                                {flipConfirmed && <span className="text-emerald-500/80 font-black tracking-widest">● FLIP</span>}
                             </div>
+                            <div className="flex flex-col items-end text-right">
+                                <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">ATR Rel</span>
+                                <span className="text-[10px] font-mono font-black text-zinc-400">
+                                    {atrVal > 0 ? (Math.abs(distancePts) / atrVal).toFixed(2) : '0.00'}× <span className="text-[7px] opacity-40">ATR</span>
+                                </span>
+                            </div>
+                            {flipConfirmed && (
+                                <div className="col-span-2 flex items-center justify-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg py-1.5 mt-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Flip Confirmed</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
