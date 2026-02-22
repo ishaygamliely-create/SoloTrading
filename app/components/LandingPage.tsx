@@ -67,20 +67,6 @@ export function LandingPage({ onSearch, loading }: LandingPageProps) {
                         </button>
                     </div>
 
-                    {/* Quick Tickers */}
-                    <div className="mt-8 flex items-center justify-center gap-4">
-                        <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Popular:</span>
-                        {['MNQ', 'NQ', 'ES', 'MES'].map((t) => (
-                            <button
-                                key={t}
-                                type="button"
-                                onClick={() => { setLocalSymbol(t); onSearch(t); }}
-                                className="px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-full text-zinc-400 hover:text-white text-xs font-bold transition-all"
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
                 </form>
 
                 {/* Features Grid */}

@@ -158,24 +158,9 @@ export default function Home() {
             <div className="flex gap-2 w-full md:w-auto">
               <button
                 onClick={() => setDebugOpen(!debugOpen)}
-                className={`px-3 py-2 text-xs rounded border ${debugOpen ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-transparent border-transparent text-zinc-600'}`}
+                className={`px-3 py-2 text-xs rounded border transition-all ${debugOpen ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-transparent border-transparent text-zinc-600 hover:text-zinc-400'}`}
               >
                 Debug
-              </button>
-
-              <input
-                type="text"
-                value="MNQ (locked)"
-                disabled
-                className="bg-zinc-950/50 border border-zinc-800 text-zinc-500 px-4 py-2 rounded-lg cursor-not-allowed w-full md:w-64 text-sm md:text-base"
-              />
-              <button
-                onClick={() => fetchData()}
-                disabled={loading}
-                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-              >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                SYNC
               </button>
             </div>
           </div>
