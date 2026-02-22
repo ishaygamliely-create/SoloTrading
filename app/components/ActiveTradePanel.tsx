@@ -106,70 +106,72 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
     };
 
     return (
-        <div className={`bg-[#0c0c0e] border rounded-[2rem] p-5 md:p-8 relative overflow-hidden transition-all duration-500 shadow-[0_0_40px_rgba(0,0,0,0.4)]
+        <div className={`bg-[#0c0c0e] border rounded-[2rem] p-4 md:p-6 relative transition-all duration-500 shadow-[0_0_40px_rgba(0,0,0,0.4)]
             ${isLong ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
 
             {/* Accent Glow */}
             <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] pointer-events-none opacity-20 -translate-y-1/2 translate-x-1/2 
                 ${isLong ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
-            {/* --- HEADER --- */}
-            <div className="flex flex-col gap-6 mb-8 relative z-10">
-                <div className="flex items-start gap-4">
-                    <div className={`mt-2 w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
-                    <div className="flex-1">
-                        <div className="flex flex-col gap-2 mb-3">
-                            <h2 className={`text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {activeTrade.direction}<br />
-                                {activeTrade.contractType || 'MNQ'}
+            {/* --- COMPACT HEADER --- */}
+            <div className="flex flex-col gap-4 mb-6 relative z-10">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
+                        <div className="flex-1 min-w-0">
+                            <h2 className={`text-xl md:text-2xl font-black uppercase tracking-tighter leading-none mb-1 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {activeTrade.direction} {activeTrade.contractType || 'MNQ'}
                             </h2>
-                            <div className="inline-flex">
-                                <span className="bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black text-white tracking-widest uppercase">
+                            <div className="flex items-center gap-2">
+                                <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[8px] font-black text-white tracking-widest uppercase">
                                     {activeTrade.state}
                                 </span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                            {activeTrade.state === 'MANAGING' && (
-                                <div className={`flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg border border-white/10 ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    <Activity size={12} />
-                                    <span className="font-mono text-sm tracking-tight">
-                                        {isProfitable ? '+' : ''}{currentPnL.toFixed(2)} USD
-                                    </span>
+                                <div className="flex items-center gap-1.5 text-zinc-600">
+                                    <span className="w-0.5 h-0.5 rounded-full bg-zinc-800" />
+                                    <span className="uppercase tracking-widest text-[7px] font-black opacity-60">Engagement</span>
                                 </div>
-                            )}
-                            <div className="flex items-center gap-1.5 text-zinc-600">
-                                <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                <span className="uppercase tracking-widest text-[8px] font-black opacity-80 leading-none">Protocol Engagement</span>
                             </div>
                         </div>
                     </div>
+
+                    {/* Quick PnL for Managing State */}
+                    {activeTrade.state === 'MANAGING' && (
+                        <div className={`flex flex-col items-end px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 transition-colors ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                                <Activity size={10} />
+                                <span className="text-[8px] font-black uppercase tracking-widest opacity-60">Live PnL</span>
+                            </div>
+                            <span className="font-mono text-base font-black tracking-tight whitespace-nowrap">
+                                {isProfitable ? '+' : ''}{currentPnL.toFixed(2)}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
+                {/* Main Action Buttons */}
                 <div className="w-full">
                     {activeTrade.state === 'SELECTED' && (
                         <button
                             onClick={handleMarkEntered}
-                            className="bg-white hover:bg-zinc-200 text-black px-6 py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/10 w-full"
+                            className="bg-white hover:bg-zinc-100 text-black px-6 py-3 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-95 shadow-xl shadow-white/5 w-full border-b-4 border-zinc-300"
                         >
-                            <Play size={16} fill="currentColor" /> ENTER TRADE
+                            <Play size={14} fill="currentColor" /> DEPLOY ENGAGEMENT PROTOCOL
                         </button>
                     )}
                     {activeTrade.state === 'CONFIRMING' && (
                         <button
                             disabled
-                            className="bg-blue-600/50 text-white px-6 py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2.5 w-full cursor-wait border border-blue-500/30"
+                            className="bg-blue-600/50 text-white px-6 py-3 rounded-2xl text-[11px] font-black flex items-center justify-center gap-2.5 w-full cursor-wait border border-blue-500/30"
                         >
-                            <Loader2 size={16} className="animate-spin" /> CONFIRMING...
+                            <Loader2 size={14} className="animate-spin" /> CONFIRMING EXECUTION...
                         </button>
                     )}
                     {(activeTrade.state === 'OPEN' || activeTrade.state === 'MANAGING' || activeTrade.state === 'CONFIRMING') && (
                         <button
                             onClick={closeTrade}
-                            className="bg-red-500 hover:bg-red-400 text-white px-6 py-3.5 rounded-2xl text-xs font-black transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-red-500/10 w-full"
+                            className="bg-red-500 hover:bg-red-400 text-white px-6 py-3 rounded-2xl text-[11px] font-black transition-all hover:scale-[1.01] active:scale-95 shadow-xl shadow-red-500/10 w-full border-b-4 border-red-700"
                         >
-                            CLOSE POSITION
+                            TERMINATE & CLOSE POSITION
                         </button>
                     )}
                 </div>
@@ -209,15 +211,15 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     {/* Entry Price */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target Entry</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest pl-1">Entry</label>
                         {isEditing ? (
                             <input
                                 type="number"
                                 step="0.25"
-                                className="w-full bg-black border border-white/10 rounded-2xl text-base px-4 py-3 font-mono text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                                className="w-full bg-black border border-white/10 rounded-xl text-xs px-3 py-2 font-mono text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                                 value={activeTrade.entryPrice || ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -225,21 +227,21 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                 }}
                             />
                         ) : (
-                            <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-white tabular-nums">{activeTrade.entryPrice?.toFixed(2) || '---'}</span>
-                                <Lock size={12} className="text-zinc-800" />
+                            <div className="bg-black/40 border border-white/5 rounded-xl p-2.5 flex items-center justify-between">
+                                <span className="text-sm font-mono font-black text-white tabular-nums">{activeTrade.entryPrice?.toFixed(2) || '---'}</span>
+                                <Lock size={10} className="text-zinc-800" />
                             </div>
                         )}
                     </div>
 
                     {/* Stop Loss */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Invalidation (SL)</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest pl-1">Stop (SL)</label>
                         {isEditing ? (
                             <input
                                 type="number"
                                 step="0.25"
-                                className="w-full bg-black border border-white/10 rounded-2xl text-base px-4 py-3 font-mono text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                                className="w-full bg-black border border-white/10 rounded-xl text-xs px-3 py-2 font-mono text-white focus:outline-none focus:border-red-500/50 transition-colors"
                                 value={activeTrade.stopLossPrice || ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -247,21 +249,21 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                 }}
                             />
                         ) : (
-                            <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-red-400 tabular-nums">{activeTrade.stopLossPrice?.toFixed(2) || '---'}</span>
-                                <Shield size={12} className="text-red-900/40" />
+                            <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-2.5 flex items-center justify-between">
+                                <span className="text-sm font-mono font-black text-red-400 tabular-nums">{activeTrade.stopLossPrice?.toFixed(2) || '---'}</span>
+                                <Shield size={10} className="text-red-900/40" />
                             </div>
                         )}
                     </div>
 
                     {/* First Target */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Primary Exit (TP1)</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target 1 (TP1)</label>
                         {isEditing ? (
                             <input
                                 type="number"
                                 step="0.25"
-                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                className="w-full bg-black border border-emerald-500/20 rounded-xl text-xs px-3 py-2 font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
                                 value={activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0] : ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -271,23 +273,23 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                 }}
                             />
                         ) : (
-                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-emerald-400 tabular-nums">
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2.5 flex items-center justify-between">
+                                <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">
                                     {activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0].toFixed(2) : '---'}
                                 </span>
-                                <Target size={12} className="text-emerald-900/40" />
+                                <Target size={10} className="text-emerald-900/40" />
                             </div>
                         )}
                     </div>
 
                     {/* Second Target */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Secondary Exit (TP2)</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target 2 (TP2)</label>
                         {isEditing ? (
                             <input
                                 type="number"
                                 step="0.25"
-                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-500/70 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                className="w-full bg-black border border-emerald-500/20 rounded-xl text-xs px-3 py-2 font-mono text-emerald-500/70 focus:outline-none focus:border-emerald-500/50 transition-colors"
                                 value={activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1] : ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -295,37 +297,36 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                     newTargets[1] = isNaN(val) ? 0 : val;
                                     updateTradeParams({ targets: newTargets });
                                 }}
-                                placeholder="Target 2"
                             />
                         ) : (
-                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-emerald-500/70 tabular-nums">
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2.5 flex items-center justify-between">
+                                <span className="text-sm font-mono font-black text-emerald-500/70 tabular-nums">
                                     {activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1].toFixed(2) : '---'}
                                 </span>
-                                <Target size={12} className="text-emerald-900/20" />
+                                <Target size={10} className="text-emerald-900/20" />
                             </div>
                         )}
                     </div>
 
                     {/* Exposure */}
-                    <div className="space-y-2 sm:col-span-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Exposure (Contracts)</label>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                className="w-full bg-black border border-white/10 rounded-2xl text-base px-4 py-3 font-mono text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                                value={activeTrade.positionSize || ''}
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value);
-                                    updateTradeParams({ positionSize: isNaN(val) ? 0 : val });
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-white tracking-widest lowercase">{activeTrade.positionSize || 0} contracts</span>
-                                <Activity size={12} className="text-zinc-800" />
-                            </div>
-                        )}
+                    <div className="col-span-2 md:col-span-4 flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-4 py-2">
+                        <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Exposure</label>
+                        <div className="flex items-center gap-3">
+                            {isEditing ? (
+                                <input
+                                    type="number"
+                                    className="w-24 bg-black border border-white/10 rounded-lg text-xs px-2 py-1 font-mono text-white focus:outline-none focus:border-blue-500/50"
+                                    value={activeTrade.positionSize || ''}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value);
+                                        updateTradeParams({ positionSize: isNaN(val) ? 0 : val });
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-xs font-mono font-black text-white uppercase tracking-tight">{activeTrade.positionSize || 0} contracts</span>
+                            )}
+                            <Activity size={10} className="text-zinc-800" />
+                        </div>
                     </div>
                 </div>
 
