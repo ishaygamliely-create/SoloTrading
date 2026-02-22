@@ -137,16 +137,21 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                         </div>
                     </div>
 
-                    {/* Dedicated PnL Row - Vertical Stack forced to avoid clashes */}
+                    {/* Dedicated PnL Row - Vertical Stack for safety and clarity */}
                     {activeTrade.state === 'MANAGING' && (
-                        <div className={`bg-white/5 border border-white/10 rounded-2xl px-5 py-4 flex items-center justify-between ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-1">Live Performance</span>
-                                <span className="text-[8px] font-black uppercase tracking-widest opacity-20">Real-time PnL Tracking</span>
+                        <div className={`bg-white/5 border border-white/10 rounded-[2rem] p-6 flex flex-col gap-4 relative overflow-hidden ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-1">Live Performance</span>
+                                    <span className="text-[8px] font-black uppercase tracking-widest opacity-20">Real-time Protocol Feed</span>
+                                </div>
+                                <Activity size={16} className="opacity-30" />
                             </div>
-                            <div className="font-mono text-3xl font-black tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                            <div className="font-mono text-4xl font-black tracking-tighter tabular-nums leading-none relative z-10 drop-shadow-[0_0_20px_rgba(0,0,0,0.3)]">
                                 {isProfitable ? '+' : ''}{currentPnL.toFixed(2)}
                             </div>
+                            {/* Subtle background flair */}
+                            <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-3xl opacity-10 rounded-full ${isProfitable ? 'bg-emerald-500' : 'bg-red-500'}`} />
                         </div>
                     )}
                 </div>
