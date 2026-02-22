@@ -1,31 +1,7 @@
-'use client';
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-// --- TYPES ---
+import { TradeScenario, GuidanceMessage, GuidanceStatus } from '../types/tradeScenario';
 
 export type TradeState = 'SELECTED' | 'OPEN' | 'MANAGING' | 'CLOSED' | 'CONFIRMING';
-export type GuidanceStatus = 'HOLD' | 'CAUTION' | 'EXIT' | 'ENTRY_ZONE';
-
-export interface GuidanceMessage {
-    timestamp: number;
-    status: GuidanceStatus;
-    action: string;
-    evidence: string[];
-}
-
-export interface TradeScenario {
-    id: string;
-    symbol: string;
-    direction: 'LONG' | 'SHORT';
-    entryZone: { min: number, max: number };
-    invalidation?: number; // Stop Loss level (legacy)
-    stopLoss?: number; // Actual property likely used
-    targets: { price: number, description: string }[];
-    type: string;
-    timeframe: string;
-    description?: string;
-}
 
 export interface SavedTrade {
     id: string;
@@ -115,6 +91,11 @@ export function ActiveTradeProvider({ children }: { children: ReactNode }) {
     // --- ACTIONS ---
 
     const saveTrade = (scenario: TradeScenario) => {
+        if (!scenario.id) return;
+
+        // Ensure symbol is present, fallback to MNQ if missing (for legacy or generic triggers)
+        const symbol = scenario.symbol || 'MNQ';
+
         // Prevent duplicates
         if (savedTrades.some(t => t.scenarioId === scenario.id)) return;
 
@@ -122,18 +103,21 @@ export function ActiveTradeProvider({ children }: { children: ReactNode }) {
         // Default Risk Params
         const defaultRiskAmount = 500;
 
+        // Shield against NEUTRAL direction - should not be activatable as trade
+        if (scenario.direction === 'NEUTRAL') return;
+
         const newTrade: SavedTrade = {
             id: Date.now().toString(),
             scenarioId: scenario.id,
-            symbol: scenario.symbol,
-            direction: scenario.direction,
+            symbol: symbol,
+            direction: scenario.direction as 'LONG' | 'SHORT',
             setupName: scenario.type?.replace(/_/g, ' ') || 'Manual Setup',
             timeframe: scenario.timeframe || '1m',
             entryPrice: initialEntry,
             stopLossPrice: scenario.stopLoss || scenario.invalidation || 0,
             targets: scenario.targets.map(t => t.price),
             savedAt: Date.now(),
-            contractType: 'MNQ' // Default
+            contractType: symbol.includes('NQ') && !symbol.includes('MNQ') ? 'NQ' : 'MNQ'
         };
 
         setSavedTrades(prev => [newTrade, ...prev]);

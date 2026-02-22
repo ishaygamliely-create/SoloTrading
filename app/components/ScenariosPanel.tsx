@@ -7,10 +7,12 @@ import { PanelProps } from './DashboardPanels';
 import { PersonaProfile } from '../types/persona';
 import { updateWeight } from '../lib/personaEngine';
 
+import { TradeScenario } from '../types/tradeScenario';
+
 export function ScenariosPanel({ data, loading, timeframe, personaFilter }: PanelProps & { personaFilter?: PersonaProfile | null }) {
     const { saveTrade, isSaved } = useActiveTrade();
     const [showGuide, setShowGuide] = useState(false);
-    const [detailScenario, setDetailScenario] = useState<any>(null);
+    const [detailScenario, setDetailScenario] = useState<TradeScenario | null>(null);
 
     // Auto-update timer for TTL
     const [now, setNow] = useState(Math.floor(Date.now() / 1000));
@@ -29,15 +31,15 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
         );
     }
 
-    const scenarios = data.analysis.scenarios || [];
-    let activeScenarios = scenarios.filter((s: any) => !s.expires_at || s.expires_at > now);
+    const scenarios: TradeScenario[] = data.analysis.scenarios || [];
+    let activeScenarios = scenarios.filter((s: TradeScenario) => !s.expires_at || s.expires_at > now);
 
     // Global Persona Filter logic
     if (personaFilter) {
-        activeScenarios = activeScenarios.filter((s: any) => {
-            if (!s.meta) return true; // PRODUCTION SAFETY: Fallback to show untagged
+        activeScenarios = activeScenarios.filter((s: TradeScenario) => {
+            if (!s.meta || !personaFilter) return true; // PRODUCTION SAFETY: Fallback to show untagged
             const familyMatch = personaFilter.preferredFamilies.includes(s.meta.family);
-            const tfMatch = personaFilter.timeframes.some(tf => s.meta.tags.includes(`tf:${tf.toLowerCase()}`));
+            const tfMatch = personaFilter.timeframes.some(tf => s.meta?.tags?.includes(`tf:${tf.toLowerCase()}`));
             // Match if it fits the family OR is on a preferred timeframe
             return familyMatch || tfMatch;
         });
@@ -92,10 +94,10 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 w-full relative z-10 p-1">
-                {activeScenarios.map((scenario: any, i: number) => {
+                {activeScenarios.map((scenario: TradeScenario, i: number) => {
                     const isLong = scenario.direction === 'LONG';
                     const isPrimary = scenario.isPrimary;
-                    const saved = isSaved(scenario.id);
+                    const saved = scenario.id ? isSaved(scenario.id) : false;
                     const scorecard = scenario.confidence?.scorecard;
                     const score = scenario.confidence?.score || 0;
                     const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-amber-400' : 'text-zinc-500';
@@ -232,8 +234,10 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    const learnTag = scenario.meta.tags.find((t: string) => t.startsWith('setup:')) ||
-                                                        scenario.meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                    const meta = scenario.meta;
+                                                    if (!meta) return;
+                                                    const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                        meta.tags.find((t: string) => t.startsWith('family:')) || null;
                                                     if (learnTag) updateWeight(learnTag, true);
                                                 }}
                                                 className="p-1 hover:bg-emerald-500/20 rounded-md text-emerald-500/50 hover:text-emerald-400 transition-all active:scale-90"
@@ -244,8 +248,10 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    const learnTag = scenario.meta.tags.find((t: string) => t.startsWith('setup:')) ||
-                                                        scenario.meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                    const meta = scenario.meta;
+                                                    if (!meta) return;
+                                                    const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                        meta.tags.find((t: string) => t.startsWith('family:')) || null;
                                                     if (learnTag) updateWeight(learnTag, false);
                                                 }}
                                                 className="p-1 hover:bg-red-500/20 rounded-md text-red-500/50 hover:text-red-400 transition-all active:scale-90"
@@ -374,7 +380,7 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                                         <div className="mb-10 flex justify-between items-end">
                                             <div>
                                                 <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Institutional Rating</div>
-                                                <div className={`text-6xl font-black tracking-tighter ${detailScenario.confidence?.score >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                <div className={`text-6xl font-black tracking-tighter ${(detailScenario.confidence?.score || 0) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
                                                     {detailScenario.confidence?.rating || 'C'}
                                                 </div>
                                             </div>
@@ -416,16 +422,16 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                             </button>
                             <button
                                 onClick={() => {
-                                    if (!isSaved(detailScenario.id)) saveTrade(detailScenario);
+                                    if (detailScenario.id && !isSaved(detailScenario.id)) saveTrade(detailScenario);
                                     setDetailScenario(null);
                                 }}
-                                disabled={isSaved(detailScenario.id)}
+                                disabled={!!detailScenario.id && isSaved(detailScenario.id)}
                                 className={`flex-[2] py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] transition-all shadow-2xl flex items-center justify-center gap-4
-                                    ${isSaved(detailScenario.id)
+                                    ${!!detailScenario.id && isSaved(detailScenario.id)
                                         ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
                                         : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 border border-blue-400/30 active:scale-[0.98]'}`}
                             >
-                                {isSaved(detailScenario.id) ? (
+                                {isSaved(detailScenario.id || '') ? (
                                     <>
                                         <CheckCircle2 size={20} />
                                         Protocol Initialized

@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Target, Zap, Brain, ChevronRight, Check, X, Loader2, MessageSquare, Shield, Activity, ListChecks, Rocket, AlertCircle } from 'lucide-react';
+import { Target, Zap, Brain, ChevronRight, Check, X, Loader2, MessageSquare, Shield, Activity, ListChecks, Rocket, AlertCircle, Info } from 'lucide-react';
 import { PersonaProfile, PersonaExtractionResult } from '../types/persona';
 import { extractProfile, rankScenarios, getStoredWeights } from '../lib/personaEngine';
-import { TradeScenario } from '../lib/analysis';
+import { TradeScenario } from '../types/tradeScenario';
 import { useActiveTrade } from '../context/ActiveTradeContext';
 import { PanelHelp } from './PanelHelp';
 
@@ -96,7 +96,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
         onApply(null);
     };
 
-    const recommendations = (extraction && scenarios && extraction.confidence >= 0.25)
+    const recommendationsList = (extraction && scenarios && extraction.confidence >= 0.25)
         ? rankScenarios(scenarios, extraction.profile, getStoredWeights()).slice(0, 3)
         : [];
 
@@ -136,72 +136,85 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                     {/* Left side: Context & Input */}
                     <div className="lg:col-span-2 space-y-6">
                         <section className="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 relative overflow-hidden h-full">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">Quick Protocols</h3>
-                                <div className="scale-90 origin-right">
-                                    <PanelHelp
-                                        title="Trading Persona Protocols"
-                                        label="System Protocol Help (?)"
-                                        bullets={[
-                                            "Quick Protocols: 9 one-click institutional setups.",
-                                            "Deep Learning: Describe your unique methodology.",
-                                            "Adaptive Ranking: System learns from your feedback.",
-                                            "Direct Activation: Sync setups to Active Trade sidebar."
-                                        ]}
-                                    />
+                            <div className="flex flex-col gap-8 min-w-0">
+                                {/* Institutional Quick Protocols Header */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                            <Zap size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] leading-none">QUICK PROTOCOLS</span>
+                                                <div className="scale-75 origin-left">
+                                                    <PanelHelp
+                                                        title="Trading Persona Protocols"
+                                                        label={<div className="p-1.5 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors cursor-pointer"><Info size={14} /></div>}
+                                                        bullets={[
+                                                            "Quick Protocols: One-click institutional setups.",
+                                                            "Deep Learning: Describe your unique methodology.",
+                                                            "Direct Activation: Sync setups to Active Trade sidebar."
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1.5 tracking-wider">Algorithmic Style Initialization</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-10">
-                                {PRESET_STYLES.map(s => (
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    {PRESET_STYLES.map(s => (
+                                        <button
+                                            key={s.label}
+                                            onClick={() => handleQuickSelect(s.value)}
+                                            className="h-12 bg-zinc-950/40 border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 rounded-2xl text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 shadow-lg group-hover:shadow-blue-500/10 flex items-center justify-center text-center px-4"
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="pt-6 border-t border-white/5">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Deep Learning</h3>
+                                        <span className="text-[9px] text-zinc-600 font-bold uppercase italic tracking-widest">Manual Override</span>
+                                    </div>
+                                    <p className="text-zinc-500 text-[10px] font-medium mb-4 leading-relaxed uppercase tracking-tight">
+                                        Describe your unique methodology for deep alignment.
+                                    </p>
+                                </div>
+
+                                <textarea
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder="Describe custom methodology..."
+                                    className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-zinc-800 focus:outline-none focus:border-blue-500/50 transition-all font-medium leading-relaxed resize-none shadow-inner"
+                                />
+
+                                {/* Manual Action - Hidden when analyzing or extraction exists unless typing */}
+                                {(!extraction || inputValue !== lastAnalyzedValue) && (
                                     <button
-                                        key={s.label}
-                                        onClick={() => handleQuickSelect(s.value)}
-                                        className="h-12 bg-zinc-950/40 border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 rounded-2xl text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 shadow-lg group-hover:shadow-blue-500/10 flex items-center justify-center text-center px-4"
+                                        onClick={handleAnalyze}
+                                        disabled={isAnalyzing || !inputValue.trim()}
+                                        className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-[0.15em] transition-all active:scale-95 shadow-2xl ${isAnalyzing || !inputValue.trim()
+                                            ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
+                                            }`}
                                     >
-                                        {s.label}
+                                        {isAnalyzing ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                Processing Protocol...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Initialize Extraction
+                                            </>
+                                        )}
                                     </button>
-                                ))}
+                                )}
                             </div>
-
-                            <div className="pt-6 border-t border-white/5">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Deep Learning</h3>
-                                    <span className="text-[9px] text-zinc-600 font-bold uppercase italic tracking-widest">Manual Override</span>
-                                </div>
-                                <p className="text-zinc-500 text-[10px] font-medium mb-4 leading-relaxed uppercase tracking-tight">
-                                    Describe your unique methodology for deep alignment.
-                                </p>
-                            </div>
-
-                            <textarea
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="Describe custom methodology..."
-                                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-zinc-800 focus:outline-none focus:border-blue-500/50 transition-all font-medium leading-relaxed resize-none shadow-inner"
-                            />
-
-                            {/* Manual Action - Hidden when analyzing or extraction exists unless typing */}
-                            {(!extraction || inputValue !== lastAnalyzedValue) && (
-                                <button
-                                    onClick={handleAnalyze}
-                                    disabled={isAnalyzing || !inputValue.trim()}
-                                    className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-[0.15em] transition-all active:scale-95 shadow-2xl ${isAnalyzing || !inputValue.trim()
-                                        ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
-                                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
-                                        }`}
-                                >
-                                    {isAnalyzing ? (
-                                        <>
-                                            <Loader2 size={18} className="animate-spin" />
-                                            Processing Protocol...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Initialize Extraction
-                                        </>
-                                    )}
-                                </button>
-                            )}
                         </section>
 
                         {activeProfile && (
@@ -223,13 +236,19 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 {/* Profile Stats */}
                                 <div className="bg-zinc-900/50 border border-white/5 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <div className="flex items-center gap-3">
-                                            <Shield size={20} className="text-blue-400" />
-                                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Extracted Profile</h3>
+                                    {/* Institutional Extracted Profile Header */}
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="p-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                            <Shield size={20} strokeWidth={2.5} />
                                         </div>
-                                        <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-mono font-black text-blue-400 tracking-tighter shadow-lg">
-                                            {(extraction.confidence * 100).toFixed(0)}% INTEGRITY
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] leading-none">EXTRACTED PROFILE</span>
+                                                <div className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[8px] font-black text-blue-300 uppercase tracking-[0.1em]">
+                                                    {((extraction.confidence || 0) * 100).toFixed(0)}% INTEGRITY
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1.5 tracking-wider">Neural Mapping Results</span>
                                         </div>
                                     </div>
 
@@ -265,58 +284,71 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                             </div>
 
                                             {/* Recommendations */}
-                                            {recommendations.length > 0 && (
-                                                <div className="mt-10 space-y-4">
-                                                    <div className="flex items-center gap-3 px-1">
-                                                        <ListChecks size={18} className="text-blue-400" />
-                                                        <span className="text-[11px] font-black text-blue-400/60 uppercase tracking-[0.25em]">Protocol Alignment Recommendations</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                        {recommendations.map(({ scenario, score, why }, idx) => (
-                                                            <div key={idx} className="p-4 rounded-2xl bg-zinc-950/40 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1">
-                                                                <div className="flex justify-between items-start mb-4 gap-2">
-                                                                    <div className="flex flex-col gap-1 min-w-0">
-                                                                        <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate block">
-                                                                            {(scenario.type || '').replace(/_/g, ' ')}
-                                                                        </span>
-                                                                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">
-                                                                            {scenario.timeframe}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                // Map to context scenario type
-                                                                                const contextScenario: any = {
-                                                                                    ...scenario,
-                                                                                    symbol: 'MNQ', // Default or from data
-                                                                                    direction: scenario.direction || (scenario.type?.includes('BULL') || scenario.type?.includes('LONG') ? 'LONG' : 'SHORT'),
-                                                                                    timeframe: extraction.profile.timeframes[0] || 'M15'
-                                                                                };
-                                                                                saveTrade(contextScenario);
-                                                                            }}
-                                                                            className={`px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-tighter transition-all ${isSaved(scenario.id || '')
-                                                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-                                                                                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
-                                                                                }`}
-                                                                        >
-                                                                            {isSaved(scenario.id || '') ? 'ACTIVE' : 'ACTIVATE'}
-                                                                        </button>
-                                                                        <div className="w-7 h-7 rounded-xl border border-blue-500/20 flex items-center justify-center bg-blue-500/10 group-hover:bg-blue-500/30 transition-colors flex-shrink-0">
-                                                                            <span className="text-[9px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    {why.slice(0, 3).map((w, i) => (
-                                                                        <div key={i} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
-                                                                            <Check size={8} className="text-emerald-400" />
-                                                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter truncate">{w}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                            {recommendationsList.length > 0 && (
+                                                <div className="mt-12">
+                                                    <div className="flex items-center gap-4 mb-8">
+                                                        <div className="p-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                            <ListChecks size={20} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[11px] font-black text-blue-300 uppercase tracking-[0.3em] leading-none">PROTOCOL ALIGNMENT RECOMMENDATIONS</span>
                                                             </div>
-                                                        ))}
+                                                            <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1.5 tracking-wider">Matching institutional models for your profile</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {recommendationsList.map((item, idx) => {
+                                                            const scenario = item.scenario;
+                                                            const whyItems = item.why || [];
+                                                            const score = item.score;
+
+                                                            return (
+                                                                <div key={scenario.id || idx} className="p-4 rounded-2xl bg-zinc-950/40 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1 flex flex-col gap-4">
+                                                                    <div className="flex justify-between items-start gap-4">
+                                                                        <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                                                            <span className="text-[11px] font-black text-white uppercase tracking-tight leading-tight block break-words">
+                                                                                {(scenario.type || '').replace(/_/g, ' ')}
+                                                                            </span>
+                                                                            <div className="flex items-center gap-2 mt-1">
+                                                                                <span className="px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                                                                                    {scenario.timeframe}
+                                                                                </span>
+                                                                                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">
+                                                                                    STYLE MATCH
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="w-10 h-10 rounded-xl border border-blue-500/20 flex items-center justify-center bg-blue-500/10 group-hover:bg-blue-500/30 transition-colors flex-shrink-0">
+                                                                            <span className="text-[11px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex-1 space-y-1.5">
+                                                                        {whyItems.slice(0, 3).map((w, i) => (
+                                                                            <div key={i} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                                                <Check size={8} className="text-emerald-400" />
+                                                                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter truncate">{w}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            saveTrade(scenario);
+                                                                        }}
+                                                                        className={`w-full h-10 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isSaved(scenario.id || '')
+                                                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                                                                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                                                                            }`}
+                                                                    >
+                                                                        {isSaved(scenario.id || '') ? 'SENSING ACTIVE' : 'ACTIVATE SETUP'}
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -332,20 +364,11 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                             Discard Session
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                if (!isInvalid) {
-                                                    onApply(extraction.profile);
-                                                    onClose();
-                                                }
-                                            }}
-                                            disabled={isInvalid}
-                                            className={`flex-[2] h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl ${isInvalid
-                                                ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed border border-white/5'
-                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
-                                                }`}
+                                            onClick={onClose}
+                                            className="flex-1 h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl bg-zinc-800 hover:bg-zinc-700 text-white border border-white/5"
                                         >
                                             <Rocket size={18} fill="currentColor" />
-                                            {isInvalid ? 'Context Denied' : 'Synchronize Dashboard'}
+                                            Confirm Selection
                                         </button>
                                     </div>
                                 </div>

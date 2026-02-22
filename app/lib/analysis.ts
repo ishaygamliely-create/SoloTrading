@@ -1,5 +1,5 @@
-﻿// Manual EMA Implementation to avoid dependency issues
-import { ScenarioMeta } from '../types/persona';
+﻿import { ScenarioMeta } from '../types/persona';
+import { TradeScenario, ConfidenceScorecard, ScoreComponent } from '../types/tradeScenario';
 class EMA {
     static calculate(input: { period: number, values: number[] }): number[] {
         const { period, values } = input;
@@ -822,56 +822,7 @@ export function detectPSP(
     return psps;
 }
 
-// NEW TYPES FOR DECISION QUALITY
-export interface ScoreComponent {
-    label: string;
-    points: number;
-    category: 'STRUCTURE' | 'TREND' | 'LIQUIDITY' | 'MACRO' | 'SESSION' | 'RISK';
-    reason?: string;
-}
-
-export interface ConfidenceScorecard {
-    total: number;
-    rating: 'A+' | 'A' | 'B' | 'C';
-    components: ScoreComponent[];
-    conflict?: {
-        detected: boolean;
-        reason: string;
-        dominantLayer: string;
-    };
-    keyOpensBiasScore?: number;
-    keyOpensAlignment?: string;
-}
-
-export interface TradeScenario {
-    type: 'BOS_RETEST' | 'LIQUIDITY_SWEEP' | 'PREMIUM_REJECTION' | 'DISCOUNT_BOUNCE';
-    direction: 'LONG' | 'SHORT';
-    entryZone: { min: number; max: number };
-    stopLoss: number;
-    targets: { price: number; desc: string }[];
-    rr: number;
-    rrWarning?: string;
-    timeframe: string;
-    biasAlignment: 'ALIGNED' | 'CONTRARIAN' | 'NEUTRAL';
-    htfBias: string;
-    confidence: {
-        score: number;
-        rating: 'A+' | 'A' | 'B' | 'C';
-        factors: string[];
-        scorecard: ConfidenceScorecard; // NEW
-    };
-    state: 'ACTIONABLE' | 'PENDING' | 'INVALID';
-    executionType: 'MARKET' | 'LIMIT' | 'STOP';
-    condition: string;
-    note?: string;
-    description: string;
-    isPSP?: boolean;
-    isPrimary?: boolean;
-    ttl_seconds?: number;
-    expires_at?: number; // Unix timestamp
-    id?: string; // Stable ID
-    meta?: ScenarioMeta; // NEW: Persona & Technical Tagging
-}
+// Scoring types moved to shared types/tradeScenario.ts
 
 import { DXYContext } from './macro';
 import { calculateBollingerBands, BollingerBandValue } from './indicators/bollinger';
@@ -1446,7 +1397,7 @@ export function detectTradeScenarios(
             if (a.state === 'ACTIONABLE' && b.state !== 'ACTIONABLE') return -1;
             if (b.state === 'ACTIONABLE' && a.state !== 'ACTIONABLE') return 1;
 
-            return b.rr - a.rr;
+            return (b.rr || 0) - (a.rr || 0);
         });
 
         // Top is Primary

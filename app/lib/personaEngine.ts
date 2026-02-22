@@ -1,5 +1,5 @@
 import { PersonaProfile, PersonaExtractionResult, ScenarioMeta, SetupFamily, MarketRegime, RiskProfile } from '../types/persona';
-import { TradeScenario } from './analysis';
+import { TradeScenario } from '../types/tradeScenario';
 
 const WEIGHTS_KEY = 'vpx_persona_weights';
 const WEIGHT_MIN = -2;

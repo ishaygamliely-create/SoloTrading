@@ -601,7 +601,11 @@ export async function GET(request: Request) {
         });
 
         // --- VOLUME X-RAY (VXR) ---
-        const vxrProfiles = safeExecute("VXR", () => calculateVxr(quotes15m, quotes1m, symbol.includes('NQ') || symbol.includes('ES') ? 0.5 : 0.25), []);
+        // Ensure quotes1m has some data before calculating
+        const vxrProfiles = safeExecute("VXR", () => {
+            if (quotes1m.length === 0) return [];
+            return calculateVxr(quotes15m, quotes1m, symbol.includes('NQ') || symbol.includes('ES') ? 0.5 : 0.25);
+        }, []);
         const lastVxr = vxrProfiles.length > 0 ? vxrProfiles[vxrProfiles.length - 1] : null;
 
         safeExecute("Scenarios-M1", () => {
