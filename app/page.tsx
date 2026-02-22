@@ -156,12 +156,6 @@ export default function Home() {
             </div>
 
             <div className="flex gap-2 w-full md:w-auto">
-              <button
-                onClick={() => setDebugOpen(!debugOpen)}
-                className={`px-3 py-2 text-xs rounded border transition-all ${debugOpen ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-transparent border-transparent text-zinc-600 hover:text-zinc-400'}`}
-              >
-                Debug
-              </button>
             </div>
           </div>
 
