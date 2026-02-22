@@ -280,32 +280,33 @@ function padSeries(emaValues: number[], totalLength: number): (number | null)[] 
 }
 
 // Swing High/Low Detection
-export function detectMarketStructure(quotes: Quote[]): MarketStructure {
+export function detectMarketStructure(quotes: Quote[], lookback: number = 500): MarketStructure {
+    const data = quotes.length > lookback ? quotes.slice(-lookback) : quotes;
     const leftBars = 3; // Reduced for faster reaction on M1/M15
     const rightBars = 3;
     const swings: SwingPoint[] = [];
 
     // 1. Identification of Swing Points
-    for (let i = leftBars; i < quotes.length - rightBars; i++) {
-        const currentHigh = quotes[i].high;
-        const currentLow = quotes[i].low;
+    for (let i = leftBars; i < data.length - rightBars; i++) {
+        const currentHigh = data[i].high;
+        const currentLow = data[i].low;
 
         // Check Swing High
         let isSwingHigh = true;
-        for (let j = 1; j <= leftBars; j++) if (quotes[i - j].high > currentHigh) isSwingHigh = false;
-        for (let j = 1; j <= rightBars; j++) if (quotes[i + j].high >= currentHigh) isSwingHigh = false;
+        for (let j = 1; j <= leftBars; j++) if (data[i - j].high > currentHigh) isSwingHigh = false;
+        for (let j = 1; j <= rightBars; j++) if (data[i + j].high >= currentHigh) isSwingHigh = false;
 
         if (isSwingHigh) {
-            swings.push({ price: currentHigh, time: quotes[i].time, type: 'HIGH', index: i });
+            swings.push({ price: currentHigh, time: data[i].time, type: 'HIGH', index: i });
         }
 
         // Check Swing Low
         let isSwingLow = true;
-        for (let j = 1; j <= leftBars; j++) if (quotes[i - j].low < currentLow) isSwingLow = false;
-        for (let j = 1; j <= rightBars; j++) if (quotes[i + j].low <= currentLow) isSwingLow = false;
+        for (let j = 1; j <= leftBars; j++) if (data[i - j].low < currentLow) isSwingLow = false;
+        for (let j = 1; j <= rightBars; j++) if (data[i + j].low <= currentLow) isSwingLow = false;
 
         if (isSwingLow) {
-            swings.push({ price: currentLow, time: quotes[i].time, type: 'LOW', index: i });
+            swings.push({ price: currentLow, time: data[i].time, type: 'LOW', index: i });
         }
     }
 
@@ -350,14 +351,15 @@ export interface FVG {
     index: number;
 }
 
-export function detectFVG(quotes: Quote[]): FVG[] {
+export function detectFVG(quotes: Quote[], lookback: number = 500): FVG[] {
     const fvgs: FVG[] = [];
-    if (quotes.length < 3) return fvgs;
+    const data = quotes.length > lookback ? quotes.slice(-lookback) : quotes;
+    if (data.length < 3) return fvgs;
 
-    for (let i = 2; i < quotes.length; i++) {
-        const c1 = quotes[i - 2];
-        const c2 = quotes[i - 1]; // The FVG Gap Candle
-        const c3 = quotes[i];
+    for (let i = 2; i < data.length; i++) {
+        const c1 = data[i - 2];
+        const c2 = data[i - 1]; // The FVG Gap Candle
+        const c3 = data[i];
 
         // Bullish FVG
         if (c1.high < c3.low) {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
 import { normalizeYahooToCandles } from '../../lib/providers/yahooAdapter';
@@ -19,20 +20,55 @@ import { calculateVxr } from '../../lib/indicators/vxr';
 
 const yahooFinance = new YahooFinance();
 
-export async function GET(request: Request) {
-    // Reference Symbols for SMT
-    const startDateSMT = new Date();
-    startDateSMT.setDate(startDateSMT.getDate() - 5);
+// --- CACHED FORMATTERS (Global to avoid re-creation) ---
+const nyTzId = 'America/New_York';
+const nyPartsFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: nyTzId,
+    hour: 'numeric', minute: 'numeric', weekday: 'short',
+    hour12: false,
+});
 
-    const refSymbols = ['ES=F', 'YM=F', 'RTY=F'];
-    const pRefs = Promise.all(refSymbols.map(s =>
-        yahooFinance.chart(s, { period1: startDateSMT, interval: '15m' })
-            .catch(e => { console.warn(`SMT Fetch Failed for ${s}`, e); return null; })
-    ));
+const nyDateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: nyTzId,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false
+});
+
+// --- TTL CACHE (Server-side in-memory) ---
+interface CacheEntry {
+    data: any;
+    timestamp: number;
+    ttl: number;
+}
+const globalCache: Record<string, CacheEntry> = {};
+
+const getCache = (key: string) => {
+    const entry = globalCache[key];
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > entry.ttl) {
+        delete globalCache[key];
+        return null;
+    }
+    return entry.data;
+};
+
+const setCache = (key: string, data: any, ttlSec: number) => {
+    globalCache[key] = { data, timestamp: Date.now(), ttl: ttlSec * 1000 };
+};
+
+export async function GET(request: Request) {
+    const startTime = performance.now();
+    const timings: Record<string, number> = {};
     const { searchParams } = new URL(request.url);
+    const isDebug = searchParams.get('debug') === '1';
     let symbol = searchParams.get('symbol');
     const intervalArg = searchParams.get('interval') || '1m';
     const interval = intervalArg as '1m' | '5m' | '15m' | '60m' | '1h' | '4h';
+    const activeIntervalArg = searchParams.get('intervals') || '1m,5m,15m,60m,1d';
+    const activeIntervals = activeIntervalArg.split(',');
+    const lookbackCap = 800;
+    const analysisVersion = "v1";
 
     if (!symbol) symbol = "MNQ";
 
@@ -42,7 +78,31 @@ export async function GET(request: Request) {
     else if (symbol.toUpperCase() === 'RTY') symbol = 'RTY=F';
     else if (symbol.toUpperCase() === 'YM') symbol = 'YM=F';
 
+    // Check Cache
+    const cacheKey = `${symbol}-${activeIntervalArg}-cap${lookbackCap}-${analysisVersion}`;
+    const entry = globalCache[cacheKey];
+    if (entry && (Date.now() - entry.timestamp <= entry.ttl)) {
+        const totalRouteMs = Math.max(1, Math.round(performance.now() - startTime));
+        if (isDebug) {
+            return NextResponse.json({
+                ...entry.data,
+                timings: {
+                    cacheHit: true,
+                    cacheAgeMs: Date.now() - entry.timestamp,
+                    totalRouteMs,
+                    fetchDataMs: 0,
+                    ictAnalysisMs: 0,
+                    scenarioMs: 0
+                }
+            });
+        }
+        return NextResponse.json(entry.data);
+    }
+    // Explicitly cleanup expired entry if found
+    if (entry) delete globalCache[cacheKey];
+
     try {
+        const fetchStopwatch = performance.now();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 7);
         const startDateHTF = new Date();
@@ -50,28 +110,35 @@ export async function GET(request: Request) {
         const startDaily = new Date();
         startDaily.setDate(startDaily.getDate() - 20);
 
-        // --- PRIORITY FETCH: BROKER > TRADINGVIEW > YAHOO ---
-        // Each timeframe gets its own FeedResult with sourceUsed + lastBarTimeMs
-        const [feed1m, feed5m, feed15m, feed60m, feedDaily] = await Promise.all([
-            getBestCandles(symbol, '1m', startDate),
-            getBestCandles(symbol, '5m', startDateHTF),
-            getBestCandles(symbol, '15m', startDateHTF),
-            getBestCandles(symbol, '60m', startDateHTF),
-            getBestCandles(symbol, '1d', startDaily),
-        ]);
+        const startDateSMT = new Date();
+        startDateSMT.setDate(startDateSMT.getDate() - 5);
+        const refSymbols = ['ES=F', 'YM=F', 'RTY=F'];
 
-        // SMT ref symbols and DXY stay on Yahoo (correlation data, no priority needed)
-        const pRefs_resolved = await pRefs;
-        const pDXY_Index = yahooFinance.chart('DX-Y.NYB', { period1: startDate, interval: '1m' }).catch(() => null);
-        const pDXY_Fut = yahooFinance.chart('DX=F', { period1: startDate, interval: '1m' }).catch(() => null);
-        const [dxyResIndex, dxyResFut] = await Promise.all([pDXY_Index, pDXY_Fut]);
-        const resRefs = pRefs_resolved;
+        // --- FETCH DATA ---
+        const fetchPromises: Promise<any>[] = [
+            activeIntervals.includes('1m') ? getBestCandles(symbol, '1m', startDate) : Promise.resolve({ candles: [] }),
+            activeIntervals.includes('5m') ? getBestCandles(symbol, '5m', startDateHTF) : Promise.resolve({ candles: [] }),
+            activeIntervals.includes('15m') ? getBestCandles(symbol, '15m', startDateHTF) : Promise.resolve({ candles: [] }),
+            activeIntervals.includes('60m') || activeIntervals.includes('1h') ? getBestCandles(symbol, '60m', startDateHTF) : Promise.resolve({ candles: [] }),
+            activeIntervals.includes('1d') ? getBestCandles(symbol, '1d', startDaily) : Promise.resolve({ candles: [] }),
+            // SMT Ref Symbols (always Yahoo)
+            activeIntervals.includes('smt') || activeIntervals.includes('15m') ?
+                Promise.all(refSymbols.map(s => yahooFinance.chart(s, { period1: startDateSMT, interval: '15m' }).catch(() => null)))
+                : Promise.resolve([]),
+            // DXY (always Yahoo)
+            yahooFinance.chart('DX-Y.NYB', { period1: startDate, interval: '1m' }).catch(() => null),
+            yahooFinance.chart('DX=F', { period1: startDate, interval: '1m' }).catch(() => null)
+        ];
 
-        const quotes1m = feed1m.candles;
-        const quotes5m = feed5m.candles;
-        const quotes15m = feed15m.candles;
-        const quotes60m = feed60m.candles;
-        const quotesDaily = feedDaily.candles;
+        const [feed1m, feed5m, feed15m, feed60m, feedDaily, resRefs, dxyResIndex, dxyResFut] = await Promise.all(fetchPromises);
+        timings.fetchDataMs = Math.round(performance.now() - fetchStopwatch);
+
+
+        const quotes1m = feed1m.candles.slice(-lookbackCap);
+        const quotes5m = feed5m.candles.slice(-lookbackCap);
+        const quotes15m = feed15m.candles.slice(-lookbackCap);
+        const quotes60m = feed60m.candles.slice(-lookbackCap);
+        const quotesDaily = feedDaily.candles.slice(-lookbackCap);
 
         // Per-feed meta helpers — passed to indicators for correct reliability
         const meta1m = { sourceUsed: feed1m.sourceUsed, lastBarTimeMs: feed1m.lastBarTimeMs, fallbackFrom: feed1m.fallbackFrom };
@@ -96,14 +163,9 @@ export async function GET(request: Request) {
         let trueWeekOpen: number | null = null;
 
         // NY timezone helper: get weekday/hour/minute for a unix-seconds timestamp
-        const nyTzId = 'America/New_York';
         const getNyParts = (timeSec: number) => {
             const d = new Date(timeSec * 1000);
-            const parts = new Intl.DateTimeFormat('en-US', {
-                timeZone: nyTzId,
-                hour: 'numeric', minute: 'numeric', weekday: 'short',
-                hour12: false,
-            }).formatToParts(d);
+            const parts = nyPartsFormatter.formatToParts(d);
             const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
             return {
                 weekday: get('weekday'),   // 'Mon', 'Tue', ...
@@ -251,8 +313,14 @@ export async function GET(request: Request) {
             currentSD = (lastIndex >= 0 && upper1Series[lastIndex] !== null) ? (upper1Series[lastIndex]! - vwapSeries[lastIndex]!) : 0;
         }
 
-        // --- PRE-FETCH IMPORTS ---
-        const { calculateEMAsWithSlope, detectTradeScenarios, detectSMT, detectMarketStructure, detectFVG, detectLiquidity, calculateCompositeBias, calculateRiskLevels, detectPSP, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks, detectSweeps, detectTRE, detectMarketRegime, calculateIndicators } = await import('../../lib/analysis');
+        // --- IMPORTS (Resolved from lib/analysis) ---
+        // Note: Moving these to top-level if possible, but keep here if lazy-loading is intended for cold starts.
+        const {
+            calculateEMAsWithSlope, detectTradeScenarios, detectSMT, detectMarketStructure: detectStructure,
+            detectFVG: detectFVGs, detectLiquidity: detectLiq, calculateCompositeBias, calculateRiskLevels,
+            detectPSP, detectTimeContext, detectPDRanges, detectOrderBlocks, detectBreakerBlocks,
+            detectSweeps, detectTRE, detectMarketRegime, calculateIndicators, calculateBufferedBias
+        } = await import('../../lib/analysis');
         const { analyzeDXY } = await import('../../lib/macro');
 
         // --- ICT CONTEXT ---
@@ -281,25 +349,64 @@ export async function GET(request: Request) {
         // --- TECHNICAL INDICATORS (M1) ---
         const technicals = calculateIndicators(quotes1m, vwapSeries);
 
-        // --- ICT STRUCTURE (Multi-Timeframe) ---
-        const structure15m = detectMarketStructure(quotes15m);
-        const fvgs15m = detectFVG(quotes15m);
-        const obs15m = detectOrderBlocks(quotes15m, structure15m, fvgs15m, 'M15');
-        const bbs15m = detectBreakerBlocks(quotes15m, structure15m, 'M15');
+        // --- MULTI-TIMEFRAME ANALYSIS (PARALLEL) ---
+        const analysisStart = performance.now();
 
-        const structure60m = detectMarketStructure(quotes60m);
-        const fvgs60m = detectFVG(quotes60m);
-        const obs60m = detectOrderBlocks(quotes60m, structure60m, fvgs60m, 'H1');
-        const bbs60m = detectBreakerBlocks(quotes60m, structure60m, 'H1');
+        const [m15Analysis, h1Analysis, dailyAnalysis] = await Promise.all([
+            // 15M Block
+            (activeIntervals.includes('15m')) ? (async () => {
+                const s = detectStructure(quotes15m);
+                const f = detectFVGs(quotes15m);
+                const l = detectLiq(s.swings);
+                const ob = detectOrderBlocks(quotes15m, s, f, 'M15');
+                const bb = detectBreakerBlocks(quotes15m, s, 'M15');
+                return { s, f, l, ob, bb };
+            })() : Promise.resolve(null),
 
-        const structureDaily = detectMarketStructure(quotesDaily);
-        const fvgsDaily = detectFVG(quotesDaily);
-        const obsDaily = detectOrderBlocks(quotesDaily, structureDaily, fvgsDaily, 'H4');
-        const bbsDaily = detectBreakerBlocks(quotesDaily, structureDaily, 'H4');
+            // H1 Block
+            (activeIntervals.includes('60m') || activeIntervals.includes('1h')) ? (async () => {
+                const s = detectStructure(quotes60m);
+                const f = detectFVGs(quotes60m);
+                const l = detectLiq(s.swings);
+                const ob = detectOrderBlocks(quotes60m, s, f, 'H1');
+                const bb = detectBreakerBlocks(quotes60m, s, 'H1');
+                return { s, f, l, ob, bb };
+            })() : Promise.resolve(null),
+
+            // Daily Block
+            (activeIntervals.includes('1d')) ? (async () => {
+                const s = detectStructure(quotesDaily);
+                const f = detectFVGs(quotesDaily);
+                const l = detectLiq(s.swings);
+                const ob = detectOrderBlocks(quotesDaily, s, f, 'H4');
+                const bb = detectBreakerBlocks(quotesDaily, s, 'H4');
+                const tre = detectTRE(quotesDaily);
+                return { s, f, l, ob, bb, tre };
+            })() : Promise.resolve(null),
+        ]);
+
+        const structure15m = m15Analysis?.s || { type: 'CONSOLIDATION', swings: [], bos: [], choch: [] } as any;
+        const fvgs15m = m15Analysis?.f || [];
+        const liq15m = m15Analysis?.l || [];
+        const obs15m = m15Analysis?.ob || [];
+        const bbs15m = m15Analysis?.bb || [];
+
+        const structure60m = h1Analysis?.s || { type: 'CONSOLIDATION', swings: [], bos: [], choch: [] } as any;
+        const fvgs60m = h1Analysis?.f || [];
+        const liq60m = h1Analysis?.l || [];
+        const obs60m = h1Analysis?.ob || [];
+        const bbs60m = h1Analysis?.bb || [];
+
+        const structureDaily = dailyAnalysis?.s || { type: 'CONSOLIDATION', swings: [], bos: [], choch: [] } as any;
+        const fvgsDaily = dailyAnalysis?.f || [];
+        const liqDaily = dailyAnalysis?.l || [];
+        const obsDaily = dailyAnalysis?.ob || [];
+        const bbsDaily = dailyAnalysis?.bb || [];
+        const tre = dailyAnalysis?.tre || { currentRange: 0, averageRange: 0, ratio: 0, state: 'NORMAL' } as any;
 
         const sweeps = detectSweeps(mainQuotesForChart, pdRanges);
-        const tre = detectTRE(quotesDaily);
         const ictStructure = [...obs15m, ...bbs15m, ...obs60m, ...bbs60m, ...obsDaily, ...bbsDaily];
+        timings.ictAnalysisMs = Math.round(performance.now() - analysisStart);
 
         const nowMs = Date.now();
 
@@ -343,13 +450,6 @@ export async function GET(request: Request) {
         const safeMeta: Record<string, any> = {};
 
         // NY Midnight & Lag Detection
-        const nyDateFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York',
-            year: 'numeric', month: 'numeric', day: 'numeric',
-            hour: 'numeric', minute: 'numeric', second: 'numeric',
-            hour12: false
-        });
-
         const parts = nyDateFormatter.formatToParts(new Date(nowMs));
         const nowDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
         const nowMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0');
@@ -387,7 +487,6 @@ export async function GET(request: Request) {
             }
         }
 
-        const { calculateBufferedBias } = await import('../../lib/analysis');
         const nyBiasMode = calculateBufferedBias(quotes1m, midnightOpen, nyMidnightUtcMs / 1000);
 
         const lastQuote = quotes1m.length > 0 ? quotes1m[quotes1m.length - 1] : null;
@@ -508,8 +607,14 @@ export async function GET(request: Request) {
         };
         // Helper to safely execute calculation blocks
         const safeExecute = (name: string, fn: () => any, fallback: any = null) => {
+            const start = performance.now();
             try {
-                return fn();
+                const res = fn();
+                const end = performance.now();
+                if (end - start > 10) { // Log blocks taking more than 10ms
+                    console.log(`[API-PERF] ${name} took ${Math.round(end - start)}ms`);
+                }
+                return res;
             } catch (e) {
                 console.error(`[API] Error calculating ${name}:`, e);
                 return fallback;
@@ -608,50 +713,44 @@ export async function GET(request: Request) {
         }, []);
         const lastVxr = vxrProfiles.length > 0 ? vxrProfiles[vxrProfiles.length - 1] : null;
 
-        safeExecute("Scenarios-M1", () => {
-            if (quotes1m.length > 0) {
-                const s1m = detectMarketStructure(quotes1m);
-                const f1m = detectFVG(quotes1m);
-                const l1m = detectLiquidity(s1m.swings);
-                const keyLevels = { vwap, open: trueDayOpen, pdh, pdl };
+        const scenarioStart = performance.now();
+        await Promise.all([
+            safeExecute("Scenarios-M1", () => {
+                if (activeIntervals.includes('1m') && quotes1m.length > 0) {
+                    const s1m = detectStructure(quotes1m);
+                    const f1m = detectFVGs(quotes1m);
+                    const l1m = detectLiq(s1m.swings);
+                    const pspSingle = detectPSPNew(quotes1m);
+                    const psps1m = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '1m')] : [];
+                    const regime1m = detectMarketRegime(quotes1m, s1m);
+                    if (interval === '1m') mainRegime = regime1m;
+                    if (!mainRegime) mainRegime = regime1m;
+                    const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined, lastVxr || undefined);
+                    scenarios = [...scenarios, ...scenarios1m];
+                }
+            }),
 
-                const pspSingle = detectPSPNew(quotes1m);
-                const psps1m = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '1m')] : [];
-                const regime1m = detectMarketRegime(quotes1m, s1m);
-                if (interval === '1m') mainRegime = regime1m;
-                if (!mainRegime) mainRegime = regime1m;
-                const scenarios1m = detectTradeScenarios(lastPrice, trendBias as any, s1m, f1m, l1m, vwap, 'M1-M5 (Scalp)', psps1m, timeContext, undefined, dxyContext, regime1m, technicals || undefined, lastVxr || undefined);
-                scenarios = [...scenarios, ...scenarios1m];
-            }
-        });
+            safeExecute("Scenarios-M15", () => {
+                if (activeIntervals.includes('15m') && quotes15m.length > 0) {
+                    const pspsM15 = pspResult.state !== 'NONE' ? [pspToLegacy(pspResult, '15m')] : [];
+                    const regime15m = detectMarketRegime(quotes15m, structure15m);
+                    if (interval === '15m') mainRegime = regime15m;
+                    const scen = detectTradeScenarios(lastPrice, trendBias as any, structure15m, fvgs15m, liq15m, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m, undefined, lastVxr || undefined);
+                    scenarios = [...scenarios, ...scen];
+                }
+            }),
 
-        safeExecute("Scenarios-M15", () => {
-            if (quotes15m.length > 0) {
-                const s = detectMarketStructure(quotes15m);
-                const f = detectFVG(quotes15m);
-                const l = detectLiquidity(s.swings);
-                const pspSingle = detectPSPNew(quotes15m);
-                const pspsM15 = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '15m')] : [];
-                const regime15m = detectMarketRegime(quotes15m, s);
-                if (interval === '15m') mainRegime = regime15m;
-                const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, vwap, 'M15', pspsM15, timeContext, undefined, dxyContext, regime15m, undefined, lastVxr || undefined);
-                scenarios = [...scenarios, ...scen];
-            }
-        });
-
-        safeExecute("Scenarios-H1", () => {
-            if (quotes60m.length > 0) {
-                const s = detectMarketStructure(quotes60m);
-                const f = detectFVG(quotes60m);
-                const l = detectLiquidity(s.swings);
-                const pspSingle = detectPSPNew(quotes60m);
-                const pspsH1 = pspSingle.state !== 'NONE' ? [pspToLegacy(pspSingle, '60m')] : [];
-                const regime60m = detectMarketRegime(quotes60m, s);
-                if (interval === '60m' || interval === '1h') mainRegime = regime60m;
-                const scen = detectTradeScenarios(lastPrice, trendBias as any, s, f, l, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m, undefined, lastVxr || undefined);
-                scenarios = [...scenarios, ...scen];
-            }
-        });
+            safeExecute("Scenarios-H1", () => {
+                if ((activeIntervals.includes('60m') || activeIntervals.includes('1h')) && quotes60m.length > 0) {
+                    const pspsH1 = pspResult.state !== 'NONE' ? [pspToLegacy(pspResult, '60m')] : [];
+                    const regime60m = detectMarketRegime(quotes60m, structure60m);
+                    if (interval === '60m' || interval === '1h') mainRegime = regime60m;
+                    const scen = detectTradeScenarios(lastPrice, trendBias as any, structure60m, fvgs60m, liq60m, null, 'H1', pspsH1, timeContext, undefined, dxyContext, regime60m, undefined, lastVxr || undefined);
+                    scenarios = [...scenarios, ...scen];
+                }
+            })
+        ]);
+        timings.scenarioMs = Math.round(performance.now() - scenarioStart);
 
         scenarios.sort((a, b) => b.score - a.score);
 
@@ -685,12 +784,17 @@ export async function GET(request: Request) {
             } : { status: 'OFF', direction: 'NEUTRAL', score: 0, debug: { factors: [] } }
         }), { status: "ERROR", scorePct: 0, level: "NO_TRADE", suggestion: "NO_TRADE" });
 
-        return NextResponse.json({
+        const totalEnd = performance.now();
+        timings.totalRouteMs = Math.max(1, Math.round(totalEnd - startTime));
+        const finalTimings = isDebug ? timings : undefined;
+
+        const finalResponse = {
             ...safeMeta,
             symbol: safeMeta.symbol || symbol,
             price: lastPrice,
             regularMarketPrice: lastPrice, // Fallback for UI display when quote is missing
             trueDayOpen: trueDayOpen || (quotes1m.length > 0 ? quotes1m[0].open : 0),
+            timings: finalTimings,
             levels: {
                 trueDayOpen: trueDayOpen || (quotes1m.length > 0 ? quotes1m[0].open : 0),
                 trueWeekOpen, pdh, pdl,
@@ -755,7 +859,7 @@ export async function GET(request: Request) {
                     lastProfile: lastVxr
                 }
             },
-            quotes: interval === '1m' ? mainQuotesForChart.map((q, i) => ({
+            quotes: interval === '1m' ? mainQuotesForChart.map((q: Quote, i: number) => ({
                 ...q,
                 date: new Date(q.time * 1000), // Compatibility
                 vwap: vwapSeries[i] || null,
@@ -764,7 +868,16 @@ export async function GET(request: Request) {
                 upper2: upper2Series[i] || null,
                 lower2: lower2Series[i] || null
             })) : []
-        });
+        };
+
+        // Cache the response (strip timings before storage to keep cache clean)
+        const { timings: _, ...responseToCache } = finalResponse;
+        const has1m = activeIntervals.includes('1m');
+        const ttl = has1m ? 20 : 120; // 20s if 1m is included/active, otherwise 120s
+        setCache(cacheKey, responseToCache, ttl);
+
+        console.log(`[API-PERF] Total Route Execution: ${Math.round(totalEnd - startTime)}ms`);
+        return NextResponse.json(finalResponse);
 
     } catch (error: any) {
         console.error('API Error:', error);
