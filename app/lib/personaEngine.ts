@@ -9,10 +9,39 @@ const WEIGHT_MAX = 2;
  * Heuristic-based extraction for the Trading Persona Profile.
  * In a future version, this could call an LLM, but results are always normalized here.
  */
+/**
+ * Heuristic-based extraction for the Trading Persona Profile.
+ * Implements a strict lexicon check to ensure valid trading context.
+ */
 export function extractProfile(text: string): PersonaExtractionResult {
     const lower = text.toLowerCase();
 
-    // Heuristic Matching
+    // 1. Trading Lexicon (Mandatory for confidence)
+    const lexicon = {
+        styles: ['scalp', 'swing', 'day', 'position', 'investor', 'intra', 'sod', 'eod'],
+        timeframes: ['m1', 'm3', 'm5', 'm15', 'h1', 'h4', 'daily', 'minute', 'hour', ' tf'],
+        concepts: ['liquidity', 'sweep', 'bos', 'fvg', 'gap', 'trend', 'reversal', 'value', 'structure', 'context', 'news', 'bias'],
+        instruments: ['mnq', 'nq', 'es', 'mes', 'nasdaq', 'future', 'ticker', 'symbol']
+    };
+
+    const signals: string[] = [];
+    let points = 0;
+
+    // Detection & Scoring
+    const hasStyle = lexicon.styles.filter(s => lower.includes(s));
+    const hasTF = lexicon.timeframes.filter(tf => lower.includes(tf));
+    const hasConcept = lexicon.concepts.filter(c => lower.includes(c));
+    const hasInstrument = lexicon.instruments.filter(i => lower.includes(i));
+
+    if (hasStyle.length > 0) { points += 2; signals.push(`Style: ${hasStyle.join(', ')}`); }
+    if (hasTF.length > 0) { points += 2; signals.push(`Timeframe: ${hasTF.join(', ')}`); }
+    if (hasConcept.length > 0) { points += 1.5 * hasConcept.length; signals.push(`Concepts: ${hasConcept.slice(0, 3).join(', ')}`); }
+    if (hasInstrument.length > 0) { points += 1; signals.push(`Instrument: ${hasInstrument.join(', ')}`); }
+
+    // Normalize confidence (Max points ~10)
+    const confidence = Math.min(1, points / 8);
+
+    // Heuristic Matching for Profile Data
     const isScalper = lower.includes('scalp') || lower.includes('m1') || lower.includes('m3');
     const isSwing = lower.includes('swing') || lower.includes('h1') || lower.includes('daily');
 
@@ -37,8 +66,8 @@ export function extractProfile(text: string): PersonaExtractionResult {
 
     return {
         profile,
-        confidence: 0.8,
-        rawSignals: ['Keyword matching']
+        confidence,
+        rawSignals: signals.length > 0 ? signals : ['No trading keywords detected']
     };
 }
 

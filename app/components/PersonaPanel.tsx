@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Target, Zap, Brain, ChevronRight, Check, X, Loader2, MessageSquare, Shield, Activity, ListChecks, Rocket } from 'lucide-react';
+import { Target, Zap, Brain, ChevronRight, Check, X, Loader2, MessageSquare, Shield, Activity, ListChecks, Rocket, AlertCircle } from 'lucide-react';
 import { PersonaProfile, PersonaExtractionResult } from '../types/persona';
 import { extractProfile, rankScenarios, getStoredWeights } from '../lib/personaEngine';
 import { TradeScenario } from '../lib/analysis';
@@ -66,9 +66,11 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
         onApply(null);
     };
 
-    const recommendations = (extraction && scenarios)
+    const recommendations = (extraction && scenarios && extraction.confidence >= 0.25)
         ? rankScenarios(scenarios, extraction.profile, getStoredWeights()).slice(0, 3)
         : [];
+
+    const isInvalid = !!(extraction && extraction.confidence < 0.25);
 
     if (!isOpen) return null;
 
@@ -168,55 +170,69 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-blue-500/30 transition-colors">
-                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Primary Style</span>
-                                            <span className="text-base font-black text-white uppercase tracking-tight">{extraction.profile.style.replace('_', ' ')}</span>
-                                        </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-emerald-500/30 transition-colors">
-                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Risk Tolerance</span>
-                                            <span className="text-base font-black text-emerald-400 uppercase tracking-tight">{extraction.profile.riskTolerance}</span>
-                                        </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-blue-500/30 transition-colors col-span-2 md:col-span-1">
-                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Timeframes</span>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {extraction.profile.timeframes.map(tf => (
-                                                    <span key={tf} className="text-[10px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 font-black rounded uppercase shadow-sm">{tf}</span>
-                                                ))}
+                                    {isInvalid ? (
+                                        <div className="p-12 bg-red-500/5 border border-red-500/10 rounded-[2rem] text-center space-y-4 my-8">
+                                            <AlertCircle size={48} className="text-red-500 mx-auto opacity-30" />
+                                            <div className="max-w-xs mx-auto">
+                                                <h4 className="text-xs font-black text-red-500 uppercase tracking-[0.2em] mb-2">Context Protocol Denied</h4>
+                                                <p className="text-[10px] font-bold text-zinc-500 uppercase leading-relaxed tracking-wider">
+                                                    Extraction integrity below minimum threshold. Please include institutional terminology (e.g. Scalp, MNQ, M5, Liquidity).
+                                                </p>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Recommendations */}
-                                    {recommendations.length > 0 && (
-                                        <div className="mt-10 space-y-4">
-                                            <div className="flex items-center gap-3 px-1">
-                                                <ListChecks size={18} className="text-blue-400" />
-                                                <span className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Institutional Alignment Recommendations</span>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {recommendations.map(({ scenario, score, why }, idx) => (
-                                                    <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1">
-                                                        <div className="flex justify-between items-center mb-3">
-                                                            <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[100px]">
-                                                                {(scenario.type || '').replace(/_/g, ' ')}
-                                                            </span>
-                                                            <div className="w-8 h-8 rounded-full border border-blue-500/20 flex items-center justify-center bg-blue-500/5 group-hover:bg-blue-500/20 transition-colors">
-                                                                <span className="text-[9px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="space-y-1.5">
-                                                            {why.slice(0, 3).map((r, i) => (
-                                                                <div key={i} className="text-[8px] px-2 py-1 bg-zinc-950 border border-white/5 text-zinc-500 font-black uppercase tracking-widest rounded-lg flex items-center justify-between">
-                                                                    <span className="truncate">{r.split(':')[0]}</span>
-                                                                    {r.includes('+') && <span className="text-emerald-500 ml-1">+</span>}
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-blue-500/30 transition-colors">
+                                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Primary Style</span>
+                                                    <span className="text-base font-black text-white uppercase tracking-tight">{extraction.profile.style.replace('_', ' ')}</span>
+                                                </div>
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-emerald-500/30 transition-colors">
+                                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Risk Tolerance</span>
+                                                    <span className="text-base font-black text-emerald-400 uppercase tracking-tight">{extraction.profile.riskTolerance}</span>
+                                                </div>
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-blue-500/30 transition-colors col-span-2 md:col-span-1">
+                                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-2">Timeframes</span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {extraction.profile.timeframes.map(tf => (
+                                                            <span key={tf} className="text-[10px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 font-black rounded uppercase shadow-sm">{tf}</span>
+                                                        ))}
                                                     </div>
-                                                ))}
+                                                </div>
                                             </div>
-                                        </div>
+
+                                            {/* Recommendations */}
+                                            {recommendations.length > 0 && (
+                                                <div className="mt-10 space-y-4">
+                                                    <div className="flex items-center gap-3 px-1">
+                                                        <ListChecks size={18} className="text-blue-400" />
+                                                        <span className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Institutional Alignment Recommendations</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {recommendations.map(({ scenario, score, why }, idx) => (
+                                                            <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1">
+                                                                <div className="flex justify-between items-center mb-3">
+                                                                    <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[100px]">
+                                                                        {(scenario.type || '').replace(/_/g, ' ')}
+                                                                    </span>
+                                                                    <div className="w-8 h-8 rounded-full border border-blue-500/20 flex items-center justify-center bg-blue-500/5 group-hover:bg-blue-500/20 transition-colors">
+                                                                        <span className="text-[9px] font-mono font-black text-blue-400">{score.toFixed(0)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    {why.slice(0, 3).map((r, i) => (
+                                                                        <div key={i} className="text-[8px] px-2 py-1 bg-zinc-950 border border-white/5 text-zinc-500 font-black uppercase tracking-widest rounded-lg flex items-center justify-between">
+                                                                            <span className="truncate">{r.split(':')[0]}</span>
+                                                                            {r.includes('+') && <span className="text-emerald-500 ml-1">+</span>}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     <div className="flex gap-4 mt-10">
@@ -229,13 +245,19 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                         </button>
                                         <button
                                             onClick={() => {
-                                                onApply(extraction.profile);
-                                                onClose();
+                                                if (!isInvalid) {
+                                                    onApply(extraction.profile);
+                                                    onClose();
+                                                }
                                             }}
-                                            className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/20"
+                                            disabled={isInvalid}
+                                            className={`flex-[2] h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl ${isInvalid
+                                                ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed border border-white/5'
+                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+                                                }`}
                                         >
                                             <Rocket size={18} fill="currentColor" />
-                                            Synchronize Dashboard
+                                            {isInvalid ? 'Context Denied' : 'Synchronize Dashboard'}
                                         </button>
                                     </div>
                                 </div>
