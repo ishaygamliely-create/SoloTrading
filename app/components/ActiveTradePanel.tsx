@@ -106,45 +106,43 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
     };
 
     return (
-        <div className={`bg-[#0c0c0e] border rounded-[2rem] p-5 md:p-7 relative transition-all duration-500 shadow-[0_0_40px_rgba(0,0,0,0.4)]
-            ${isLong ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
+        <div className={`bg-[#000000] border rounded-[2.5rem] p-6 md:p-8 relative transition-all duration-500 shadow-2xl
+            ${isLong ? 'border-emerald-500/30' : 'border-red-500/30'}`}>
 
             {/* Accent Glow */}
             <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] pointer-events-none opacity-20 -translate-y-1/2 translate-x-1/2 
                 ${isLong ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
-            {/* --- COMPACT HEADER --- */}
-            <div className="flex flex-col gap-5 mb-8 relative z-10">
+            {/* --- COMPACT STRIP-DOWN HEADER --- */}
+            <div className="flex flex-col gap-6 mb-8 relative z-10">
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 min-w-0">
+                    <div className="flex items-start gap-4">
                         <div className={`mt-2 w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
-                        <div className="flex-1 min-w-0">
-                            <h2 className={`text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight mb-2 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {activeTrade.direction}<br />
-                                {activeTrade.contractType || 'MNQ'}
+                        <div>
+                            <h2 className={`text-3xl font-black uppercase tracking-tighter leading-none mb-2 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {activeTrade.direction} {activeTrade.contractType || 'MNQ'}
                             </h2>
                             <div className="flex items-center gap-3">
-                                <span className="bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-[10px] font-black text-white tracking-widest uppercase">
+                                <span className="bg-white/10 border border-white/10 px-3 py-1 rounded-full text-[10px] font-black text-white tracking-widest uppercase">
                                     {activeTrade.state}
                                 </span>
-                                <div className="flex items-center gap-2 text-zinc-600">
-                                    <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                    <span className="uppercase tracking-widest text-[8px] font-black opacity-80 leading-none">Protocol Engagement</span>
-                                </div>
+                                <button
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className="text-[9px] font-black text-zinc-500 uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1.5"
+                                >
+                                    <Edit2 size={12} /> {isEditing ? 'SAVE PARAMETERS' : 'EDIT PARAMS'}
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     {/* Quick PnL for Managing State */}
                     {activeTrade.state === 'MANAGING' && (
-                        <div className={`flex flex-col items-end px-4 py-2 bg-white/5 rounded-2xl border border-white/10 transition-colors ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Activity size={10} />
-                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Live PnL</span>
-                            </div>
-                            <span className="font-mono text-xl font-black tracking-tight whitespace-nowrap">
+                        <div className={`text-right ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">LIVE PNL</div>
+                            <div className="font-mono text-2xl font-black tracking-tight leading-none">
                                 {isProfitable ? '+' : ''}{currentPnL.toFixed(2)}
-                            </span>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -154,250 +152,134 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                     {activeTrade.state === 'SELECTED' && (
                         <button
                             onClick={handleMarkEntered}
-                            className="bg-white hover:bg-zinc-100 text-black px-6 py-4 rounded-3xl text-xs font-black flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-95 shadow-xl shadow-white/5 w-full border-b-[6px] border-zinc-300"
+                            className="bg-white hover:bg-zinc-200 text-black px-8 py-5 rounded-3xl text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 shadow-2xl shadow-white/5 w-full border-b-[6px] border-zinc-300"
                         >
-                            <Play size={16} fill="currentColor" /> DEPLOY ENGAGEMENT PROTOCOL
-                        </button>
-                    )}
-                    {activeTrade.state === 'CONFIRMING' && (
-                        <button
-                            disabled
-                            className="bg-blue-600/50 text-white px-6 py-4 rounded-3xl text-xs font-black flex items-center justify-center gap-3 w-full cursor-wait border border-blue-500/30"
-                        >
-                            <Loader2 size={16} className="animate-spin" /> CONFIRMING EXECUTION...
+                            <Play size={18} fill="currentColor" /> DEPLOY PROTOCOL
                         </button>
                     )}
                     {(activeTrade.state === 'OPEN' || activeTrade.state === 'MANAGING' || activeTrade.state === 'CONFIRMING') && (
                         <button
                             onClick={closeTrade}
-                            className="bg-red-500 hover:bg-red-400 text-white px-6 py-4 rounded-3xl text-xs font-black transition-all hover:scale-[1.01] active:scale-95 shadow-xl shadow-red-500/10 w-full border-b-[6px] border-red-700"
+                            className="bg-red-500 hover:bg-red-400 text-white px-8 py-5 rounded-3xl text-sm font-black transition-all active:scale-95 shadow-2xl shadow-red-500/10 w-full border-b-[6px] border-red-700"
                         >
-                            TERMINATE & CLOSE POSITION
+                            <XCircle size={18} /> TERMINATE ENGAGEMENT
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* --- RISK DASHBOARD --- */}
-            <div className="bg-zinc-950/40 rounded-3xl p-6 border border-white/5 mb-8 relative z-10">
-                <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="p-1.5 bg-blue-500/10 rounded-lg shrink-0">
-                            <Shield size={14} className="text-blue-400" />
+            {/* --- ULTIMATE CLEAN PRICE LIST --- */}
+            <div className="flex flex-col gap-5 relative z-10 mb-8">
+                {/* Entry Price */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] pl-1">Target Entry</label>
+                    {isEditing ? (
+                        <input
+                            type="number"
+                            step="0.25"
+                            className="w-full bg-zinc-900 border border-white/10 rounded-2xl text-xl px-5 py-4 font-mono text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            value={activeTrade.entryPrice || ''}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                updateTradeParams({ entryPrice: isNaN(val) ? 0 : val });
+                            }}
+                        />
+                    ) : (
+                        <div className="bg-zinc-900/50 border border-white/5 rounded-3xl p-5 flex items-center justify-between">
+                            <span className="text-2xl md:text-3xl font-mono font-black text-white tabular-nums drop-shadow-sm">{activeTrade.entryPrice?.toFixed(2) || '---'}</span>
+                            <Lock size={16} className="text-zinc-800" />
                         </div>
-                        <span className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest truncate">Risk Configuration</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={toggleContractType}
-                            className={`px-2 py-1 rounded-lg text-[9px] font-black border transition-all shrink-0
-                                ${activeTrade.contractType === 'NQ'
-                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                                    : 'bg-white/5 border-white/10 text-zinc-400'}`}
-                        >
-                            {activeTrade.contractType === 'NQ' ? 'NQ' : 'MNQ'}
-                        </button>
-                        <button
-                            onClick={handleRecalculateContracts}
-                            className="flex items-center gap-1 text-[9px] font-black text-blue-400 uppercase tracking-widest shrink-0"
-                        >
-                            <RefreshCcw size={10} /> Size
-                        </button>
-                        <button
-                            onClick={() => setIsEditing(!isEditing)}
-                            className="flex items-center gap-1 text-[9px] font-black text-zinc-500 uppercase tracking-widest border border-white/5 px-2 py-1 rounded-lg shrink-0"
-                        >
-                            <Edit2 size={10} /> {isEditing ? 'Save' : 'Edit'}
-                        </button>
-                    </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                    {/* Entry Price */}
-                    <div className="space-y-2">
-                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Target Entry</label>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                step="0.25"
-                                className="w-full bg-black border border-white/10 rounded-2xl text-base px-4 py-3 font-mono text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                                value={activeTrade.entryPrice || ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    updateTradeParams({ entryPrice: isNaN(val) ? 0 : val });
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
-                                <span className="text-lg md:text-xl font-mono font-black text-white tabular-nums">{activeTrade.entryPrice?.toFixed(2) || '---'}</span>
-                                <Lock size={12} className="text-zinc-800" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Stop Loss */}
-                    <div className="space-y-2">
-                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Stop (SL)</label>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                step="0.25"
-                                className="w-full bg-black border border-white/10 rounded-2xl text-base px-4 py-3 font-mono text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                                value={activeTrade.stopLossPrice || ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    updateTradeParams({ stopLossPrice: isNaN(val) ? 0 : val });
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 flex items-center justify-between">
-                                <span className="text-lg md:text-xl font-mono font-black text-red-500 tabular-nums">{activeTrade.stopLossPrice?.toFixed(2) || '---'}</span>
-                                <Shield size={12} className="text-red-900/40" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* First Target */}
-                    <div className="space-y-2">
-                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Primary TP Exit</label>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                step="0.25"
-                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                value={activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0] : ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    const newTargets = [...(activeTrade.targets || [0, 0])];
-                                    newTargets[0] = isNaN(val) ? 0 : val;
-                                    updateTradeParams({ targets: newTargets });
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 flex items-center justify-between">
-                                <span className="text-lg md:text-xl font-mono font-black text-emerald-400 tabular-nums">
-                                    {activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0].toFixed(2) : '---'}
-                                </span>
-                                <Target size={12} className="text-emerald-900/40" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Second Target */}
-                    <div className="space-y-2">
-                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] pl-1">Secondary TP Exit</label>
-                        {isEditing ? (
-                            <input
-                                type="number"
-                                step="0.25"
-                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-500/70 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                value={activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1] : ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    const newTargets = [...(activeTrade.targets || [0, 0])];
-                                    newTargets[1] = isNaN(val) ? 0 : val;
-                                    updateTradeParams({ targets: newTargets });
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 flex items-center justify-between">
-                                <span className="text-lg md:text-xl font-mono font-black text-emerald-500/70 tabular-nums">
-                                    {activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1].toFixed(2) : '---'}
-                                </span>
-                                <Target size={12} className="text-emerald-900/20" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Exposure */}
-                    <div className="col-span-2 flex items-center justify-between bg-black/40 border border-white/5 rounded-2xl px-6 py-4">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Exposure Protocol</label>
-                        <div className="flex items-center gap-4">
-                            {isEditing ? (
-                                <input
-                                    type="number"
-                                    className="w-28 bg-black border border-white/10 rounded-xl text-sm px-3 py-2 font-mono text-white focus:outline-none focus:border-blue-500/50"
-                                    value={activeTrade.positionSize || ''}
-                                    onChange={(e) => {
-                                        const val = parseInt(e.target.value);
-                                        updateTradeParams({ positionSize: isNaN(val) ? 0 : val });
-                                    }}
-                                />
-                            ) : (
-                                <span className="text-base font-mono font-black text-white uppercase tracking-tight">{activeTrade.positionSize || 0} contracts</span>
-                            )}
-                            <Activity size={14} className="text-zinc-800" />
+                {/* Stop Loss */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] pl-2">Stop Loss (SL)</label>
+                    {isEditing ? (
+                        <input
+                            type="number"
+                            step="0.25"
+                            className="w-full bg-zinc-900 border border-red-500/20 rounded-2xl text-xl px-5 py-4 font-mono text-red-400 focus:outline-none focus:border-red-500 transition-colors"
+                            value={activeTrade.stopLossPrice || ''}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                updateTradeParams({ stopLossPrice: isNaN(val) ? 0 : val });
+                            }}
+                        />
+                    ) : (
+                        <div className="bg-red-500/5 border border-red-500/10 rounded-3xl p-5 flex items-center justify-between">
+                            <span className="text-2xl md:text-3xl font-mono font-black text-red-500 tabular-nums">{activeTrade.stopLossPrice?.toFixed(2) || '---'}</span>
+                            <Shield size={16} className="text-red-900/40" />
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Risk Summary Footnote */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/40 p-5 rounded-2xl border border-white/5">
-                    <div className="flex items-center gap-6">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Total Drawdown Risk</span>
-                            <span className={`text-xl font-mono font-black ${riskExceeded ? 'text-red-500' : 'text-zinc-200'}`}>
-                                ${hasValidRisk ? totalRisk.toFixed(0) : '0.00'}
+                {/* First Target */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] pl-2">Exit Target (TP1)</label>
+                    {isEditing ? (
+                        <input
+                            type="number"
+                            step="0.25"
+                            className="w-full bg-zinc-900 border border-emerald-500/20 rounded-2xl text-xl px-5 py-4 font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors"
+                            value={activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0] : ''}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                const newTargets = [...(activeTrade.targets || [0, 0])];
+                                newTargets[0] = isNaN(val) ? 0 : val;
+                                updateTradeParams({ targets: newTargets });
+                            }}
+                        />
+                    ) : (
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-5 flex items-center justify-between">
+                            <span className="text-2xl md:text-3xl font-mono font-black text-emerald-400 tabular-nums">
+                                {activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0].toFixed(2) : '---'}
                             </span>
+                            <Target size={16} className="text-emerald-900/40" />
                         </div>
-                        <div className="w-px h-8 bg-white/5" />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Per Contract</span>
-                            <span className="text-xl font-mono font-black text-zinc-400">
-                                ${hasValidRisk ? riskPerContract.toFixed(0) : '0.00'}
-                            </span>
-                        </div>
-                    </div>
+                    )}
+                </div>
 
-                    <div className="flex items-center gap-4 text-right">
-                        <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Portfolio Impact</span>
-                            <div className="flex items-center gap-2">
-                                <span className={`text-xl font-mono font-black ${riskExceeded ? 'text-red-500' : 'text-blue-400'}`}>
-                                    {activeTrade.maxRiskAmount > 0 && hasValidRisk
-                                        ? ((totalRisk / activeTrade.maxRiskAmount) * 100).toFixed(1) + '%'
-                                        : '0.0%'}
-                                </span>
-                                {riskExceeded && <AlertTriangle size={16} className="text-red-500 animate-pulse" />}
-                            </div>
+                {/* Second Target */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] pl-2">Secondary Target (TP2)</label>
+                    {isEditing ? (
+                        <input
+                            type="number"
+                            step="0.25"
+                            className="w-full bg-zinc-900 border border-emerald-500/20 rounded-2xl text-xl px-5 py-4 font-mono text-emerald-500/60 focus:outline-none focus:border-emerald-500 transition-colors"
+                            value={activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1] : ''}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                const newTargets = [...(activeTrade.targets || [0, 0])];
+                                newTargets[1] = isNaN(val) ? 0 : val;
+                                updateTradeParams({ targets: newTargets });
+                            }}
+                        />
+                    ) : (
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-5 flex items-center justify-between">
+                            <span className="text-2xl md:text-3xl font-mono font-black text-emerald-500/60 tabular-nums">
+                                {activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1].toFixed(2) : '---'}
+                            </span>
+                            <Target size={16} className="text-emerald-900/20" />
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
-            {/* --- GUIDANCE STREAM --- */}
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <Fingerprint size={16} className="text-zinc-700" />
-                        <span className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Operational Guidance Stream</span>
-                    </div>
-                </div>
-                {activeTrade.state === 'SELECTED' ? (
-                    <div className="bg-white/[0.02] border border-dashed border-white/5 p-6 rounded-3xl text-center">
-                        <span className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.2em] animate-pulse">
-                            Awaiting Technical Confirmation for Deployment
-                        </span>
-                    </div>
-                ) : activeTrade.state === 'CONFIRMING' ? (
-                    <div className="bg-blue-500/5 border border-dashed border-blue-500/20 p-6 rounded-3xl text-center">
-                        <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] animate-pulse flex items-center justify-center gap-2">
-                            <Loader2 size={12} className="animate-spin" />
-                            Transmitting Order to CME... CONFIRMING EXECUTION
-                        </span>
-                    </div>
-                ) : (
-                    <GuidanceDisplay activeTrade={activeTrade} data={data} />
-                )}
+            {/* Contract/Size Badge - Simple Style */}
+            <div className="flex items-center justify-between bg-white/5 rounded-2xl px-5 py-3 border border-white/5 mb-4">
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">Deployment Size</span>
+                <span className="text-sm font-mono font-black text-zinc-300">{activeTrade.positionSize || 0} CONTRACTS</span>
             </div>
 
-            {/* Cancel Button */}
-            <div className="mt-8 pt-6 border-t border-white/5 flex justify-center relative z-10">
+            {/* Cancel Bottom Link */}
+            <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
                 <button
                     onClick={closeTrade}
-                    className="flex items-center gap-2 text-[10px] font-black text-zinc-600 hover:text-red-400 transition-colors uppercase tracking-[0.3em]"
+                    className="text-[9px] font-black text-zinc-700 hover:text-red-500 transition-colors uppercase tracking-[0.4em]"
                 >
-                    <XCircle size={12} /> Terminate Engagement Protocol
+                    Discard Engagement
                 </button>
             </div>
         </div>
