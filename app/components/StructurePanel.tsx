@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { IndicatorSignal } from "../lib/types";
 import {
     getConfidenceColorClass,
@@ -7,7 +7,7 @@ import {
     type IndicatorStatus,
     getDirectionBadgeClass,
 } from "@/app/lib/uiSignalStyles";
-import { PanelHelp } from "./PanelHelp";
+import { Network, Info, X, Zap, Activity, TrendingUp, TrendingDown, Layers } from 'lucide-react';
 
 interface StructurePanelProps {
     data: any;
@@ -15,24 +15,24 @@ interface StructurePanelProps {
 }
 
 export function StructurePanel({ data, loading }: StructurePanelProps) {
+    const [showHelp, setShowHelp] = useState(false);
+
     if (loading) {
         return (
-            <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24" />
+            <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-[220px]" />
         );
     }
 
     const structure = data?.analysis?.structure as IndicatorSignal;
-    if (!structure) return null;
+    if (!structure || structure.status === "ERROR") return null;
 
     const score = structure.score ?? 0;
     const direction = (structure.direction ?? "NEUTRAL") as any;
 
     const debug = (structure.debug || {}) as any;
-    const regime = debug?.regime as "TRENDING" | "TRANSITION" | "RANGING" | undefined;
+    const regime = (debug?.regime as string) || "RANGING";
     const strength = debug?.structureStrength as "WEAK" | "MODERATE" | "STRONG" | undefined;
     const adx = debug?.adx as number | undefined;
-    const ema20 = debug?.ema20 as number | undefined;
-    const ema50 = debug?.ema50 as number | undefined;
     const emaSpreadPct = debug?.emaSpreadPct as number | undefined;
     const bias = debug?.bias as "LONG" | "SHORT" | "NEUTRAL" | undefined;
     const playbook = debug?.playbook as string | undefined;
@@ -40,174 +40,174 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     const volumeState = debug?.volumeState as "CONFIRMATION" | "DIVERGENCE" | "NEUTRAL" | undefined;
     const obvSlope = debug?.obvSlope as number | undefined;
 
-    // ===== OFF CARD (neutral, no confidence glow) =====
-    if (structure.status === "OFF") {
-        return (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                    <div className="text-blue-400 font-semibold tracking-wide text-sm">
-                        STRUCTURE
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/60">
-                        OFF
-                    </span>
-                </div>
-                <div className="text-xs text-white/60">{structure.hint || "Not available."}</div>
-            </div>
-        );
-    }
-
     // ===== Global confidence colors + status from score =====
     const scoreStyle = getConfidenceColorClass(score);
-    const computedStatus: IndicatorStatus = getStatusFromScore(score);
+    const computedStatus: IndicatorStatus = structure.status === "OFF" ? "OFF" : getStatusFromScore(score);
     const statusBadgeClass = getStatusBadgeClass(computedStatus);
 
-    // ===== Reliability meta =====
-    const rawMeta = structure.meta;
-
-    // ===== Direction label refinement in TRANSITION =====
-    const directionLabel =
-        regime === "TRANSITION" && (direction === "LONG" || direction === "SHORT")
-            ? `${direction} (Dev)`
-            : direction;
+    // Glow Logic
+    const glowColor = direction === 'LONG' ? 'bg-emerald-500' : direction === 'SHORT' ? 'bg-red-500' : 'bg-blue-500';
 
     return (
-        <div className={`rounded-xl border bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
-            {/* HEADER GRID: 2 Rows */}
-            <div className="space-y-2">
-                {/* ROW 1: Title + Context + Score */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="text-blue-400 font-bold tracking-wide text-sm">
-                            STRUCTURE
-                        </div>
-                        <div className="text-xs text-white/50 font-mono">
-                            {regime || "—"}
-                        </div>
-                    </div>
-                    <div className={`text-2xl font-bold ${scoreStyle.text}`}>{score}%</div>
-                </div>
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[220px]`}>
+            {/* Background Glow */}
+            <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-20 ${glowColor}`} />
 
-                {/* ROW 2: Badges (Strength / Volume / Direction / Status) */}
-                <div className="flex flex-wrap gap-2 items-center">
-                    {/* Strength Badge */}
+            {/* Header - VXR HUD Style */}
+            <div className="flex items-center justify-between mb-5 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl border flex items-center justify-center transition-colors duration-500 ${direction === 'LONG' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : direction === 'SHORT' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+                        <Network size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] leading-none">STRUCTURE</span>
+                            <button
+                                onClick={() => setShowHelp(true)}
+                                className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                            >
+                                <Info size={10} />
+                            </button>
+                        </div>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-1">Trend & Momentum Context</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                        <Activity size={10} className="text-blue-500 animate-pulse" />
+                        <span className="text-[9px] font-black text-blue-200 uppercase">{regime}</span>
+                    </div>
+                    <div className={`text-xl font-black tabular-nums tracking-tighter ${scoreStyle.text}`}>
+                        {score}%
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-4 relative z-10 flex-1">
+                {/* Status Row */}
+                <div className="flex items-center gap-2">
+                    <span className={getDirectionBadgeClass({ direction, score, status: computedStatus }) + " text-[10px] px-2.5 py-0.5"}>
+                        {direction}
+                    </span>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border tracking-widest uppercase ${statusBadgeClass}`}>
+                        {computedStatus}
+                    </span>
                     {strength && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${strength === "STRONG" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                            strength === "MODERATE" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                                "text-zinc-400 border-zinc-700 bg-zinc-800"
-                            }`}>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border tracking-widest uppercase ${strength === 'STRONG' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 'text-zinc-400 border-white/10'}`}>
                             {strength}
                         </span>
                     )}
-                    {/* Volume Badge */}
-                    {volumeState && volumeState !== "NEUTRAL" && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${volumeState === "CONFIRMATION" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                            "text-rose-400 border-rose-500/30 bg-rose-500/10"
-                            }`}>
-                            {volumeState === "CONFIRMATION" ? "VOL 20" : "DIV 20"}
-                        </span>
-                    )}
+                </div>
 
-                    <div className="flex-1" />
+                {/* Playbook Row */}
+                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <Zap size={10} className="text-amber-500" />
+                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">ACTIVE PLAYBOOK</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-zinc-300 leading-snug">
+                        {playbook || "Awaiting structural confirmation..."}
+                    </p>
+                </div>
 
-                    {/* Direction & Status */}
-                    <div className="flex gap-1.5 items-center">
-                        <span
-                            className={getDirectionBadgeClass({
-                                direction,
-                                score,
-                                status: computedStatus,
-                            }) + " text-[10px] px-2 py-0.5"}
-                        >
-                            {directionLabel}
-                        </span>
-
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
-                            {computedStatus}
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">ADX Intensity</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-mono font-black ${typeof adx === 'number' && adx > 25 ? "text-amber-400" : "text-zinc-400"}`}>
+                                {typeof adx === "number" ? adx.toFixed(1) : "—"}
+                            </span>
+                            <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full transition-all duration-1000 ${typeof adx === 'number' && adx > 25 ? 'bg-amber-500' : 'bg-zinc-600'}`}
+                                    style={{ width: `${Math.min(100, (adx || 0) * 2)}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex flex-col text-right items-end">
+                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">EMA Spread</span>
+                        <span className={`text-[10px] font-mono font-black ${typeof emaSpreadPct === 'number' && emaSpreadPct > 0.05 ? "text-zinc-200" : "text-zinc-500"}`}>
+                            {typeof emaSpreadPct === "number" ? `${emaSpreadPct.toFixed(3)}%` : "—"}
                         </span>
                     </div>
                 </div>
-            </div>
 
-            {/* PLAYBOOK */}
-            <div className="text-sm text-white/80 leading-tight border-t border-white/5 pt-2">
-                <div className="text-[10px] text-white/40 font-bold mb-0.5 uppercase tracking-wider">PLAYBOOK</div>
-                <span className="text-white/90 font-medium">
-                    {playbook || "—"}
-                </span>
-            </div>
-
-            {/* CONTEXT GRID: 2 Columns */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/60 border-t border-white/10 pt-2 font-mono">
-                <div className="flex justify-between">
-                    <span>Bias</span>
-                    <span className={bias === "LONG" ? "text-emerald-400" : bias === "SHORT" ? "text-red-400" : "text-zinc-400"}>
-                        {bias || "—"}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>Spread</span>
-                    <span className={typeof emaSpreadPct === 'number' && emaSpreadPct > 0.05 ? "text-white/90" : "text-white/50"}>
-                        {typeof emaSpreadPct === "number" ? `${emaSpreadPct.toFixed(3)}%` : "—"}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>ADX</span>
-                    <span className={typeof adx === 'number' && adx > 25 ? "text-amber-400" : "text-white/50"}>
-                        {typeof adx === "number" ? adx.toFixed(1) : "—"}
-                    </span>
-                </div>
-                {obvSlope !== undefined && Math.abs(obvSlope) > 0 && (
-                    <div className="flex justify-between">
-                        <span>OBV Slope</span>
-                        <span className={volumeState === "CONFIRMATION" ? "text-emerald-400" : volumeState === "DIVERGENCE" ? "text-rose-400" : "text-white/50"}>
-                            {obvSlope > 0 ? "+" : ""}{obvSlope.toFixed(0)}
-                        </span>
+                {/* Breakdown List */}
+                {breakdown && (
+                    <div className="space-y-1.5 pt-2 border-t border-white/5">
+                        <div className="flex justify-between items-center text-[9px] font-bold">
+                            <span className="text-zinc-600 uppercase tracking-wider">Trend Component</span>
+                            <span className="text-zinc-400 font-mono">+{breakdown.trend || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] font-bold">
+                            <span className="text-zinc-600 uppercase tracking-wider">EMA Alignment</span>
+                            <span className="text-zinc-400 font-mono">+{breakdown.ema || 0}</span>
+                        </div>
+                        {breakdown.volume !== undefined && (
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                                <span className="text-zinc-600 uppercase tracking-wider">Volume Flow</span>
+                                <span className={`${breakdown.volume > 0 ? 'text-emerald-400' : 'text-red-400'} font-mono`}>
+                                    {breakdown.volume > 0 ? "+" : ""}{breakdown.volume}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* SCORE BREAKDOWN */}
-            {breakdown && (
-                <div className="text-[10px] text-white/40 border-t border-white/5 pt-1.5 space-y-0.5">
-                    <div className="flex justify-between">
-                        <span>Trend Strength (ADX)</span>
-                        <span className="text-white/60">{breakdown.trend ? `+${breakdown.trend}` : "0"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>EMA Alignment</span>
-                        <span className="text-white/60">{breakdown.ema ? `+${breakdown.ema}` : "0"}</span>
-                    </div>
-                    {breakdown.volume !== undefined && breakdown.volume !== 0 && (
-                        <div className="flex justify-between">
-                            <span>Volume Confirmation</span>
-                            <span className={breakdown.volume > 0 ? "text-emerald-400/80" : "text-rose-400/80"}>
-                                {breakdown.volume > 0 ? "+" : ""}{breakdown.volume}
-                            </span>
+            {/* Hebrew Help Overlay */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Network size={16} className="text-blue-400" />
+                            <span className="font-black text-white text-xs uppercase tracking-widest">STRUCTURE GUIDE (מבנה שוק)</span>
                         </div>
-                    )}
-                    {breakdown.bias ? (
-                        <div className="flex justify-between">
-                            <span>Bias Bonus</span>
-                            <span className="text-emerald-400/80">+{breakdown.bias}</span>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-bold text-[11px] mb-1">מהו המבנה המוסדי?</h4>
+                            <p className="text-[10px] text-zinc-400 leading-relaxed">
+                                אינדיקטור המבנה מנתח את ה-"Health" של המגמה הנוכחית על ידי שילוב של עוצמת מחיר (ADX) ופריסת ממוצעים נעים.
+                            </p>
+                        </section>
+
+                        <div className="space-y-2">
+                            <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-blue-400 block mb-0.5">Regime (משטר שוק)</span>
+                                <span className="text-[9px] text-zinc-300">TRENDING (מגמתי), TRANSITION (שלב מעבר) או RANGING (דישדוש).</span>
+                            </div>
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded">
+                                <span className="text-[10px] font-bold text-amber-400 block mb-0.5">ADX Intensity</span>
+                                <span className="text-[9px] text-zinc-300">מעל 25 מעיד על עוצמה חזקה. מתחת ל-20 מעיד על עייפות בשוק.</span>
+                            </div>
                         </div>
-                    ) : null}
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-bold text-[11px] mb-1">Playbook (תסריט פעולה)</h4>
+                            <p className="text-[10px] text-zinc-400 leading-relaxed">
+                                זהו הניתוח המילולי שממליץ האם השוק בשל לעסקאות המשך, פריצה, או המתנה בסביבת צ'ופי (Choppy).
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-black text-[10px] tracking-widest uppercase transition-colors mt-2"
+                        >
+                            הבנתי, חזרה לנתונים
+                        </button>
+                    </div>
                 </div>
             )}
-
-            {/* HELP */}
-            <div className="border-t border-white/10 pt-1">
-                <PanelHelp
-                    title="מבנה שוק (STRUCTURE V3)"
-                    bullets={[
-                        "מצב שוק: מגמתי (ADX>25), מעבר (20-25), דשדוש (<20).",
-                        "ווליום V3: שיפוע OBV מאשר מחיר. סטייה = מלכודת.",
-                        "חוזק: שילוב של ADX + פריסת ממוצעים + אישור ווליום.",
-                        "תרחישים: שוק מגמתי מאפשר עסקאות המשך אגרסיביות.",
-                        "פריסת ממוצעים: מעל 0.05% מעיד על הפרדה חזקה ומומנטום.",
-                    ]}
-                />
-            </div>
         </div>
     );
 }
