@@ -78,7 +78,7 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 w-full relative z-10 p-1">
                 {activeScenarios.map((scenario: any, i: number) => {
                     const isLong = scenario.direction === 'LONG';
                     const isPrimary = scenario.isPrimary;
@@ -141,10 +141,10 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
 
                                     {/* Rating Display */}
                                     <div className="flex flex-col items-end shrink-0">
-                                        <div className={`text-3xl font-black ${scoreColor} tracking-tighter leading-none mb-1`}>
+                                        <div className={`text-2xl font-black ${scoreColor} tracking-tighter leading-none mb-1`}>
                                             {score}
                                         </div>
-                                        <div className={`text-[8px] font-black uppercase tracking-[0.2em] opacity-60 ${scoreColor}`}>
+                                        <div className={`text-[9px] font-black uppercase tracking-widest ${scoreColor}`}>
                                             RATING {scenario.confidence?.rating || 'C'}
                                         </div>
                                     </div>
@@ -190,17 +190,17 @@ export function ScenariosPanel({ data, loading, timeframe }: PanelProps) {
 
                                 {/* Entry/Stop Grid */}
                                 <div className="grid grid-cols-2 gap-3 mb-5">
-                                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-2xl group/sub hover:bg-emerald-500/15 transition-colors">
-                                        <span className="text-[8px] font-black text-emerald-500/80 uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
-                                            <Fingerprint size={10} /> ENTRY
+                                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl group/sub hover:bg-emerald-500/15 transition-colors overflow-hidden">
+                                        <span className="text-[7px] font-black text-emerald-500/80 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                            <Fingerprint size={8} /> ENTRY
                                         </span>
-                                        <span className="text-sm font-mono font-black text-emerald-100 tabular-nums">{(scenario.entryZone?.min || 0).toFixed(1)}</span>
+                                        <span className="text-xs font-mono font-black text-emerald-100 tabular-nums truncate">{(scenario.entryZone?.min || 0).toFixed(1)}</span>
                                     </div>
-                                    <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-2xl group/sub hover:bg-red-500/15 transition-colors text-right">
-                                        <span className="text-[8px] font-black text-red-500/80 uppercase tracking-widest block mb-1.5 flex items-center gap-1.5 justify-end">
-                                            STOP LOSS <Shield size={10} />
+                                    <div className="bg-red-500/10 border border-red-500/20 p-2.5 rounded-2xl group/sub hover:bg-red-500/15 transition-colors text-right overflow-hidden">
+                                        <span className="text-[7px] font-black text-red-500/80 uppercase tracking-widest block mb-1 flex items-center gap-1 justify-end">
+                                            STOP LOSS <Shield size={8} />
                                         </span>
-                                        <span className="text-sm font-mono font-black text-red-100 tabular-nums">{(scenario.stopLoss || 0).toFixed(1)}</span>
+                                        <span className="text-xs font-mono font-black text-red-100 tabular-nums truncate">{(scenario.stopLoss || 0).toFixed(1)}</span>
                                     </div>
                                 </div>
                             </div>
