@@ -115,7 +115,8 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
 
             {/* --- COMPACT STRIP-DOWN HEADER --- */}
             <div className="flex flex-col gap-6 mb-8 relative z-10">
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
+                <div className="flex flex-col gap-5">
+                    {/* Title & Direction Row */}
                     <div className="flex items-start gap-4">
                         <div className={`mt-2 w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
                         <div>
@@ -136,11 +137,14 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                         </div>
                     </div>
 
-                    {/* Quick PnL for Managing State */}
+                    {/* Dedicated PnL Row - Vertical Stack forced to avoid clashes */}
                     {activeTrade.state === 'MANAGING' && (
-                        <div className={`bg-white/5 border border-white/5 rounded-2xl px-5 py-3 text-right ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
-                            <div className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">LIVE PNL</div>
-                            <div className="font-mono text-2xl font-black tracking-tight leading-none tabular-nums">
+                        <div className={`bg-white/5 border border-white/10 rounded-2xl px-5 py-4 flex items-center justify-between ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-1">Live Performance</span>
+                                <span className="text-[8px] font-black uppercase tracking-widest opacity-20">Real-time PnL Tracking</span>
+                            </div>
+                            <div className="font-mono text-3xl font-black tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                                 {isProfitable ? '+' : ''}{currentPnL.toFixed(2)}
                             </div>
                         </div>
