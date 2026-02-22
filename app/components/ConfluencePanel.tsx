@@ -39,13 +39,13 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
 
     return (
         <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col h-full relative overflow-hidden group min-h-[360px] ${conf.border}`}>
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            {/* Background Glow - Enhanced for premium HUD look */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-pink-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity duration-1000" />
 
             {/* Header */}
             <div className="flex items-center justify-between mb-4 relative z-10">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-pink-500/10 rounded-lg border border-pink-500/20">
+                    <div className="p-1.5 bg-pink-500/10 rounded-lg border border-pink-500/20 group-hover:bg-pink-500/20 transition-colors">
                         <Cpu size={14} className="text-pink-400" />
                     </div>
                     <div className="flex flex-col">
@@ -63,7 +63,7 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                     <div className="flex items-center gap-1 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
                         <Hexagon size={10} className="text-pink-400" />
                         <span className="text-[9px] font-black text-pink-300 uppercase tracking-tighter">
-                            {data.level === "STRONG" ? "CONVERGENT" : data.level === "GOOD" ? "STABLE" : "DIVERGENT"}
+                            {score > 70 ? "CONVERGENT" : score > 40 ? "STABLE" : "DIVERGENT"}
                         </span>
                     </div>
                 </div>
@@ -92,7 +92,7 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                             strokeDasharray={circumference}
                             strokeDashoffset={offset}
                             strokeLinecap="round"
-                            className={`${conf.text} transition-all duration-[1500ms] ease-out`}
+                            className={`${conf.text} transition-all duration-[1500ms] ease-out drop-shadow-[0_0_8px_rgba(244,114,182,0.3)]`}
                         />
                     </svg>
                     <div className="absolute flex flex-col items-center">
@@ -105,37 +105,42 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
             </div>
 
             {/* Verdict HUD */}
-            <div className="bg-black/40 rounded-lg p-3 border border-white/5 mb-4 relative z-10">
-                <div className="flex justify-between items-center mb-2">
+            <div className="bg-black/40 rounded-xl p-3 border border-white/5 mb-4 relative z-10">
+                <div className="flex justify-between items-center mb-2.5">
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Global Verdict</span>
-                    <span className={`text-[10px] font-black uppercase ${signal.direction === 'LONG' ? 'text-emerald-400' : signal.direction === 'SHORT' ? 'text-red-400' : 'text-zinc-500'}`}>
-                        {signal.direction === 'NEUTRAL' ? 'STAND ASIDE' : signal.direction === 'LONG' ? 'HIGH PROB BUY' : 'HIGH PROB SELL'}
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${score < 40 ? 'text-zinc-500' : signal.direction === 'LONG' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {score < 40 ? 'STAND ASIDE' : score < 70 ? `${signal.direction} CONFIRMING` : `HIGH PROB ${signal.direction}`}
                     </span>
                 </div>
 
-                <div className="space-y-1.5">
-                    {drivers.map((d, i) => (
-                        <div key={i} className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-2">
-                                <div className={`w-1 h-1 rounded-full ${d.includes('+') ? 'bg-emerald-500' : d.includes('-') ? 'bg-red-500' : 'bg-zinc-500'}`} />
-                                <span className="text-zinc-400 font-medium">{d.replace(/^[+-]\d+\s*/, '')}</span>
+                <div className="space-y-2">
+                    {drivers.map((d, i) => {
+                        const isPositive = d.includes('+') || (signal.direction === 'LONG' && (d.includes('LONG') || d.includes('BULL'))) || (signal.direction === 'SHORT' && (d.includes('SHORT') || d.includes('BEAR')));
+                        const isNegative = d.includes('-') || (signal.direction === 'LONG' && (d.includes('SHORT') || d.includes('BEAR'))) || (signal.direction === 'SHORT' && (d.includes('LONG') || d.includes('BULL')));
+
+                        return (
+                            <div key={i} className="flex items-center justify-between text-[10px]">
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-1 h-1 rounded-full ${isPositive ? 'bg-emerald-500' : isNegative ? 'bg-red-500' : 'bg-zinc-500'}`} />
+                                    <span className="text-zinc-400 font-bold uppercase text-[9px] tracking-tight">{d.replace(/^[+-]\d+\s*/, '')}</span>
+                                </div>
+                                <span className={`font-mono font-black ${isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-zinc-500'}`}>
+                                    {d.match(/^[+-]\d+/) ? d.match(/^[+-]\d+/)?.[0] : (isPositive ? '+1' : isNegative ? '-1' : '')}
+                                </span>
                             </div>
-                            <span className={`font-mono font-bold ${d.includes('+') ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {d.match(/^[+-]\d+/) ? d.match(/^[+-]\d+/)?.[0] : ''}
-                            </span>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {drivers.length === 0 && (
-                        <div className="text-[10px] text-zinc-600 italic text-center py-1">Analyzing confluence factors...</div>
+                        <div className="text-[10px] text-zinc-600 italic text-center py-1 font-bold">Scanning Institutional Data...</div>
                     )}
                 </div>
             </div>
 
             {/* Safety Lock */}
             {data.status === "BLOCKED" && (
-                <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded p-2 flex items-center gap-2 animate-pulse">
+                <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5 flex items-center gap-2.5 animate-pulse">
                     <ShieldAlert size={14} className="text-red-400" />
-                    <span className="text-[9px] font-black text-red-200 uppercase tracking-wide">Signal Blocked: Contrarian Risk</span>
+                    <span className="text-[9px] font-black text-red-200 uppercase tracking-widest">Signal Blocked: Contrarian Risk</span>
                 </div>
             )}
 

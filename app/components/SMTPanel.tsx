@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IndicatorSignal } from '../lib/types';
 import { getConfidenceColorClass, getStatusFromScore, getStatusBadgeClass, type IndicatorStatus } from '@/app/lib/uiSignalStyles';
-import { PanelHelp } from './PanelHelp';
+import { Activity, Zap, TrendingUp, X, Info, Gauge, Layers } from 'lucide-react';
 
 type Props = {
     data: any;
@@ -9,6 +9,8 @@ type Props = {
 };
 
 export function SMTPanel({ data, loading }: Props) {
+    const [showHelp, setShowHelp] = useState(false);
+
     if (loading) return <div className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl h-24"></div>;
 
     const smt = data?.analysis?.smt as IndicatorSignal;
@@ -33,71 +35,147 @@ export function SMTPanel({ data, loading }: Props) {
     const { isStrong, gate, factors } = (smt.debug || {}) as any;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 space-y-3 ${scoreStyle.border}`}>
-            {/* 1. Header: TITLE | Direction | Status | Score */}
-            <div className="flex items-center justify-between">
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[160px] group`}>
+            {/* Background Glow - Matches VXR Style with enhanced volume */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity duration-1000" />
+
+            {/* Header - VXR HUD Style */}
+            <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 flex items-center justify-center transition-colors group-hover:bg-fuchsia-500/20">
+                        <Layers size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black text-fuchsia-400 uppercase tracking-[0.2em] leading-none">SMT DIVERGENCE</span>
+                            <button
+                                onClick={() => setShowHelp(true)}
+                                className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                            >
+                                <Info size={10} />
+                            </button>
+                        </div>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase mt-1">Intermarket Correlation</span>
+                    </div>
+                </div>
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-fuchsia-400 tracking-wide">SMT</span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold uppercase ${directionClass}`}>
+                    <div className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                        <Activity size={10} className="text-fuchsia-500 animate-pulse" />
+                        <span className="text-[9px] font-black text-fuchsia-200 uppercase">MATRIX</span>
+                    </div>
+                    <div className={`text-xl font-black tabular-nums tracking-tighter ${scoreStyle.text}`}>
+                        {Math.round(smt.score)}%
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="space-y-3 relative z-10 flex-1">
+                {/* Status Row */}
+                <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${directionClass} border-current/10 bg-current/5`}>
                         {smt.direction}
                     </span>
-                    <div className="h-4 w-px bg-white/10" />
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border tracking-widest uppercase ${statusBadgeClass}`}>
                         {computedStatus}
                     </span>
                 </div>
-                <div className={`text-xl font-bold ${scoreStyle.text}`}>
-                    {Math.round(smt.score)}%
+
+                {/* Hint / Factor */}
+                <div className="bg-white/[0.03] border border-white/5 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <Gauge size={10} className="text-zinc-500" />
+                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Signal Context</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-zinc-300 italic leading-snug">
+                        {factors && factors.length > 0 ? factors[0] : smt.hint}
+                    </p>
                 </div>
-            </div>
 
-            {/* 2. Hint / Factor */}
-            <div className="text-xs text-white/70 italic">
-                {factors && factors.length > 0 ? factors[0] : smt.hint}
-            </div>
-
-            {/* 3. Strong / Gate UI */}
-            {isStrong && (
-                <div className="flex flex-col gap-2 p-2 rounded bg-white/5 border border-white/5">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-sm">STRONG EVENT</span>
+                {/* Strong / Gate UI */}
+                {isStrong && (
+                    <div className="bg-fuchsia-500/5 border border-fuchsia-500/20 rounded-lg p-2.5 space-y-2 animate-in slide-in-from-right-2 duration-500">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Zap size={10} className="text-fuchsia-400" />
+                                <span className="text-[9px] font-black text-fuchsia-400 uppercase tracking-wider">STRONG EVENT DETECTED</span>
+                            </div>
+                            {gate?.isActive && (
+                                <span className="text-xs font-mono font-black text-fuchsia-200">
+                                    TTL: {gate.remainingMin}m
+                                </span>
+                            )}
+                        </div>
                         {gate?.isActive && (
-                            <span className="text-[10px] text-amber-500 font-mono">
-                                TTL: {gate.remainingMin}m
-                            </span>
+                            <div className="bg-red-500/10 border border-red-500/20 px-2 py-1 rounded text-[9px] text-red-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                <div className="w-1 h-1 bg-red-400 rounded-full animate-ping" />
+                                BIAS LOCK: BLOCKED {gate.blocksDirection}
+                            </div>
                         )}
                     </div>
-                    {gate?.isActive && (
-                        <div className="text-[10px] text-red-300 font-bold uppercase">
-                            ⛔ BLOCKING {gate.blocksDirection} TRADES
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* 4. Reliability & Meta */}
-            <div className="text-[9px] text-zinc-600 font-mono border-t border-white/5 pt-1 mt-1 flex justify-between">
-                <span>
-                    {smt.meta?.sourceUsed}
-                    {smt.meta?.capApplied ? ` · Raw ${smt.meta.rawScore}%` : ` · Age ${Math.round((smt.meta?.dataAgeMs || 0) / 60000)}m`}
-                </span>
-                {(smt.debug as any)?.refsSourceNote && (
-                    <span className="opacity-50" title={(smt.debug as any).refsSourceNote}>
-                        Refs: Correlations
-                    </span>
                 )}
             </div>
 
-            {/* 5. Help Toggle */}
-            <div className="pt-2 border-t border-white/5">
-                <PanelHelp title="מתאמים (SMT)" bullets={[
-                    "משווה את נאסד\"ק (NQ) מול מדדים אחרים (ES/YM/RTY).",
-                    "סטיות (Divergence): מעידות על היפוך מחיר או חולשה של אחת המגמות.",
-                    "אירוע חזק: סטייה רב-שוקית משמעותית.",
-                    "שער (Gate): חוסם ביצוע עסקאות נגד הכיוון של הסקטור כדי למנוע מלכודות.",
-                ]} />
+            {/* Reliability & Meta */}
+            <div className="mt-4 pt-2 border-t border-white/5 flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2 text-[8px] font-mono font-bold text-zinc-600 uppercase tracking-widest">
+                    <span>{smt.meta?.sourceUsed}</span>
+                    <span className="opacity-30">|</span>
+                    <span>{smt.meta?.capApplied ? `Raw ${smt.meta.rawScore}%` : `Age ${Math.round((smt.meta?.dataAgeMs || 0) / 60000)}m`}</span>
+                </div>
             </div>
+
+            {/* Hebrew Help Overlay - VXR Style */}
+            {showHelp && (
+                <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Layers size={16} className="text-fuchsia-400" />
+                            <span className="font-black text-white text-xs uppercase tracking-widest">SMT GUIDE (מתאמים בין-שוקיים)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-black text-[11px] mb-1">מהו מדד ה-SMT?</h4>
+                            <p className="text-[10px] text-zinc-400 leading-relaxed">
+                                מדד ה-SMT (Smart Money Tool) משווה את נאסד"ק (NQ) למדדים מקבילים כמו ה-S&P 500. חוסר תיאום (סטייה) מעיד על כניסת כסף מוסדי "חכם".
+                            </p>
+                        </section>
+
+                        <div className="space-y-2">
+                            <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 p-2 rounded">
+                                <span className="text-[10px] font-black text-fuchsia-400 block mb-0.5">Divergence (סטייה)</span>
+                                <span className="text-[9px] text-zinc-300">כשמדד אחד מייצר שיא חדש והשני לא - זוהי סטייה. היא מרמזת על חולשה או חוזק נסתר.</span>
+                            </div>
+                            <div className="bg-red-500/10 border border-red-500/20 p-2 rounded">
+                                <span className="text-[10px] font-black text-red-400 block mb-0.5">Bias Lock (נעילת כיוון)</span>
+                                <span className="text-[9px] text-zinc-300">במקרים של סטייה חריפה, המערכת תחסום עסקאות נגד המגמה המוסדית החדשה כדי להגן עליך.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-2">
+                            <h4 className="text-white font-black text-[11px] mb-1">כיצד לסחור?</h4>
+                            <p className="text-[10px] text-zinc-400 leading-relaxed">
+                                סטיית SMT היא אחד האישורים החזקים ביותר בשיטת ה-SMC. חפש אותה בנקודות היפוך קריטיות (PDH/PDL).
+                            </p>
+                        </section>
+
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="w-full py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded font-black text-[10px] tracking-widest uppercase transition-colors mt-2"
+                        >
+                            הבנתי, חזרה לנתונים
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

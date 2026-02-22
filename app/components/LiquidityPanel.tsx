@@ -40,14 +40,14 @@ export function LiquidityPanel({ data, loading }: PanelProps) {
     const vxrHvn = data.analysis?.vxr?.lastProfile?.hvn;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 pb-8 relative overflow-hidden flex flex-col transition-all duration-500 min-h-[220px]`}>
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-20" />
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 pb-8 relative overflow-hidden flex flex-col transition-all duration-500 min-h-[220px] group`}>
+            {/* Background Glow - Matches VXR Style with enhanced volume */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity duration-1000" />
 
             {/* Header - VXR HUD Style */}
             <div className="flex items-center justify-between mb-5 relative z-10">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 flex items-center justify-center transition-colors">
+                    <div className="p-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 flex items-center justify-center transition-colors group-hover:bg-cyan-500/20">
                         <Droplets size={18} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">

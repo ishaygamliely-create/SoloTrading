@@ -49,14 +49,14 @@ export function StructurePanel({ data, loading }: StructurePanelProps) {
     const glowColor = direction === 'LONG' ? 'bg-emerald-500' : direction === 'SHORT' ? 'bg-red-500' : 'bg-blue-500';
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[220px]`}>
-            {/* Background Glow */}
-            <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-20 ${glowColor}`} />
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[220px] group`}>
+            {/* Background Glow - Matches VXR Style with enhanced volume */}
+            <div className={`absolute top-0 right-0 w-48 h-48 blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity duration-1000 ${glowColor}`} />
 
             {/* Header - VXR HUD Style */}
             <div className="flex items-center justify-between mb-5 relative z-10">
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl border flex items-center justify-center transition-colors duration-500 ${direction === 'LONG' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : direction === 'SHORT' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+                    <div className={`p-2 rounded-xl border flex items-center justify-center transition-colors duration-500 group-hover:bg-white/5 ${direction === 'LONG' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : direction === 'SHORT' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
                         <Network size={18} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">

@@ -26,14 +26,14 @@ export function ValueZonePanel({ data, loading }: ValueZonePanelProps) {
     const { label, percentInRange, pdh, pdl, eq, dxyState, dxyText } = (valueZone.debug || {}) as any;
 
     return (
-        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[220px]`}>
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-20" />
+        <div className={`rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col relative overflow-hidden transition-all duration-500 min-h-[220px] group`}>
+            {/* Background Glow - Matches VXR Style with enhanced volume */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity duration-1000" />
 
             {/* Header - VXR HUD Style */}
             <div className="flex items-center justify-between mb-5 relative z-10">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 flex items-center justify-center transition-colors">
+                    <div className="p-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 flex items-center justify-center transition-colors group-hover:bg-indigo-500/20">
                         <Target size={18} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">
