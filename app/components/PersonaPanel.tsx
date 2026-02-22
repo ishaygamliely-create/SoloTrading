@@ -6,6 +6,7 @@ import { PersonaProfile, PersonaExtractionResult } from '../types/persona';
 import { extractProfile, rankScenarios, getStoredWeights } from '../lib/personaEngine';
 import { TradeScenario } from '../lib/analysis';
 import { useActiveTrade } from '../context/ActiveTradeContext';
+import { PanelHelp } from './PanelHelp';
 
 interface PersonaPanelProps {
     onApply: (profile: PersonaProfile | null) => void;
@@ -19,6 +20,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
     const [inputValue, setInputValue] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [extraction, setExtraction] = useState<PersonaExtractionResult | null>(null);
+    const [lastAnalyzedValue, setLastAnalyzedValue] = useState('');
     const overlayRef = useRef<HTMLDivElement>(null);
     const { saveTrade, isSaved } = useActiveTrade();
 
@@ -71,6 +73,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
         await new Promise(r => setTimeout(r, 800));
         const result = extractProfile(inputValue);
         setExtraction(result);
+        setLastAnalyzedValue(inputValue);
         setIsAnalyzing(false);
     };
 
@@ -81,6 +84,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
         setTimeout(() => {
             const result = extractProfile(val);
             setExtraction(result);
+            setLastAnalyzedValue(val);
             setIsAnalyzing(false);
         }, 600);
     };
@@ -88,6 +92,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
     const handleReset = () => {
         setExtraction(null);
         setInputValue('');
+        setLastAnalyzedValue('');
         onApply(null);
     };
 
@@ -133,12 +138,18 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                         <section className="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 relative overflow-hidden h-full">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">Quick Protocols</h3>
-                                <button
-                                    onClick={() => window.open('https://example.com/system-help', '_blank')}
-                                    className="text-[9px] font-black text-zinc-500 hover:text-blue-400 transition-colors uppercase tracking-widest border border-white/5 px-2 py-1 rounded-lg bg-zinc-950/20"
-                                >
-                                    System Protocol Help (?)
-                                </button>
+                                <div className="scale-90 origin-right">
+                                    <PanelHelp
+                                        title="Trading Persona Protocols"
+                                        label="System Protocol Help (?)"
+                                        bullets={[
+                                            "Quick Protocols: 9 one-click institutional setups.",
+                                            "Deep Learning: Describe your unique methodology.",
+                                            "Adaptive Ranking: System learns from your feedback.",
+                                            "Direct Activation: Sync setups to Active Trade sidebar."
+                                        ]}
+                                    />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-10">
                                 {PRESET_STYLES.map(s => (
@@ -170,7 +181,7 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                             />
 
                             {/* Manual Action - Hidden when analyzing or extraction exists unless typing */}
-                            {(!extraction || inputValue !== extraction.profile.name) && (
+                            {(!extraction || inputValue !== lastAnalyzedValue) && (
                                 <button
                                     onClick={handleAnalyze}
                                     disabled={isAnalyzing || !inputValue.trim()}
@@ -262,11 +273,16 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         {recommendations.map(({ scenario, score, why }, idx) => (
-                                                            <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1">
-                                                                <div className="flex justify-between items-center mb-3">
-                                                                    <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[100px]">
-                                                                        {(scenario.type || '').replace(/_/g, ' ')}
-                                                                    </span>
+                                                            <div key={idx} className="p-4 rounded-2xl bg-zinc-950/40 border border-white/5 hover:border-blue-500/30 transition-all group hover:-translate-y-1">
+                                                                <div className="flex justify-between items-start mb-4 gap-2">
+                                                                    <div className="flex flex-col gap-1 min-w-0">
+                                                                        <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate block">
+                                                                            {(scenario.type || '').replace(/_/g, ' ')}
+                                                                        </span>
+                                                                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">
+                                                                            {scenario.timeframe}
+                                                                        </span>
+                                                                    </div>
                                                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                                                         <button
                                                                             onClick={() => {
@@ -291,11 +307,11 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="space-y-1.5">
-                                                                    {why.slice(0, 3).map((r, i) => (
-                                                                        <div key={i} className="text-[8px] px-2 py-1 bg-zinc-950 border border-white/5 text-zinc-500 font-black uppercase tracking-widest rounded-lg flex items-center justify-between">
-                                                                            <span className="truncate">{r.split(':')[0]}</span>
-                                                                            {r.includes('+') && <span className="text-emerald-500 ml-1">+</span>}
+                                                                <div className="space-y-1">
+                                                                    {why.slice(0, 3).map((w, i) => (
+                                                                        <div key={i} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                                            <Check size={8} className="text-emerald-400" />
+                                                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter truncate">{w}</span>
                                                                         </div>
                                                                     ))}
                                                                 </div>
