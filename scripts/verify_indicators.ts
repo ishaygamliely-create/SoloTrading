@@ -131,12 +131,12 @@ async function runTests() {
         const s = scenarios[0];
         console.log('Sample Scenario Confidence:', {
             type: s.type,
-            score: s.confidence.score,
-            rating: s.confidence.rating,
-            scorecardTotal: s.confidence.scorecard?.total
+            score: s.confidence?.score ?? 0,
+rating: s.confidence?.rating ?? 'N/A',
+scorecardTotal: s.confidence?.scorecard?.total ?? 0
         });
 
-        if (s.confidence.scorecard) {
+        if (s.confidence?.scorecard) {
             const sum = s.confidence.scorecard.components.reduce((acc, c) => acc + c.points, 0);
             console.log(`Scorecard Components Sum: ${sum}`);
             if (Math.abs(sum - s.confidence.scorecard.total) < 0.1) {
@@ -179,7 +179,9 @@ async function runTests() {
 
     if (scenariosChop.length > 0) {
         const s = scenariosChop[0];
-        const hasPenalty = s.confidence.scorecard?.components.some(c => c.label === 'Choppy Regime' && c.points === -15);
+       const hasPenalty = s.confidence?.scorecard?.components?.some(
+  c => c.label === 'Choppy Regime' && c.points === -15
+) ?? false;
         if (hasPenalty) {
             console.log("✅ PASS: Choppy Penalty Applied (-15)");
         } else {

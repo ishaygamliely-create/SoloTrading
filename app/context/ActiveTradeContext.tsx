@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { TradeScenario, GuidanceMessage, GuidanceStatus } from '../types/tradeScenario';
+export type { GuidanceMessage, GuidanceStatus };
 
 export type TradeState = 'SELECTED' | 'OPEN' | 'MANAGING' | 'CLOSED' | 'CONFIRMING';
 
