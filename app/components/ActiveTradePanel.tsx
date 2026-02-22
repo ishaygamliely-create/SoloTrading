@@ -209,7 +209,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                     {/* Entry Price */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target Entry</label>
@@ -230,17 +230,6 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                                 <Lock size={12} className="text-zinc-800" />
                             </div>
                         )}
-                    </div>
-
-                    {/* First Target */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Primary Exit (T1)</label>
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
-                            <span className="text-xl font-mono font-black text-emerald-400 tabular-nums">
-                                {activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0].toFixed(2) : '---'}
-                            </span>
-                            <Target size={12} className="text-emerald-900/40" />
-                        </div>
                     </div>
 
                     {/* Stop Loss */}
@@ -265,9 +254,62 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                         )}
                     </div>
 
-                    {/* Exposure */}
+                    {/* First Target */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Exposure (Cnt)</label>
+                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Primary Exit (TP1)</label>
+                        {isEditing ? (
+                            <input
+                                type="number"
+                                step="0.25"
+                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                value={activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0] : ''}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    const newTargets = [...(activeTrade.targets || [0, 0])];
+                                    newTargets[0] = isNaN(val) ? 0 : val;
+                                    updateTradeParams({ targets: newTargets });
+                                }}
+                            />
+                        ) : (
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
+                                <span className="text-xl font-mono font-black text-emerald-400 tabular-nums">
+                                    {activeTrade.targets && activeTrade.targets[0] ? activeTrade.targets[0].toFixed(2) : '---'}
+                                </span>
+                                <Target size={12} className="text-emerald-900/40" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Second Target */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Secondary Exit (TP2)</label>
+                        {isEditing ? (
+                            <input
+                                type="number"
+                                step="0.25"
+                                className="w-full bg-black border border-emerald-500/20 rounded-2xl text-base px-4 py-3 font-mono text-emerald-500/70 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                value={activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1] : ''}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    const newTargets = [...(activeTrade.targets || [0, 0])];
+                                    newTargets[1] = isNaN(val) ? 0 : val;
+                                    updateTradeParams({ targets: newTargets });
+                                }}
+                                placeholder="Target 2"
+                            />
+                        ) : (
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
+                                <span className="text-xl font-mono font-black text-emerald-500/70 tabular-nums">
+                                    {activeTrade.targets && activeTrade.targets[1] ? activeTrade.targets[1].toFixed(2) : '---'}
+                                </span>
+                                <Target size={12} className="text-emerald-900/20" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Exposure */}
+                    <div className="space-y-2 sm:col-span-2">
+                        <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Exposure (Contracts)</label>
                         {isEditing ? (
                             <input
                                 type="number"
@@ -280,7 +322,7 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
                             />
                         ) : (
                             <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-                                <span className="text-xl font-mono font-black text-white tracking-widest">{activeTrade.positionSize || 0}</span>
+                                <span className="text-xl font-mono font-black text-white tracking-widest lowercase">{activeTrade.positionSize || 0} contracts</span>
                                 <Activity size={12} className="text-zinc-800" />
                             </div>
                         )}
