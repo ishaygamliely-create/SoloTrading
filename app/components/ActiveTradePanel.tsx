@@ -115,15 +115,15 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
 
             {/* --- COMPACT STRIP-DOWN HEADER --- */}
             <div className="flex flex-col gap-6 mb-8 relative z-10">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
                     <div className="flex items-start gap-4">
                         <div className={`mt-2 w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse shrink-0 ${isLong ? 'text-emerald-500 bg-emerald-500' : 'text-red-500 bg-red-500'}`} />
                         <div>
-                            <h2 className={`text-3xl font-black uppercase tracking-tighter leading-none mb-2 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <h2 className={`text-3xl font-black uppercase tracking-tighter leading-none mb-3 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {activeTrade.direction} {activeTrade.contractType || 'MNQ'}
                             </h2>
                             <div className="flex items-center gap-3">
-                                <span className="bg-white/10 border border-white/10 px-3 py-1 rounded-full text-[10px] font-black text-white tracking-widest uppercase">
+                                <span className="bg-white/10 border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-black text-white tracking-widest uppercase">
                                     {activeTrade.state}
                                 </span>
                                 <button
@@ -138,9 +138,9 @@ export function ActiveTradePanel({ data, loading }: PanelProps) {
 
                     {/* Quick PnL for Managing State */}
                     {activeTrade.state === 'MANAGING' && (
-                        <div className={`text-right ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <div className={`bg-white/5 border border-white/5 rounded-2xl px-5 py-3 text-right ${isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
                             <div className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">LIVE PNL</div>
-                            <div className="font-mono text-2xl font-black tracking-tight leading-none">
+                            <div className="font-mono text-2xl font-black tracking-tight leading-none tabular-nums">
                                 {isProfitable ? '+' : ''}{currentPnL.toFixed(2)}
                             </div>
                         </div>
