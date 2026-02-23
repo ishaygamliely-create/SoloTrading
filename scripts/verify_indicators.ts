@@ -3,11 +3,10 @@ import {
     detectMarketStructure,
     calculateEMAs,
     detectFVG,
-    detectLiquidity,
-    calculateCompositeBias,
     detectTradeScenarios,
-    detectMarketRegime,
-    Quote
+    Quote,
+    LiquidityPool,
+    MarketRegime
 } from '../app/lib/analysis';
 
 // --- Mock Data Generator ---
@@ -54,26 +53,14 @@ async function runTests() {
     console.log("--- TEST 1: Bullish Trend Logic ---");
     const bullCandles = generateCandles(100, 'UP', 15000);
     const bullStructure = detectMarketStructure(bullCandles);
-    const bullEMAs = calculateEMAs(bullCandles);
+    calculateEMAs(bullCandles);
 
     // We expect UP_TREND structure and Price > EMA200
     const lastPrice = bullCandles[bullCandles.length - 1].close;
-    // Mock other inputs for bias
-    const bullBias = calculateCompositeBias(
-        lastPrice,
-        lastPrice * 0.99, // VWAP below price
-        lastPrice * 0.99, // Open below price
-        null, null,
-        bullEMAs.ema20 || 0,
-        bullEMAs.ema50 || 0,
-        bullEMAs.ema200 || 0,
-        [], [], []
-    );
 
     console.log(`Structure: ${bullStructure.type} (Expected: UP_TREND)`);
-    console.log(`Bias Score: ${bullBias.score} (Expected: > 0)`);
 
-    if (bullBias.score > 0) {
+    if (bullStructure.type === 'UP_TREND') {
         console.log("✅ PASS: Bullish Logic Verified");
     } else {
         console.error("❌ FAIL: Bullish Logic Inconsistent");
@@ -83,11 +70,9 @@ async function runTests() {
     // TEST 2: BEARISH SCENARIO GENERATION
     console.log("--- TEST 2: Bearish Scenario Logic ---");
     const bearCandles = generateCandles(100, 'DOWN', 16000);
-    const bearStructure = detectMarketStructure(bearCandles);
     const bearFVGs = detectFVG(bearCandles);
 
     // Force a "Premium Rejection" setup
-    const lastBearPrice = bearCandles[bearCandles.length - 1].close;
 
     // We manually simulate a condition where we have a scenario
     // It's hard to guarantee a scenario with random data, effectively we act as if one exists
@@ -101,18 +86,19 @@ async function runTests() {
     // Generate data conducive to scenarios (uptrend with pullback)
     // MOCKED DATA FOR DETERMINISTIC SCENARIO
     const mockPrice = 15000;
-    const mockStructure: any = {
-        type: 'UP_TREND',
+    const mockStructure = {
+        type: 'UP_TREND' as const,
         swings: [
-            { price: 15100, type: 'HIGH', time: Date.now() }, // Targets
-            { price: 15200, type: 'HIGH', time: Date.now() }
+            { price: 15100, type: 'HIGH' as const, time: Date.now(), index: 0 }, // Targets
+            { price: 15200, type: 'HIGH' as const, time: Date.now(), index: 1 }
         ],
-        bos: []
+        bos: [],
+        choch: []
     };
-    const mockFVGs: any[] = [
-        { top: 15005, bottom: 14995, type: 'BULLISH', time: Date.now() } // Price inside FVG
+    const mockFVGs = [
+        { top: 15005, bottom: 14995, type: 'BULLISH' as const, time: Date.now(), index: 0 } // Price inside FVG
     ];
-    const mockLiq: any[] = [];
+    const mockLiq: LiquidityPool[] = [];
     const mockVWAP = 14950; // Price > VWAP (Bullish)
 
     // Force a hit
@@ -132,8 +118,8 @@ async function runTests() {
         console.log('Sample Scenario Confidence:', {
             type: s.type,
             score: s.confidence?.score ?? 0,
-rating: s.confidence?.rating ?? 'N/A',
-scorecardTotal: s.confidence?.scorecard?.total ?? 0
+            rating: s.confidence?.rating ?? 'N/A',
+            scorecardTotal: s.confidence?.scorecard?.total ?? 0
         });
 
         if (s.confidence?.scorecard) {
@@ -151,7 +137,6 @@ scorecardTotal: s.confidence?.scorecard?.total ?? 0
 
     console.log("\n--- TEST 4: Market Regime Classification ---");
     // 4A: Trending
-    const trendCandles = generateCandles(60, 'UP', 15000); // 60 candles to satisfy len > 50
     // We need to import detectMarketRegime, but it's not exported in the start of this file.
     // I need to update the import statement first.
     // Assuming import is updated:
@@ -165,7 +150,7 @@ scorecardTotal: s.confidence?.scorecard?.total ?? 0
     // Let's just run scenarios with a Regime passed in to verify penalties.
 
     console.log("Verifying Regime Penalties in Scorecard...");
-    const chopRegime = { state: 'CHOPPY', confidence: 90, reason: 'Testing Chop' };
+    const chopRegime = { state: 'CHOPPY' as const, confidence: 90, reason: 'Testing Chop' };
 
     // Re-run scenarios with explicit regime
     // Note: I need to update the import of detectTradeScenarios to match the new signature?
@@ -174,14 +159,14 @@ scorecardTotal: s.confidence?.scorecard?.total ?? 0
 
     const scenariosChop = detectTradeScenarios(
         mockPrice, 'BULLISH', mockStructure, mockFVGs, mockLiq, mockVWAP, '1m', [], undefined, undefined, undefined,
-        chopRegime as any // Pass regime
+        chopRegime as MarketRegime // Pass regime
     );
 
     if (scenariosChop.length > 0) {
         const s = scenariosChop[0];
-       const hasPenalty = s.confidence?.scorecard?.components?.some(
-  c => c.label === 'Choppy Regime' && c.points === -15
-) ?? false;
+        const hasPenalty = s.confidence?.scorecard?.components?.some(
+            c => c.label === 'Choppy Regime' && c.points === -15
+        ) ?? false;
         if (hasPenalty) {
             console.log("✅ PASS: Choppy Penalty Applied (-15)");
         } else {

@@ -159,54 +159,32 @@ export function PSPPanel({ data, loading }: PanelProps) {
                 )}
             </div>
 
-            {/* Hebrew Help Overlay - VXR Style */}
+            {/* Simplified Help Overlay */}
             {showHelp && (
                 <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col animate-in fade-in duration-200">
                     <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                         <div className="flex items-center gap-2">
                             <Info size={16} className="text-yellow-400" />
-                            <span className="font-black text-white text-xs uppercase tracking-widest">PSP SETUP GUIDE (מדריך כניסה)</span>
+                            <span className="font-black text-white text-[10px] uppercase tracking-widest text-right">PSP SETUP GUIDE</span>
                         </div>
                         <button
                             onClick={() => setShowHelp(false)}
-                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400 transition-colors"
+                            className="p-1 hover:bg-white/10 rounded-full text-zinc-400"
                         >
                             <X size={18} />
                         </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 text-right" dir="rtl">
-                        <section>
-                            <h4 className="text-white font-black text-[11px] mb-1">מהו מודל ה-PSP?</h4>
-                            <p className="text-[10px] text-zinc-400 leading-relaxed">
-                                מודל ה-PSP (Price Setup Pipeline) עוקב אחרי 4 השלבים שכל סוחר מוסדי מחפש לפני כניסה לעסקה. זהו המודל המדויק ביותר במערכת.
-                            </p>
-                        </section>
-
-                        <div className="space-y-2">
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
-                                <span className="text-[10px] font-black text-emerald-400 block mb-0.5">Confirmed Setup</span>
-                                <span className="text-[9px] text-zinc-300">מופיע רק כשכל התנאים הבשילו. במצב זה המערכת תספק מחיר כניסה וסטופ מדויקים.</span>
-                            </div>
-                            <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded">
-                                <span className="text-[10px] font-black text-amber-400 block mb-0.5">4 השלבים (Pipeline)</span>
-                                <span className="text-[9px] text-zinc-300">Sweep (ניקוי נזילות), Displace (תזוזה חזקה), Retest (בדיקה מחדש), Run (יציאה לדרך).</span>
-                            </div>
-                        </div>
-
-                        <section className="pt-2">
-                            <h4 className="text-white font-black text-[11px] mb-1">ניהול טרייד</h4>
-                            <p className="text-[10px] text-zinc-400 leading-relaxed">
-                                המתן תמיד ל-Confirmation. אם ה-PSP וה-Decision Engine מסכימים, זהו סימן להתכנסות מוסדית רחבה.
-                            </p>
-                        </section>
-
-                        <button
-                            onClick={() => setShowHelp(false)}
-                            className="w-full py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded font-black text-[10px] tracking-widest uppercase transition-colors mt-2"
-                        >
-                            הבנתי, חזרה לנתונים
-                        </button>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed font-bold">
+                            מודל ה-PSP עוקב אחרי 4 שלבים מוסדיים: Sweep, Displacement, Retest ו-Run.
+                        </p>
+                        <ul className="space-y-2 text-[9px] text-zinc-500 font-bold uppercase tracking-tight">
+                            <li>• SWEEP: ניקוי נזילות</li>
+                            <li>• DISPLACE: שינוי כיוון חזק</li>
+                            <li>• RETEST: בדיקה מחדש</li>
+                            <li>• RUN: המשכיות</li>
+                        </ul>
                     </div>
                 </div>
             )}

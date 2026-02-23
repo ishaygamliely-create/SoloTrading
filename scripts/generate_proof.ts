@@ -30,7 +30,7 @@ async function simulateApiCall(url: string, isCold: boolean = true) {
     const processingIntervals = intervals.filter(i => ['1m', '15m', '60m', '1d'].includes(i));
 
     // Simulate Promise.all for intervals
-    await Promise.all(processingIntervals.map(async (timeout) => {
+    await Promise.all(processingIntervals.map(async () => {
         await new Promise(r => setTimeout(r, 20 + Math.random() * 30)); // Each analysis block
     }));
     const ictAnalysisMs = Date.now() - analysisStart;

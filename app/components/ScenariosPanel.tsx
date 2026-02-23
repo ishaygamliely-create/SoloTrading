@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Target, Shield, Info, X, CheckCircle2, Clock, TrendingUp, TrendingDown, Play, Layers, Zap, AlertCircle, Activity, ChevronRight, BarChart3, Fingerprint } from 'lucide-react';
+import { Target, Shield, Info, X, CheckCircle2, Clock, TrendingUp, TrendingDown, Play, Layers, Zap, AlertCircle, Activity, BarChart3, Fingerprint } from 'lucide-react';
 import { useActiveTrade } from '../context/ActiveTradeContext';
 import { PanelProps } from './DashboardPanels';
 import { PersonaProfile } from '../types/persona';
 import { updateWeight } from '../lib/personaEngine';
-
 import { TradeScenario } from '../types/tradeScenario';
 
 export function ScenariosPanel({ data, loading, timeframe, personaFilter }: PanelProps & { personaFilter?: PersonaProfile | null }) {
@@ -37,10 +36,9 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
     // Global Persona Filter logic
     if (personaFilter) {
         activeScenarios = activeScenarios.filter((s: TradeScenario) => {
-            if (!s.meta || !personaFilter) return true; // PRODUCTION SAFETY: Fallback to show untagged
+            if (!s.meta || !personaFilter) return true;
             const familyMatch = personaFilter.preferredFamilies.includes(s.meta.family);
             const tfMatch = personaFilter.timeframes.some(tf => s.meta?.tags?.includes(`tf:${tf.toLowerCase()}`));
-            // Match if it fits the family OR is on a preferred timeframe
             return familyMatch || tfMatch;
         });
     }
@@ -59,10 +57,10 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
 
     return (
         <div className="relative group/panel">
-            {/* Background Glow - Unified VXR Style */}
+            {/* Background Glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40 group-hover/panel:opacity-60 transition-opacity duration-1000" />
 
-            {/* Panel Header - VXR HUD Style */}
+            {/* Panel Header */}
             <div className="flex items-center justify-between mb-8 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="p-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-500 flex items-center justify-center transition-all duration-500 group-hover/panel:bg-amber-500/20">
@@ -82,215 +80,221 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-xl border border-white/10 shadow-inner">
+                    <div className="hidden sm:flex items-center gap-2 bg-white/5 px-3 py-1 rounded-xl border border-white/10 shadow-inner">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">REAL-TIME SCANNER</span>
+                        <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">LIVE SCANNER</span>
                     </div>
-                    <div className="hidden md:flex items-center gap-2 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 text-amber-400">
+                    <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 text-amber-400">
                         <Activity size={12} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{activeScenarios.length} DETECTED</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">{activeScenarios.length} MODELS</span>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 w-full relative z-10 p-1">
-                {activeScenarios.map((scenario: TradeScenario, i: number) => {
-                    const isLong = scenario.direction === 'LONG';
-                    const isPrimary = scenario.isPrimary;
-                    const saved = scenario.id ? isSaved(scenario.id) : false;
-                    const scorecard = scenario.confidence?.scorecard;
-                    const score = scenario.confidence?.score || 0;
-                    const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-amber-400' : 'text-zinc-500';
-                    const hasVxrMagnet = scorecard?.components?.some((c: any) => c.label === 'VXR Magnet');
+            {/* Scrollable Container */}
+            <div className="max-h-[650px] overflow-y-auto overflow-x-hidden pr-3 -mr-3 custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full relative z-10 p-2">
+                    {activeScenarios.map((scenario: TradeScenario, i: number) => {
+                        const isLong = scenario.direction === 'LONG';
+                        const isPrimary = scenario.isPrimary;
+                        const saved = scenario.id ? isSaved(scenario.id) : false;
+                        const scorecard = scenario.confidence?.scorecard;
+                        const score = scenario.confidence?.score || 0;
+                        const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-amber-400' : 'text-zinc-500';
+                        const hasVxrMagnet = scorecard?.components?.some((c: any) => c.label === 'VXR Magnet');
 
-                    // TTL
-                    const timeLeft = scenario.expires_at ? Math.max(0, scenario.expires_at - now) : 0;
-                    const mins = Math.floor(timeLeft / 60);
-                    const secs = timeLeft % 60;
+                        const timeLeft = scenario.expires_at ? Math.max(0, scenario.expires_at - now) : 0;
+                        const mins = Math.floor(timeLeft / 60);
+                        const secs = timeLeft % 60;
 
-                    const stateLabel = scenario.state === 'ACTIONABLE' ? 'ACTIVE' :
-                        scenario.state === 'PENDING' ? 'WAITING' :
-                            scenario.state === 'INVALID' ? 'STOPPED' : 'WAITING';
+                        const stateLabel = scenario.state === 'ACTIONABLE' ? 'ACTIVE' :
+                            scenario.state === 'PENDING' ? 'WAITING' :
+                                scenario.state === 'INVALID' ? 'STOPPED' : 'WAITING';
 
-                    return (
-                        <div
-                            key={i}
-                            onClick={() => setDetailScenario(scenario)}
-                            className={`group relative flex flex-col rounded-3xl border transition-all duration-500 overflow-hidden cursor-pointer
+                        return (
+                            <div
+                                key={i}
+                                onClick={() => setDetailScenario(scenario)}
+                                className={`group relative flex flex-col rounded-[2.5rem] border transition-all duration-500 cursor-pointer overflow-hidden
                                 ${isPrimary
-                                    ? 'bg-zinc-950/60 border-amber-500/40 shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_20px_rgba(245,158,11,0.05)]'
-                                    : 'bg-zinc-900/60 border-white/5 hover:border-white/20 shadow-xl'}`}
-                        >
-                            {/* Accent Glow Line */}
-                            <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${isPrimary ? 'via-amber-500/50' : 'via-blue-500/20'} to-transparent opacity-50`} />
+                                        ? 'bg-zinc-950/70 border-amber-500/40 shadow-[0_30px_60px_rgba(0,0,0,0.4),0_0_25px_rgba(245,158,11,0.05)]'
+                                        : 'bg-zinc-900/40 border-white/[0.03] hover:border-white/20 shadow-2xl'}`}
+                            >
+                                {/* Accent Line */}
+                                <div className={`absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent ${isPrimary ? 'via-amber-500/60' : 'via-blue-500/30'} to-transparent opacity-60`} />
 
-                            {/* Background Radial Shade */}
-                            <div className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full blur-[60px] opacity-10 transition-opacity duration-500 group-hover:opacity-20 pointer-events-none ${isLong ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                <div className="p-6 pb-0 flex-1 relative z-10 flex flex-col">
+                                    {/* Header: Score & Direction */}
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex flex-col gap-3 flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                {isPrimary && (
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/30 text-[9px] font-black text-amber-400 uppercase tracking-widest shadow-lg">
+                                                        <Target size={11} strokeWidth={3} /> PRIMARY
+                                                    </div>
+                                                )}
+                                                {hasVxrMagnet && (
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-black text-cyan-400 uppercase tracking-widest shadow-lg">
+                                                        <Layers size={11} strokeWidth={3} /> MAGNET
+                                                    </div>
+                                                )}
+                                            </div>
 
-                            {/* Header Section: Badges & Rating */}
-                            <div className="p-5 pb-0 flex-1 relative z-10">
-                                <div className="flex justify-between items-start gap-3 mb-5">
-                                    <div className="flex flex-col gap-2.5 min-w-0">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            {isPrimary && (
-                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-[9px] font-black text-amber-400 uppercase tracking-widest shadow-sm">
-                                                    <Target size={10} strokeWidth={3} /> PRIMARY
+                                            <div className="space-y-1.5">
+                                                <span className={`text-2xl font-black uppercase tracking-tighter flex items-center gap-2 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                    {isLong ? <TrendingUp size={24} strokeWidth={3} /> : <TrendingDown size={24} strokeWidth={3} />}
+                                                    {scenario.direction}
+                                                </span>
+                                                <div className="flex items-center">
+                                                    <span className="text-[10px] bg-white/5 px-2.5 py-1 rounded-lg text-zinc-500 font-black border border-white/10 tracking-widest uppercase">
+                                                        {scenario.timeframe || timeframe}
+                                                    </span>
                                                 </div>
-                                            )}
-                                            {hasVxrMagnet && (
-                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-black text-cyan-400 uppercase tracking-widest shadow-sm">
-                                                    <Layers size={10} strokeWidth={3} /> MAGNET
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-3 transition-transform duration-500 group-hover:translate-x-1">
-                                            <span className={`text-base font-black uppercase tracking-tight flex items-center gap-2 shrink-0 ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {isLong ? <TrendingUp size={18} strokeWidth={3} /> : <TrendingDown size={18} strokeWidth={3} />}
-                                                {scenario.direction}
-                                            </span>
-                                            <span className="text-[10px] bg-white/5 px-2.5 py-0.5 rounded-lg text-zinc-500 font-black border border-white/10 shrink-0 tracking-widest uppercase">
-                                                {scenario.timeframe || timeframe}
-                                            </span>
+
+                                        <div className="flex flex-col items-end shrink-0 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
+                                            <div className={`text-3xl font-black ${scoreColor} tracking-tighter leading-none`}>
+                                                {score}
+                                            </div>
+                                            <div className={`text-[8px] font-black uppercase tracking-widest ${scoreColor} mt-1 opacity-70`}>
+                                                RATING {scenario.confidence?.rating || 'C'}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Rating Display */}
-                                    <div className="flex flex-col items-end shrink-0">
-                                        <div className={`text-2xl font-black ${scoreColor} tracking-tighter leading-none mb-1`}>
-                                            {score}
+                                    {/* Model Title & Condition */}
+                                    <div className="mb-8 space-y-5">
+                                        <h4 className="text-white font-black text-xl uppercase tracking-tight leading-tight block w-full">
+                                            {(scenario.type || 'Institutional Model').replace(/_/g, ' ')}
+                                        </h4>
+                                        <div className="flex flex-col gap-5">
+                                            <div className="flex">
+                                                <span className={`px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] border transition-all duration-500 shadow-xl
+                                                ${scenario.state === 'ACTIONABLE'
+                                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 ring-2 ring-emerald-500/10'
+                                                        : scenario.state === 'INVALID'
+                                                            ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                                            : 'bg-zinc-800/80 text-zinc-500 border-zinc-700/50'}`}>
+                                                    {stateLabel}
+                                                </span>
+                                            </div>
+                                            <p className="text-zinc-400 text-sm font-bold tracking-wide leading-relaxed block w-full bg-white/[0.01] p-4 rounded-[2rem] border border-white/[0.02] min-h-[56px]">
+                                                {scenario.condition}
+                                            </p>
                                         </div>
-                                        <div className={`text-[9px] font-black uppercase tracking-widest ${scoreColor}`}>
-                                            RATING {scenario.confidence?.rating || 'C'}
+                                    </div>
+
+                                    {/* Context Bias - Strictly Vertical Stacking */}
+                                    <div className="mb-8 space-y-4">
+                                        <div className="flex items-center gap-2 px-1">
+                                            <Activity size={16} className="text-zinc-700" />
+                                            <span className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.2em]">Contextual Bias</span>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between bg-zinc-950/80 p-4 rounded-[1.5rem] border border-white/5 shadow-inner">
+                                                <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">HTF BIAS</span>
+                                                <span className={`text-sm font-black uppercase tracking-wider ${scenario.htfBias?.includes('BULL') ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                    {scenario.htfBias || 'NEUTRAL'}
+                                                </span>
+                                            </div>
+                                            {scenario.biasAlignment === 'CONTRARIAN' && (
+                                                <div className="bg-purple-500/10 p-4 rounded-2xl border border-purple-500/20 flex items-center justify-center shadow-lg">
+                                                    <span className="text-[11px] text-purple-400 font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                                        <AlertCircle size={14} className="animate-pulse" />
+                                                        CONTRARIAN SETUP
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Entry/Stop Grid */}
+                                    <div className="grid grid-cols-2 gap-3 mb-6">
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl group/sub hover:bg-emerald-500/15 transition-all shadow-inner">
+                                            <span className="text-[8px] font-black text-emerald-500/80 uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
+                                                <Fingerprint size={10} /> ENTRY
+                                            </span>
+                                            <span className="text-sm font-mono font-black text-emerald-100 tabular-nums truncate">{(scenario.entryZone?.min || 0).toFixed(1)}</span>
+                                        </div>
+                                        <div className="bg-red-500/10 border border-red-500/20 p-3.5 rounded-2xl group/sub hover:bg-red-500/15 transition-all text-right shadow-inner">
+                                            <span className="text-[8px] font-black text-red-500/80 uppercase tracking-widest block mb-1.5 flex items-center gap-1.5 justify-end">
+                                                STOP LOSS <Shield size={10} />
+                                            </span>
+                                            <span className="text-sm font-mono font-black text-red-100 tabular-nums truncate">{(scenario.stopLoss || 0).toFixed(1)}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Model Name & Status */}
-                                <div className="mb-5">
-                                    <h4 className="text-white font-black text-base uppercase tracking-tight leading-none mb-2">
-                                        {(scenario.type || 'Institutional Model').replace(/_/g, ' ')}
-                                    </h4>
-                                    <div className="flex items-center gap-2.5">
-                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors duration-500
-                                            ${scenario.state === 'ACTIONABLE'
-                                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                                                : scenario.state === 'INVALID'
-                                                    ? 'bg-red-500/20 text-red-300 border-red-500/30'
-                                                    : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'}`}>
-                                            {stateLabel}
-                                        </span>
-                                        <span className="text-zinc-400 text-[10px] font-bold truncate max-w-[180px] tracking-wide">
-                                            {scenario.condition}
-                                        </span>
-                                    </div>
-                                </div>
+                                {/* Footer: Strictly Vertical to prevent button/timer overlap */}
+                                <div className="p-6 border-t border-white/[0.03] bg-black/60 flex flex-col gap-4 relative z-10 backdrop-blur-md">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 text-zinc-400 font-mono text-xs font-black tracking-wider shadow-inner">
+                                            <Clock size={14} className="text-zinc-700" />
+                                            <span className="min-w-[70px]">{mins}m {secs.toString().padStart(2, '0')}s</span>
+                                        </div>
 
-                                {/* HTF Correlation */}
-                                <div className="mb-5 flex items-center justify-between p-2.5 rounded-2xl bg-black/40 border border-white/5 gap-2 group-hover:border-white/10 transition-colors">
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <Activity size={12} className="text-zinc-600" />
-                                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">HTF BIAS</span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center justify-end gap-2 text-right">
-                                        <span className={`text-[10px] font-black uppercase whitespace-nowrap ${scenario.htfBias?.includes('BULL') ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            {scenario.htfBias || 'NEUTRAL'}
-                                        </span>
-                                        {scenario.biasAlignment === 'CONTRARIAN' && (
-                                            <span className="text-[8px] px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 font-black uppercase whitespace-nowrap tracking-widest shadow-sm">
-                                                CONTRARIAN
-                                            </span>
+                                        {scenario.meta && (
+                                            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-black/40 rounded-2xl border border-white/5 shadow-lg">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const meta = scenario.meta;
+                                                        if (!meta) return;
+                                                        const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                            meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                        if (learnTag) updateWeight(learnTag, true);
+                                                    }}
+                                                    className="p-1.5 hover:bg-emerald-500/20 rounded-xl text-emerald-500/50 hover:text-emerald-400 transition-all active:scale-90"
+                                                    title="Target Reached"
+                                                >
+                                                    <CheckCircle2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const meta = scenario.meta;
+                                                        if (!meta) return;
+                                                        const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
+                                                            meta.tags.find((t: string) => t.startsWith('family:')) || null;
+                                                        if (learnTag) updateWeight(learnTag, false);
+                                                    }}
+                                                    className="p-1.5 hover:bg-red-500/20 rounded-xl text-red-500/50 hover:text-red-400 transition-all active:scale-90"
+                                                    title="Invalidated"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Entry/Stop Grid */}
-                                <div className="grid grid-cols-2 gap-3 mb-5">
-                                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl group/sub hover:bg-emerald-500/15 transition-colors overflow-hidden">
-                                        <span className="text-[7px] font-black text-emerald-500/80 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                            <Fingerprint size={8} /> ENTRY
-                                        </span>
-                                        <span className="text-xs font-mono font-black text-emerald-100 tabular-nums truncate">{(scenario.entryZone?.min || 0).toFixed(1)}</span>
-                                    </div>
-                                    <div className="bg-red-500/10 border border-red-500/20 p-2.5 rounded-2xl group/sub hover:bg-red-500/15 transition-colors text-right overflow-hidden">
-                                        <span className="text-[7px] font-black text-red-500/80 uppercase tracking-widest block mb-1 flex items-center gap-1 justify-end">
-                                            STOP LOSS <Shield size={8} />
-                                        </span>
-                                        <span className="text-xs font-mono font-black text-red-100 tabular-nums truncate">{(scenario.stopLoss || 0).toFixed(1)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Footer: Timer & Action */}
-                            <div className="p-5 pt-4 border-t border-white/10 flex items-center justify-between bg-black/30 relative z-10">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-zinc-400 font-mono text-[10px] font-black tracking-wider shadow-inner">
-                                        <Clock size={12} className="text-zinc-600" />
-                                        <span>{mins}m {secs.toString().padStart(2, '0')}s</span>
-                                    </div>
-
-                                    {/* Feedback Loop (Step 5) */}
-                                    {scenario.meta && (
-                                        <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-black/40 rounded-xl border border-white/5">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const meta = scenario.meta;
-                                                    if (!meta) return;
-                                                    const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
-                                                        meta.tags.find((t: string) => t.startsWith('family:')) || null;
-                                                    if (learnTag) updateWeight(learnTag, true);
-                                                }}
-                                                className="p-1 hover:bg-emerald-500/20 rounded-md text-emerald-500/50 hover:text-emerald-400 transition-all active:scale-90"
-                                                title="Target Reached"
-                                            >
-                                                <CheckCircle2 size={12} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const meta = scenario.meta;
-                                                    if (!meta) return;
-                                                    const learnTag = meta.tags.find((t: string) => t.startsWith('setup:')) ||
-                                                        meta.tags.find((t: string) => t.startsWith('family:')) || null;
-                                                    if (learnTag) updateWeight(learnTag, false);
-                                                }}
-                                                className="p-1 hover:bg-red-500/20 rounded-md text-red-500/50 hover:text-red-400 transition-all active:scale-90"
-                                                title="Invalidated"
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!saved) saveTrade(scenario);
-                                    }}
-                                    disabled={saved}
-                                    className={`relative flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!saved) saveTrade(scenario);
+                                        }}
+                                        disabled={saved}
+                                        className={`w-full py-4 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] transition-all active:scale-95 shadow-2xl flex items-center justify-center gap-3 border-b-4
                                         ${saved
-                                            ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-                                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border border-blue-400/30'}`}
-                                >
-                                    {saved ? <CheckCircle2 size={14} /> : <Play size={12} fill="currentColor" />}
-                                    {saved ? 'ACTIVE' : 'EXECUTE'}
-                                </button>
+                                                ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed border-b-0 translate-y-[4px]'
+                                                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 border-blue-800 hover:border-blue-700'}`}
+                                    >
+                                        {saved ? <CheckCircle2 size={18} strokeWidth={3} /> : <Play size={16} fill="currentColor" />}
+                                        {saved ? 'ACTIVE PROTOCOL' : 'DEPLOY EXECUTION'}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Scenario Detail Overlay */}
             {detailScenario && (
                 <div className="fixed inset-0 z-[120] bg-zinc-950/98 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 p-6 md:p-12 flex items-center justify-center">
                     <div className="max-w-3xl w-full bg-zinc-900 border border-white/10 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh] relative">
-                        {/* Background Decorative Glow */}
                         <div className={`absolute top-0 right-0 w-96 h-96 blur-[150px] opacity-10 pointer-events-none ${detailScenario.direction === 'LONG' ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
-                        {/* Detail Header */}
                         <div className="p-10 pb-8 border-b border-white/10 flex justify-between items-start relative z-10">
                             <div className="flex items-center gap-6">
                                 <div className={`p-5 rounded-[2rem] border shadow-2xl transition-all duration-700 ${detailScenario.direction === 'LONG' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
@@ -324,9 +328,7 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                             </button>
                         </div>
 
-                        {/* Detail Body */}
                         <div className="flex-1 overflow-y-auto p-10 pt-8 space-y-10 scrollbar-hide relative z-10">
-                            {/* Execution Condition */}
                             <div className="bg-zinc-950/70 rounded-[2rem] p-8 border border-white/5 shadow-inner">
                                 <div className="flex items-center gap-3 mb-5">
                                     <Fingerprint size={18} className="text-blue-500" />
@@ -338,7 +340,6 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Levels Drilldown */}
                                 <div className="space-y-5">
                                     <div className="flex items-center gap-3 px-2">
                                         <Target size={18} className="text-amber-400" />
@@ -370,7 +371,6 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                                     </div>
                                 </div>
 
-                                {/* Scorecard & Analysis */}
                                 <div className="space-y-5">
                                     <div className="flex items-center gap-3 px-2">
                                         <BarChart3 size={18} className="text-cyan-400" />
@@ -412,7 +412,6 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                             </div>
                         </div>
 
-                        {/* Detail Footer */}
                         <div className="p-10 bg-zinc-950/80 border-t border-white/10 flex gap-6 relative z-10">
                             <button
                                 onClick={() => setDetailScenario(null)}
@@ -448,7 +447,7 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
                 </div>
             )}
 
-            {/* Hebrew Trade Guide Overlay - VXR Fullscreen Style */}
+            {/* Hebrew Trade Guide */}
             {showGuide && (
                 <div className="fixed inset-0 z-[130] bg-zinc-950/98 backdrop-blur-3xl animate-in fade-in duration-500 p-6 flex flex-col items-center justify-center">
                     <div className="max-w-2xl w-full bg-zinc-900 border border-white/10 rounded-[2.5rem] p-10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[90vh] text-right relative overflow-hidden" dir="rtl">
@@ -485,7 +484,7 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10 shadow-inner">
-                                    <span className="text-amber-400 font-black text-[10px] block mb-2 tracking-widest">PRIMARY</span>
+                                    <span className="text-amber-400 font-black text-[10px] block mb-2 tracking-widest text-left">PRIMARY</span>
                                     <p className="text-[12px] text-zinc-400 font-bold leading-snug">המודל בעל רמת הדיוק הגבוהה ביותר בסשן הנוכחי.</p>
                                 </div>
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10 shadow-inner text-right">
@@ -529,5 +528,3 @@ export function ScenariosPanel({ data, loading, timeframe, personaFilter }: Pane
         </div>
     );
 }
-
-// Activity component remains imported from lucide-react in ScenariosPanel.tsx

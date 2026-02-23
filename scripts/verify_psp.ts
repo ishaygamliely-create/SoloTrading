@@ -60,23 +60,21 @@ const keyLevels = { vwap: 97, open: null, pdh: null, pdl: null }; // Mock VWAP a
 
 console.log("--- Running detectPSP ---");
 console.log(`Swings detected: ${structure.swings.length}`);
-structure.swings.forEach(s => console.log(`Swing ${s.type} @ ${s.price}`));
-
-console.log(`FVGs detected: ${fvgs.length}`);
-if (fvgs.length > 0) console.log(`FVG: ${fvgs[0].type} ${fvgs[0].bottom}-${fvgs[0].top}`);
 
 const psps = detectPSP(quotes, structure, fvgs, liquidity, keyLevels);
+// Cast tf properly
+const pspsWithTF = psps.map(p => ({ ...p, tf: 'M15' as 'M15' | 'H1' | 'H4' }));
 
-console.log(`\nPSPs Detected: ${psps.length}`);
-psps.forEach(p => {
+console.log(`\nPSPs Detected: ${pspsWithTF.length}`);
+pspsWithTF.forEach(p => {
     console.log(`[PSP] ${p.type} @ ${p.price}`);
     console.log(`   Score: ${p.score}`);
     console.log(`   Factors: ${p.confluenceFactors.join(', ')}`);
 });
 
 // Verification Logic
-if (psps.length > 0) {
-    const p = psps[0];
+if (pspsWithTF.length > 0) {
+    const p = pspsWithTF[0];
     if (p.score >= 3) {
         console.log("\n✅ PSP Verification PASSED: Detected High Quality pivot (Score >= 3).");
     } else {
@@ -88,15 +86,6 @@ if (psps.length > 0) {
     if (candidate) {
         console.log("\nDebug Candidate Swing:");
         console.log(`Candidate Price: ${candidate.price}`);
-        // Log BOS Check
-        const nextOpposite = structure.swings.find(s => s.time > candidate.time && s.type !== candidate.type);
-        if (nextOpposite) {
-            console.log(`Next Opposite Swing: ${nextOpposite.type} @ ${nextOpposite.price}`);
-            const priorOpposite = structure.swings.filter(s => s.time < candidate.time && s.type !== candidate.type).pop();
-            if (priorOpposite) console.log(`Prior Opposite Swing: ${priorOpposite.type} @ ${priorOpposite.price}`);
-        } else {
-            console.log("No Next Opposite Swing found (for BOS check).");
-        }
     }
     console.log("\n❌ PSP Verification FAILED: No PSP detected.");
 }

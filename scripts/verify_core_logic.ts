@@ -5,12 +5,9 @@ import {
     detectMarketStructure,
     detectSMT,
     calculateRiskLevels,
-    detectFVG,
-    detectLiquidity,
     Quote
 } from '../app/lib/analysis';
 
-// Mock helpers
 // Mock helpers
 const createCandle = (time: number, open: number, high: number, low: number, close: number): Quote => ({
     time, open, high, low, close, volume: 1000

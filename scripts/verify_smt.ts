@@ -21,6 +21,7 @@ const addSwingHigh = (quotes: Quote[], startTime: number, peakPrice: number, bas
     // Peak
     quotes.push(createCandleMock(t, peakPrice - 2, peakPrice, peakPrice - 3, peakPrice - 1));
     const peakTime = t;
+    console.log(`Peak at T:${peakTime}`);
     t += interval;
     // Walk down
     for (let i = 0; i < 5; i++) {

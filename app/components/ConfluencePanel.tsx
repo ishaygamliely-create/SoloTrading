@@ -164,7 +164,8 @@ export default function ConfluencePanel({ data }: { data?: ConfluenceResult | nu
                         <section>
                             <h4 className="text-white font-bold text-xs mb-1">איך לקבל החלטה?</h4>
                             <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                לוח ה-Confluence משקלל את כל האינדיקטורים לכדי מסקנה אחת. הסתכל על הציון המרכזי (Confidence):
+                                לוח ה-Confluence משקלל את כל האינדיקטורים לכדי מסקנה אחת. הסתכל על הציון המרכזי:
+                                <span className="text-pink-400 font-bold ml-1">(Confidence)</span>
                             </p>
                         </section>
 

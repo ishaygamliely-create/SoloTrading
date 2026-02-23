@@ -44,6 +44,7 @@ interface ActiveTradeContextType {
     closeTrade: () => void;
     invalidateTrade: () => void; // Explicit "Lost/Invalidated" exit
     addGuidance: (msg: GuidanceMessage) => void;
+    activateScenario: (scenario: TradeScenario) => void;
 }
 
 const ActiveTradeContext = createContext<ActiveTradeContextType | undefined>(undefined);
@@ -202,6 +203,44 @@ export function ActiveTradeProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const activateScenario = (scenario: TradeScenario) => {
+        // 1. Save it if not already saved
+        if (!isSaved(scenario.id || '')) {
+            saveTrade(scenario);
+        }
+
+        // 2. We need to find the newly created SavedTrade object or simulate it
+        // Since setSavedTrades is async, we simulate the selection from scenario data
+        const symbol = scenario.symbol || 'MNQ';
+        const initialEntry = (scenario.entryZone.min + scenario.entryZone.max) / 2;
+        const contractType = symbol.includes('NQ') && !symbol.includes('MNQ') ? 'NQ' : 'MNQ';
+        const pointValue = contractType === 'NQ' ? 20 : 2;
+        const stopLossPrice = scenario.stopLoss || scenario.invalidation || 0;
+        const riskPerContract = Math.abs(initialEntry - stopLossPrice) * pointValue;
+        const defaultMaxRisk = 500;
+        const defaultSize = riskPerContract > 0 ? Math.floor(defaultMaxRisk / riskPerContract) || 1 : 1;
+
+        const newActive: ActiveTrade = {
+            id: Date.now().toString(), // Temp ID or we could try to match saved one
+            scenarioId: scenario.id || '',
+            symbol: symbol,
+            direction: scenario.direction as 'LONG' | 'SHORT',
+            setupName: scenario.type?.replace(/_/g, ' ') || 'Manual Setup',
+            timeframe: scenario.timeframe || '1m',
+            entryPrice: initialEntry,
+            stopLossPrice: stopLossPrice,
+            targets: scenario.targets.map(t => t.price),
+            savedAt: Date.now(),
+            contractType: contractType,
+            state: 'SELECTED',
+            maxRiskAmount: defaultMaxRisk,
+            positionSize: defaultSize,
+            guidance: []
+        };
+
+        setActiveTrade(newActive);
+    };
+
     return (
         <ActiveTradeContext.Provider value={{
             savedTrades,
@@ -214,7 +253,8 @@ export function ActiveTradeProvider({ children }: { children: ReactNode }) {
             markAsEntered,
             closeTrade,
             invalidateTrade,
-            addGuidance
+            addGuidance,
+            activateScenario
         }}>
             {children}
         </ActiveTradeContext.Provider>

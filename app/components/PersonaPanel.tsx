@@ -21,8 +21,9 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [extraction, setExtraction] = useState<PersonaExtractionResult | null>(null);
     const [lastAnalyzedValue, setLastAnalyzedValue] = useState('');
+    const [showHelp, setShowHelp] = useState(false);
     const overlayRef = useRef<HTMLDivElement>(null);
-    const { saveTrade, isSaved } = useActiveTrade();
+    const { activateScenario, isSaved } = useActiveTrade();
 
     const PRESET_STYLES = [
         { label: 'M1 SCALP', value: 'I am an MNQ scalper focusing on M1-M5 structure. I look for liquidity sweeps and avoid news. Risk is tight.' },
@@ -146,17 +147,12 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] leading-none">QUICK PROTOCOLS</span>
-                                                <div className="scale-75 origin-left">
-                                                    <PanelHelp
-                                                        title="Trading Persona Protocols"
-                                                        label={<div className="p-1.5 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors cursor-pointer"><Info size={14} /></div>}
-                                                        bullets={[
-                                                            "Quick Protocols: One-click institutional setups.",
-                                                            "Deep Learning: Describe your unique methodology.",
-                                                            "Direct Activation: Sync setups to Active Trade sidebar."
-                                                        ]}
-                                                    />
-                                                </div>
+                                                <button
+                                                    onClick={() => setShowHelp(true)}
+                                                    className="p-1.5 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-zinc-400 transition-colors cursor-pointer"
+                                                >
+                                                    <Info size={14} />
+                                                </button>
                                             </div>
                                             <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1.5 tracking-wider">Algorithmic Style Initialization</span>
                                         </div>
@@ -325,11 +321,11 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                                                         </div>
                                                                     </div>
 
-                                                                    <div className="flex-1 space-y-1.5">
+                                                                    <div className="flex-1 space-y-1.5 min-h-[60px]">
                                                                         {whyItems.slice(0, 3).map((w, i) => (
-                                                                            <div key={i} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
-                                                                                <Check size={8} className="text-emerald-400" />
-                                                                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter truncate">{w}</span>
+                                                                            <div key={i} className="flex items-start gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                                                <Check size={8} className="text-emerald-400 mt-1 flex-shrink-0" />
+                                                                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter leading-tight">{w}</span>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -337,7 +333,8 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            saveTrade(scenario);
+                                                                            activateScenario(scenario);
+                                                                            onClose(); // Auto-close for immediate feedback
                                                                         }}
                                                                         className={`w-full h-10 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isSaved(scenario.id || '')
                                                                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
@@ -362,13 +359,6 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                                         >
                                             <X size={18} />
                                             Discard Session
-                                        </button>
-                                        <button
-                                            onClick={onClose}
-                                            className="flex-1 h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl bg-zinc-800 hover:bg-zinc-700 text-white border border-white/5"
-                                        >
-                                            <Rocket size={18} fill="currentColor" />
-                                            Confirm Selection
                                         </button>
                                     </div>
                                 </div>
@@ -397,6 +387,63 @@ export function PersonaPanel({ onApply, activeProfile, scenarios, isOpen, onClos
                     <span className="text-[9px] font-mono text-zinc-700 uppercase tracking-widest">SOLOTRADING // INSTITUTIONAL HUD // PERSONA_ENGINE_SUITE</span>
                 </div>
             </div>
+
+            {/* Premium Help Overlay - Personalized for Trading Persona Suite */}
+            {showHelp && (
+                <div className="absolute inset-0 z-[120] bg-zinc-950/98 backdrop-blur-3xl p-12 flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                    <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                        <div className="flex items-center gap-4">
+                            <Info size={24} className="text-blue-400 fill-blue-400/10" />
+                            <span className="font-black text-white text-xl tracking-tight uppercase">Trading Persona Guide (מדריך הגדרות)</span>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className="p-3 hover:bg-white/10 rounded-full text-zinc-400 transition-all border border-white/10"
+                        >
+                            <X size={28} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-8 text-right max-w-2xl mx-auto w-full" dir="rtl">
+                        <section>
+                            <h4 className="text-white font-black text-lg mb-3 tracking-tight">ברוכים הבאים ל-Trading Persona Suite</h4>
+                            <p className="text-sm text-zinc-400 leading-relaxed font-medium">
+                                המערכת מאפשרת לך להגדיר את סגנון המסחר שלך כדי שנוכל להתאים עבורך את האינדיקטורים והאסטרטגיות המדויקות ביותר בזמן אמת.
+                            </p>
+                        </section>
+
+                        <div className="space-y-6">
+                            <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-[2rem] shadow-2xl shadow-blue-500/5 group hover:bg-blue-500/15 transition-all">
+                                <span className="text-sm font-black text-blue-400 block mb-3 uppercase tracking-widest">Quick Protocols</span>
+                                <span className="text-sm text-zinc-300 font-bold leading-relaxed">לחיצה אחת על פרוטוקול מוכן מראש (כמו M1 Scalp או Liquidity Seeker) תגדיר מיידית את חוקי המערכת לסינון טריידים.</span>
+                            </div>
+
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] shadow-2xl shadow-emerald-500/5 group hover:bg-emerald-500/15 transition-all">
+                                <span className="text-sm font-black text-emerald-400 block mb-3 uppercase tracking-widest">Deep Learning (Manual)</span>
+                                <span className="text-sm text-zinc-300 font-bold leading-relaxed">תיאר בכתב את שיטת המסחר שלך (M1 SCALP, M15 INTRA, H1 SWING, LIQ SEEKER, TREND RIDER, SMT MASTER, MACRO SNIPER, REVERSION, GAP SEEKER). מנוע הבינה המלאכותית שלנו ינתח את המלל ויבנה עבורך פרופיל סיכון וזמני מסחר מותאמים.</span>
+                            </div>
+
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] shadow-2xl shadow-amber-500/5 group hover:bg-amber-500/15 transition-all">
+                                <span className="text-sm font-black text-amber-400 block mb-3 uppercase tracking-widest">Direct Activation</span>
+                                <span className="text-sm text-zinc-300 font-bold leading-relaxed">לאחר הגדרת הפרופיל, תקבל המלצות לסטאפים שקורים עכשיו בשוק ומתאימים בדיוק לסגנון שלך.</span>
+                            </div>
+                        </div>
+
+                        <section className="pt-8 border-t border-white/5 opacity-40">
+                            <p className="text-xs text-zinc-600 font-black uppercase tracking-[0.4em] text-center">
+                                SOLOTRADING // NEURAL MAPPING // v4.2
+                            </p>
+                        </section>
+                    </div>
+
+                    <button
+                        onClick={() => setShowHelp(false)}
+                        className="w-full max-w-sm mx-auto h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black text-sm tracking-[0.3em] uppercase transition-all shadow-xl shadow-blue-900/20 mt-10 active:scale-95 border border-blue-400/20"
+                    >
+                        חזרה להגדרות
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

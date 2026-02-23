@@ -1,10 +1,6 @@
-
-import { detectTradeScenarios } from '../app/lib/analysis';
+// No imports needed for current logic test
 
 // Mock Data Enums/Interfaces for context
-const MOCK_FVGS = [{ top: 101, bottom: 100, time: 1000, type: 'BULLISH', index: 1 }] as any;
-const MOCK_LIQ = [] as any;
-const MOCK_STRUCTURE = { type: 'UP_TREND', swings: [], bos: [], choch: [] } as any;
 
 // Helper to simulate scenario detection wrapper (simplified)
 // We are testing the logic block we inserted into analysis.ts, specifically the state calc.
