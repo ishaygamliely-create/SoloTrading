@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, memo } from 'react';
+import React, { memo } from 'react';
 
 interface TradingViewChartProps {
     symbol?: string;
@@ -11,8 +11,8 @@ interface TradingViewChartProps {
 
 /**
  * Official TradingView Advanced Real-Time Chart Widget
- * Uses the TradingView embed script for accurate, live CME futures data.
- * Symbol: CME_MINI:MNQ1! (Micro E-mini Nasdaq)
+ * Uses the iframe embed method for guaranteed correct symbol loading.
+ * Symbol: CME_MINI:MNQ1! (Micro E-mini Nasdaq - Continuous Front Month)
  */
 function TradingViewChartComponent({
     symbol = 'CME_MINI:MNQ1!',
@@ -20,63 +20,37 @@ function TradingViewChartComponent({
     interval = '1',
     height = 500,
 }: TradingViewChartProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const encodedSymbol = encodeURIComponent(symbol);
 
-    useEffect(() => {
-        if (!containerRef.current) return;
-
-        // Clean up any previous widget
-        containerRef.current.innerHTML = '';
-
-        const widgetContainer = document.createElement('div');
-        widgetContainer.className = 'tradingview-widget-container__widget';
-        widgetContainer.style.height = `${height - 32}px`;
-        widgetContainer.style.width = '100%';
-        containerRef.current.appendChild(widgetContainer);
-
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-        script.async = true;
-        script.innerHTML = JSON.stringify({
-            autosize: false,
-            width: '100%',
-            height: height - 32,
-            symbol,
-            interval,
-            timezone: 'America/New_York',
-            theme,
-            style: '1',
-            locale: 'en',
-            backgroundColor: 'rgba(18, 18, 20, 1)',
-            gridColor: 'rgba(255, 255, 255, 0.04)',
-            hide_top_toolbar: false,
-            hide_legend: false,
-            save_image: false,
-            calendar: false,
-            hide_volume: false,
-            support_host: 'https://www.tradingview.com',
-            studies: [
-                'MASimple@tv-basicstudies',
-                'VWAP@tv-basicstudies',
-            ],
-        });
-
-        containerRef.current.appendChild(script);
-
-        return () => {
-            if (containerRef.current) {
-                containerRef.current.innerHTML = '';
-            }
-        };
-    }, [symbol, theme, interval, height]);
+    const src =
+        `https://www.tradingview.com/widgetembed/` +
+        `?frameElementId=tradingview_mnq_chart` +
+        `&symbol=${encodedSymbol}` +
+        `&interval=${interval}` +
+        `&timezone=America%2FNew_York` +
+        `&theme=${theme}` +
+        `&style=1` +
+        `&locale=en` +
+        `&hide_top_toolbar=0` +
+        `&hide_legend=0` +
+        `&save_image=0` +
+        `&hide_volume=0` +
+        `&studies=MASimple%40tv-basicstudies%1FVWAP%40tv-basicstudies`;
 
     return (
-        <div
-            ref={containerRef}
-            className="tradingview-widget-container"
-            style={{ height: `${height}px`, width: '100%' }}
-        />
+        <div className="w-full" style={{ height: `${height}px` }}>
+            <iframe
+                id="tradingview_mnq_chart"
+                title="TradingView MNQ Chart"
+                src={src}
+                width="100%"
+                height={height}
+                frameBorder={0}
+                scrolling="no"
+                allowFullScreen
+                style={{ display: 'block', width: '100%', height: `${height}px` }}
+            />
+        </div>
     );
 }
 
