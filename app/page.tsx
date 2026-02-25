@@ -30,9 +30,9 @@ import { PersonaPanel } from './components/PersonaPanel';
 import { shouldShowSmt, shouldShowRisk } from './lib/uiPanelRules';
 import { PersonaProfile } from './types/persona';
 
-const Chart = dynamic(() => import('./components/Chart').then(mod => mod.Chart), {
+const TradingViewChart = dynamic(() => import('./components/TradingViewChart').then(mod => mod.TradingViewChart), {
   ssr: false,
-  loading: () => <div className="h-[500px] w-full flex items-center justify-center bg-zinc-900/50 rounded-xl text-zinc-500">Loading Chart...</div>
+  loading: () => <div className="h-[500px] w-full flex items-center justify-center bg-zinc-900/50 rounded-xl text-zinc-500 animate-pulse">Loading TradingView Chart...</div>
 });
 
 export default function Home() {
@@ -231,15 +231,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-1 shadow-2xl relative overflow-hidden h-[500px]">
-                  <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                    <span className="px-2 py-1 bg-black/50 backdrop-blur text-xs text-zinc-300 rounded">
-                      1M Interval • Live
-                    </span>
-                  </div>
-                  <Chart
-                    data={data.quotes}
-                    colors={{ backgroundColor: '#18181b', textColor: '#52525b' }}
+                <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative h-[520px]">
+                  <TradingViewChart
+                    symbol="CME_MINI:MNQ1!"
+                    theme="dark"
+                    interval="1"
+                    height={520}
                   />
                 </div>
 
