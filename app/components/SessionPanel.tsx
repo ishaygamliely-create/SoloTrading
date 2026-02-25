@@ -105,15 +105,15 @@ export function SessionPanel({ session }: { session: IndicatorSignal | undefined
                         <div className="space-y-2">
                             <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
                                 <span className="text-[10px] font-bold text-blue-400 block mb-1">London Killzone</span>
-                                <span className="text-[9px] text-zinc-300">02:00-05:00 שעון ניו יורק. אופייני ליצירת הנמוך או הגבוה היומי.</span>
+                                <span className="text-[9px] text-zinc-300">02:00-05:00 שעון ניו יורק (09:00-12:00 שעון ישראל). אופייני ליצירת הנמוך או הגבוה היומי.</span>
                             </div>
                             <div className="bg-pink-500/10 border border-pink-500/20 p-3 rounded-lg">
                                 <span className="text-[10px] font-bold text-pink-400 block mb-1">New York Killzone</span>
-                                <span className="text-[9px] text-zinc-300">07:00-10:00 שעון ניו יורק. הסשן העיקרי למסחר ב-Nasdaq. תנועות אגרסיביות.</span>
+                                <span className="text-[9px] text-zinc-300">07:00-10:00 שעון ניו יורק (14:00-17:00 שעון ישראל). הסשן העיקרי למסחר ב-Nasdaq. תנועות אגרסיביות.</span>
                             </div>
                             <div className="bg-zinc-800 border border-white/5 p-3 rounded-lg">
                                 <span className="text-[10px] font-bold text-zinc-400 block mb-1">London Close</span>
-                                <span className="text-[9px] text-zinc-300">10:00-12:00 שעון ניו יורק. היפוכי מגמה או מימושי רווח.</span>
+                                <span className="text-[9px] text-zinc-300">10:00-12:00 שעון ניו יורק (17:00-19:00 שעון ישראל). היפוכי מגמה או מימושי רווח.</span>
                             </div>
                         </div>
 
