@@ -1,7 +1,12 @@
 /**
  * Market Data Provider Priority Chain
  *
- * Priority: BROKER > TRADINGVIEW > YAHOO
+ * Priority: TASTYTRADE > BROKER > TRADINGVIEW > YAHOO
+ *
+ * TASTYTRADE is activated via env vars:
+ *   TASTYTRADE_USERNAME — Tastytrade account login
+ *   TASTYTRADE_PASSWORD — Tastytrade account password
+ *   (stored server-side only; credentials never reach the client)
  *
  * BROKER and TRADINGVIEW are activated via env vars:
  *   BROKER_DATA_URL      — REST endpoint returning Candle[] JSON
@@ -13,6 +18,7 @@
 
 import YahooFinance from 'yahoo-finance2';
 import { normalizeYahooToCandles } from './providers/yahooAdapter';
+import { tastytradeProvider } from './providers/tastytradeAdapter';
 import type { Candle, Interval } from './marketDataTypes';
 import type { DataSource } from './reliability';
 
@@ -126,7 +132,21 @@ export async function getBestCandles(
         };
     };
 
-    // 1. Try BROKER
+    // 1. Try TASTYTRADE (real-time CME futures feed)
+    if (process.env.TASTYTRADE_USERNAME && process.env.TASTYTRADE_PASSWORD) {
+        try {
+            const candles = await tastytradeProvider(symbol, interval, period1);
+            if (candles && candles.length > 0) {
+                console.log(`[Feed] Tastytrade: ${candles.length} candles ✓`);
+                return toResult(candles, 'BROKER'); // 'BROKER' = premium source in DataSource type
+            }
+        } catch {
+            // fall through to next provider
+        }
+        console.warn('[Feed] Tastytrade failed — trying next provider');
+    }
+
+    // 2. Try BROKER
     if (process.env.BROKER_DATA_URL) {
         const candles = await brokerProvider(symbol, interval, period1);
         if (candles && candles.length > 0) {
@@ -144,7 +164,7 @@ export async function getBestCandles(
         return toResult(yahooCandles ?? [], 'YAHOO', 'BROKER');
     }
 
-    // 2. Try TRADINGVIEW (no BROKER configured)
+    // 3. Try TRADINGVIEW (no BROKER configured)
     if (process.env.TRADINGVIEW_DATA_URL) {
         const candles = await tradingViewProvider(symbol, interval, period1);
         if (candles && candles.length > 0) {
@@ -155,7 +175,7 @@ export async function getBestCandles(
         return toResult(yahooCandles ?? [], 'YAHOO', 'TRADINGVIEW');
     }
 
-    // 3. Yahoo only
+    // 4. Yahoo only
     const yahooCandles = await yahooProvider(symbol, interval, period1);
     return toResult(yahooCandles ?? [], 'YAHOO');
 }
