@@ -174,142 +174,161 @@ export async function GET(request: Request): Promise<Response> {
                 }
             }, 3000);
 
-            // ── Main DXLink connection (IIFE so we can use async/await) ────────
+            // ── DXLink connect — called once on start, then on each WS drop ──
+            // Uses cached auth token — does NOT re-run POST /sessions.
+            // Max WS_MAX_RECONNECTS attempts per SSE session; after that the
+            // watchdog fallback chain takes over permanently.
+            const WS_RECONNECT_DELAY_MS = 2000;
+            const WS_MAX_RECONNECTS = 5;
+            let wsReconnectCount = 0;
+            let cachedAuth: { token: string; dxlinkUrl: string } | null = null;
+
+            function connectDXLink(auth: { token: string; dxlinkUrl: string }) {
+                if (closed) return;
+                cachedAuth = auth;
+
+                console.log(`[QuoteStream] DXLink connecting (attempt ${wsReconnectCount + 1}) → ${auth.dxlinkUrl}`);
+                const socket = new WebSocket(auth.dxlinkUrl);
+                ws = socket;
+
+                socket.on('error', (err) => {
+                    console.error('[QuoteStream] WS error:', err.message);
+                    ws = null;
+                    scheduleReconnect();
+                });
+
+                socket.on('close', () => {
+                    if (closed) return;
+                    console.warn('[QuoteStream] DXLink WS closed unexpectedly');
+                    ws = null;
+                    scheduleReconnect();
+                });
+
+                socket.on('open', () => {
+                    wsReconnectCount = 0; // reset counter on successful connect
+                    socket.send(JSON.stringify(DXLINK_SETUP));
+                    console.log('[QuoteStream] DXLink connected — sent SETUP');
+                });
+
+                // DXLink protocol state machine
+                socket.on('message', (raw: Buffer) => {
+                    if (closed) return;
+                    let msg: Record<string, unknown>;
+                    try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+                    const type = msg.type as string;
+
+                    if (type === 'SETUP') {
+                        socket.send(JSON.stringify({ type: 'AUTH', channel: 0, token: auth.token }));
+
+                    } else if (type === 'AUTH_STATE') {
+                        if (msg.state === 'AUTHORIZED') {
+                            socket.send(JSON.stringify({
+                                type: 'CHANNEL_REQUEST', channel: 1,
+                                service: 'FEED', parameters: { contract: 'AUTO' },
+                            }));
+                        } else {
+                            console.error('[QuoteStream] Auth rejected:', msg.state);
+                            socket.terminate(); ws = null;
+                            // Auth rejected — don't retry WS; wait for token refresh
+                        }
+
+                    } else if (type === 'CHANNEL_OPENED' && msg.channel === 1) {
+                        socket.send(JSON.stringify({
+                            type: 'FEED_SETUP', channel: 1,
+                            acceptAggregationPeriod: 0,
+                            acceptDataFormat: 'COMPACT',
+                            acceptEventFields: {
+                                Trade: ['eventSymbol', 'time', 'price', 'dayVolume', 'size'],
+                            },
+                        }));
+                        socket.send(JSON.stringify({
+                            type: 'FEED_SUBSCRIPTION', channel: 1,
+                            add: [{ type: 'Trade', symbol: dxTradeSymbol }],
+                        }));
+                        console.log(`[QuoteStream] Subscribed to Trade ${dxTradeSymbol}`);
+
+                    } else if (type === 'FEED_DATA' && msg.channel === 1) {
+                        const dataBlock = msg.data as unknown[][];
+                        if (!Array.isArray(dataBlock)) return;
+
+                        for (const row of dataBlock) {
+                            if (!Array.isArray(row)) continue;
+                            const price = Number(row[TRADE_PRICE_IDX]);
+                            if (!price || isNaN(price) || price <= 0) continue;
+
+                            // row[1] = DXLink Trade.time in ms (CME authoritative)
+                            const tradeMs = Number(row[1]);
+                            if (!Number.isFinite(tradeMs) || tradeMs <= 0) continue;
+                            const minuteSec = Math.floor(tradeMs / 60_000) * 60;
+
+                            if (minuteSec !== barMinuteSec) {
+                                barMinuteSec = minuteSec;
+                                barOpen = price; barHigh = price; barLow = price;
+                            } else {
+                                if (price > barHigh) barHigh = price;
+                                if (price < barLow) barLow = price;
+                            }
+
+                            lastTradeMs = Date.now();
+                            lastGoodPrice = price;
+                            fallbackMode = false;
+
+                            sendEvent({
+                                price,
+                                timeNy: nowNy(),
+                                tradeTimeMs: tradeMs,
+                                mode: 'LIVE',
+                                source: 'TASTYTRADE',
+                                bar: {
+                                    time: minuteSec,
+                                    open: barOpen, high: barHigh, low: barLow, close: price,
+                                },
+                            });
+                            console.log(
+                                `[QuoteStream] ♙ ${price} | bar O:${barOpen} H:${barHigh} L:${barLow} C:${price} t:${minuteSec}`
+                            );
+                        }
+
+                    } else if (type === 'KEEPALIVE') {
+                        socket.send(JSON.stringify({ type: 'KEEPALIVE', channel: 0 }));
+
+                    } else if (type === 'ERROR') {
+                        console.error('[QuoteStream] DXLink error:', msg.message);
+                    }
+                });
+            }
+
+            function scheduleReconnect() {
+                if (closed) return;
+                wsReconnectCount++;
+                if (wsReconnectCount > WS_MAX_RECONNECTS) {
+                    console.error(`[QuoteStream] WS reconnect limit (${WS_MAX_RECONNECTS}) reached — watchdog fallback only`);
+                    return;
+                }
+                console.log(`[QuoteStream] WS reconnect scheduled in ${WS_RECONNECT_DELAY_MS}ms (attempt ${wsReconnectCount}/${WS_MAX_RECONNECTS})`);
+                setTimeout(() => {
+                    if (closed || !cachedAuth) return;
+                    connectDXLink(cachedAuth); // reuse cached auth — no new API calls
+                }, WS_RECONNECT_DELAY_MS);
+            }
+
+            // ── Initial auth + first connection ───────────────────────────────
             (async () => {
                 try {
-                    // Step 1: Auth
                     const auth = await getAuthForStream();
                     if (!auth) {
-                        console.error('[QuoteStream] Auth failed — going to Yahoo fallback');
+                        console.error('[QuoteStream] Auth failed — watchdog fallback only');
                         const p = await yahooFallbackPrice(yahooSymbol);
                         if (p !== null) sendEvent({ price: p, timeNy: nowNy(), mode: 'FALLBACK', source: 'YAHOO' });
-                        return; // watchdog will keep refreshing
+                        return;
                     }
-
-                    // Step 2: Open DXLink WebSocket
-                    ws = new WebSocket(auth.dxlinkUrl);
-
-                    ws.on('error', (err) => {
-                        console.error('[QuoteStream] WS error:', err.message);
-                        ws = null; // watchdog will detect this and fall back
-                    });
-
-                    ws.on('close', () => {
-                        console.warn('[QuoteStream] DXLink WS closed');
-                        ws = null;
-                    });
-
-                    ws.on('open', () => {
-                        ws?.send(JSON.stringify(DXLINK_SETUP));
-                        console.log('[QuoteStream] DXLink connected');
-                    });
-
-                    // Step 3: DXLink protocol state machine
-                    ws.on('message', (raw: Buffer) => {
-                        if (closed) return;
-                        let msg: Record<string, unknown>;
-                        try { msg = JSON.parse(raw.toString()); } catch { return; }
-
-                        const type = msg.type as string;
-
-                        if (type === 'SETUP') {
-                            ws?.send(JSON.stringify({ type: 'AUTH', channel: 0, token: auth.token }));
-
-                        } else if (type === 'AUTH_STATE') {
-                            if (msg.state === 'AUTHORIZED') {
-                                ws?.send(JSON.stringify({
-                                    type: 'CHANNEL_REQUEST', channel: 1,
-                                    service: 'FEED', parameters: { contract: 'AUTO' },
-                                }));
-                            } else {
-                                console.error('[QuoteStream] Auth rejected:', msg.state);
-                                ws?.terminate(); ws = null;
-                            }
-
-                        } else if (type === 'CHANNEL_OPENED' && msg.channel === 1) {
-                            // Set up Trade subscription — acceptAggregationPeriod:0 = every tick
-                            ws?.send(JSON.stringify({
-                                type: 'FEED_SETUP', channel: 1,
-                                acceptAggregationPeriod: 0,
-                                acceptDataFormat: 'COMPACT',
-                                acceptEventFields: {
-                                    Trade: ['eventSymbol', 'time', 'price', 'dayVolume', 'size'],
-                                },
-                            }));
-                            ws?.send(JSON.stringify({
-                                type: 'FEED_SUBSCRIPTION', channel: 1,
-                                add: [{ type: 'Trade', symbol: dxTradeSymbol }],
-                            }));
-                            console.log(`[QuoteStream] Subscribed to Trade ${dxTradeSymbol}`);
-
-                        } else if (type === 'FEED_DATA' && msg.channel === 1) {
-                            // Parse COMPACT rows: [symbol, tradeTimeMs, price, dayVol, size]
-                            const dataBlock = msg.data as unknown[][];
-                            if (!Array.isArray(dataBlock)) return;
-
-                            for (const row of dataBlock) {
-                                if (!Array.isArray(row)) continue;
-                                const price = Number(row[TRADE_PRICE_IDX]);
-                                if (!price || isNaN(price) || price <= 0) continue;
-
-                                // ── Bar aggregation (server-side, Option B) ──────────
-                                // row[1] = DXLink Trade.time in ms (CME authoritative).
-                                // Skip rows with invalid/missing timestamps — never fall
-                                // back to Date.now() (would corrupt candle boundaries).
-                                const tradeMs = Number(row[1]);
-                                if (!Number.isFinite(tradeMs) || tradeMs <= 0) continue;
-                                const minuteSec = Math.floor(tradeMs / 60_000) * 60;
-
-                                if (minuteSec !== barMinuteSec) {
-                                    // New minute — initialize fresh bar.
-                                    // barMinuteSec=0 sentinel means first tick ever
-                                    // OR after reconnect: always safe to reset from first tick.
-                                    barMinuteSec = minuteSec;
-                                    barOpen = price;
-                                    barHigh = price;
-                                    barLow = price;
-                                } else {
-                                    // Same minute — extend running bar
-                                    if (price > barHigh) barHigh = price;
-                                    if (price < barLow) barLow = price;
-                                }
-
-                                lastTradeMs = Date.now();
-                                lastGoodPrice = price;
-                                fallbackMode = false;
-
-                                sendEvent({
-                                    price,
-                                    timeNy: nowNy(),
-                                    tradeTimeMs: tradeMs,
-                                    mode: 'LIVE',
-                                    source: 'TASTYTRADE',
-                                    bar: {
-                                        time: minuteSec,   // UTC seconds — consistent with historical candles
-                                        open: barOpen,
-                                        high: barHigh,
-                                        low: barLow,
-                                        close: price,
-                                    },
-                                });
-                                console.log(
-                                    `[QuoteStream] ♙ ${price} | bar O:${barOpen} H:${barHigh} L:${barLow} C:${price} t:${minuteSec}`
-                                );
-                            }
-
-                        } else if (type === 'KEEPALIVE') {
-                            ws?.send(JSON.stringify({ type: 'KEEPALIVE', channel: 0 }));
-
-                        } else if (type === 'ERROR') {
-                            console.error('[QuoteStream] DXLink error:', msg.message);
-                        }
-                    });
-
+                    connectDXLink(auth);
                 } catch (err) {
-                    console.error('[QuoteStream] Fatal error in IIFE:', err);
-                    // Watchdog will handle fallback
+                    console.error('[QuoteStream] Fatal error during initial connect:', err);
                 }
             })();
+
 
             // ── Client disconnect handler ──────────────────────────────────────
             request.signal.addEventListener('abort', cleanup);
