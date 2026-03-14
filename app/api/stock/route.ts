@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'; // Required: ws (WebSocket) is a Node.js-only package – not supported on Edge runtime
 import YahooFinance from 'yahoo-finance2';
 import { formatAgeMs } from '../../lib/marketContext';
 import { normalizeYahooToCandles } from '../../lib/providers/yahooAdapter';
 import { getBestCandles } from '../../lib/marketDataProviders';
+import { toYahooSymbol } from '../../lib/futures/symbolMap';
 
 import { getSmtSignal } from '../../lib/smt';
 import { getSessionSignal } from '../../lib/session';
@@ -72,11 +74,10 @@ export async function GET(request: Request) {
 
     if (!symbol) symbol = "MNQ";
 
-    if (symbol.toUpperCase() === 'MNQ') symbol = 'MNQ=F';
-    else if (symbol.toUpperCase() === 'NQ') symbol = 'NQ=F';
-    else if (symbol.toUpperCase() === 'ES') symbol = 'ES=F';
-    else if (symbol.toUpperCase() === 'RTY') symbol = 'RTY=F';
-    else if (symbol.toUpperCase() === 'YM') symbol = 'YM=F';
+    // Normalise to Yahoo Finance format for all fetches (candles + SMT refs)
+    // Internal symbols MNQ/MES/MYM/NQ/ES → MNQ=F/MES=F/MYM=F etc.
+    // The Tastytrade DXLink layer does its own normalisation via symbolMap.
+    symbol = toYahooSymbol(symbol);
 
     // Check Cache
     const cacheKey = `${symbol}-${activeIntervalArg}-cap${lookbackCap}-${analysisVersion}`;
@@ -512,7 +513,8 @@ export async function GET(request: Request) {
             status,
             isBlocked: status === 'BLOCKED',
             isWarning: status === 'DELAYED',
-            lastBarTimeNy
+            lastBarTimeNy,
+            feedSource: meta1m.sourceUsed ?? 'YAHOO',   // 'TASTYTRADE' | 'BROKER' | 'TRADINGVIEW' | 'YAHOO'
         };
 
         // Derive market status for reliability engine
