@@ -13,10 +13,15 @@
  *  3. DXLink WebSocket        → Candle subscription with fromTime
  *  4. Collect candle events   → sanitized Candle[]
  *  5. On ANY error            → return null  (triggers Yahoo fallback)
+ *
+ * ─── PUBLIC API ──────────────────────────────────────────────────────────────
+ *  getAuthForStream() — for SSE tick stream endpoint
+ *  tastytradeProvider() — for batch candle fetch (used by marketDataProviders)
  */
 
 import WebSocket from 'ws';
 import type { Candle } from '../marketDataTypes';
+import { toDxLinkCandleSymbol } from '../futures/symbolMap';
 
 const TT_BASE = 'https://api.tastytrade.com';
 
@@ -251,7 +256,7 @@ export async function fetchCandlesViaDXLink(
  * No auth data — no credentials — no session tokens are returned to callers.
  */
 export async function tastytradeProvider(
-    _symbol: string,   // Reserved — MNQ always used internally
+    symbol: string,   // Internal futures symbol: MNQ, MES, MYM, NQ, ES
     interval: string,
     period1: Date,
 ): Promise<Candle[] | null> {
@@ -267,7 +272,9 @@ export async function tastytradeProvider(
         if (!quoteInfo) return null;
 
         const period = toDxFeedPeriod(interval);
-        const dxSymbol = `/MNQ{=${period}}`; // dxFeed continuous front-month MNQ
+        // dxFeed continuous front-month notation: /MNQ{=1m}, /MES{=5m}, etc.
+        // Rolls automatically — no manual expiry tracking required.
+        const dxSymbol = toDxLinkCandleSymbol(symbol, period);
         const fromMs = period1.getTime();
 
         const candles = await fetchCandlesViaDXLink(
@@ -294,4 +301,17 @@ export async function tastytradeProvider(
         console.error('[Tastytrade] tastytradeProvider fatal error:', err);
         return null;
     }
+}
+
+// ─── Shared Auth Export (for SSE quote-stream endpoint) ──────────────────────
+
+/**
+ * Returns the DXLink token + wss:// URL for opening a Trade stream.
+ * Reuses the shared session cache — zero extra latency when already warm.
+ * Server-side only — never import this from a client module.
+ */
+export async function getAuthForStream(): Promise<{ token: string; dxlinkUrl: string } | null> {
+    const sessionToken = await getSessionToken();
+    if (!sessionToken) return null;
+    return getQuoteToken(sessionToken);
 }
