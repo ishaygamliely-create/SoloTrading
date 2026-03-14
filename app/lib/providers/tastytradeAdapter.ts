@@ -35,68 +35,123 @@ interface SessionCache {
 
 let _sessionCache: SessionCache | null = null;
 
+// ── Failure Backoff ───────────────────────────────────────────────────────────
+// After a failed auth, block ALL retries for AUTH_BACKOFF_MS.
+// Prevents the 3-second watchdog loop from hammering POST /sessions.
+const AUTH_BACKOFF_MS = 5 * 60_000; // 5 minutes
+let _lastAuthFailureAt = 0;
+
 async function getSessionToken(): Promise<string | null> {
     const username = process.env.TASTYTRADE_USERNAME;
     const password = process.env.TASTYTRADE_PASSWORD;
     if (!username || !password) return null;
 
-    // Return cached token if still valid (5-min safety buffer)
+    // ── Return cached token if still valid (5-min safety buffer) ────────────
     if (_sessionCache && _sessionCache.expiresAt - 5 * 60_000 > Date.now()) {
+        console.log('[Tastytrade] getSessionToken: using cached token (valid)');
         return _sessionCache.token;
     }
 
+    // ── Backoff: if a recent failure exists, don't retry yet ────────────────
+    const timeSinceFailure = Date.now() - _lastAuthFailureAt;
+    if (_lastAuthFailureAt > 0 && timeSinceFailure < AUTH_BACKOFF_MS) {
+        const waitSec = Math.ceil((AUTH_BACKOFF_MS - timeSinceFailure) / 1000);
+        console.warn(`[Tastytrade] getSessionToken: SKIPPING — auth failed recently, backoff ${waitSec}s remaining`);
+        return null;
+    }
+
+    // ── Single attempt — no retry loop ──────────────────────────────────────
+    console.log(`[Tastytrade] getSessionToken: attempting POST /sessions (username=${username})`);
     try {
         const res = await fetch(`${TT_BASE}/sessions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // Credentials read only from env — never from request params or client input
             body: JSON.stringify({ login: username, password }),
             signal: AbortSignal.timeout(8000),
         });
 
         if (!res.ok) {
-            console.error(`[Tastytrade] Session auth failed: HTTP ${res.status}`);
+            const detail = await res.text().catch(() => '');
+            console.error(`[Tastytrade] POST /sessions FAILED: HTTP ${res.status} — ${detail}`);
+            _lastAuthFailureAt = Date.now(); // arm backoff — no retry for 5 min
             return null;
         }
 
         const json = await res.json();
         const token: string | undefined = json?.data?.['session-token'];
-        if (!token) return null;
+        if (!token) {
+            console.error('[Tastytrade] POST /sessions: response OK but no session-token in payload');
+            _lastAuthFailureAt = Date.now();
+            return null;
+        }
 
-        // Sessions last 24h — cache for 23.5h to avoid expiry mid-request
+        // Success — cache for 23.5h, clear failure state
         _sessionCache = { token, expiresAt: Date.now() + 23.5 * 3_600_000 };
+        _lastAuthFailureAt = 0;
+        console.log('[Tastytrade] POST /sessions: success — token cached for 23.5h');
         return token;
     } catch (err) {
-        console.error('[Tastytrade] getSessionToken error:', err);
+        console.error('[Tastytrade] getSessionToken error (network/timeout):', err);
+        _lastAuthFailureAt = Date.now();
         return null;
     }
 }
 
+
 // ─── Quote Token (DXLink auth ticket) ────────────────────────────────────────
+// Cached separately from the session token — quote tokens also last ~24h.
+// Caching prevents a GET /api-quote-tokens call on every WS reconnect.
 
 interface QuoteTokenResult {
     token: string;
     dxlinkUrl: string;
 }
 
+interface QuoteTokenCache {
+    token: string;
+    dxlinkUrl: string;
+    expiresAt: number;
+}
+
+let _quoteTokenCache: QuoteTokenCache | null = null;
+
 async function getQuoteToken(sessionToken: string): Promise<QuoteTokenResult | null> {
+    // Return cached quote token if still valid (5-min safety buffer)
+    if (_quoteTokenCache && _quoteTokenCache.expiresAt - 5 * 60_000 > Date.now()) {
+        console.log('[Tastytrade] getQuoteToken: using cached quote token');
+        return { token: _quoteTokenCache.token, dxlinkUrl: _quoteTokenCache.dxlinkUrl };
+    }
+
+    console.log('[Tastytrade] getQuoteToken: GET /api-quote-tokens');
     try {
         const res = await fetch(`${TT_BASE}/api-quote-tokens`, {
             headers: { Authorization: `Session ${sessionToken}` },
             signal: AbortSignal.timeout(5000),
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+            const detail = await res.text().catch(() => '');
+            console.error(`[Tastytrade] GET /api-quote-tokens FAILED: HTTP ${res.status} — ${detail}`);
+            return null;
+        }
 
         const json = await res.json();
         const token: string | undefined = json?.data?.token;
         const dxlinkUrl: string | undefined = json?.data?.['dxlink-url'];
-        if (!token || !dxlinkUrl) return null;
+        if (!token || !dxlinkUrl) {
+            console.error('[Tastytrade] GET /api-quote-tokens: missing token or dxlink-url in response');
+            return null;
+        }
 
+        // Cache for 23h — same lifetime as session token
+        _quoteTokenCache = { token, dxlinkUrl, expiresAt: Date.now() + 23 * 3_600_000 };
+        console.log(`[Tastytrade] GET /api-quote-tokens: success — ws endpoint: ${dxlinkUrl}`);
         return { token, dxlinkUrl };
-    } catch {
+    } catch (err) {
+        console.error('[Tastytrade] GET /api-quote-tokens error:', err);
         return null;
     }
 }
+
 
 // ─── Interval Mapping ─────────────────────────────────────────────────────────
 
